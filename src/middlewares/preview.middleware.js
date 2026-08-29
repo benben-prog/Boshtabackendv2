@@ -9,11 +9,12 @@ const previewFile = (filePath) => {
       });
     }
 
+    // ✅ نفس منطق الـ download بالظبط
     const absolutePath = path.join(__dirname, "../../../", filePath);
-    
+
     const ext = path.extname(filePath).toLowerCase();
     let contentType = "application/octet-stream";
-    
+
     if (ext === ".pdf") contentType = "application/pdf";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".png") contentType = "image/png";
@@ -22,7 +23,7 @@ const previewFile = (filePath) => {
     else if (ext === ".docx") contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("Content-Disposition", "inline"); // ← الفرق الوحيد عن download
 
     return res.sendFile(absolutePath);
   };
