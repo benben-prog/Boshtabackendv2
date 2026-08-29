@@ -609,9 +609,12 @@ ORDER BY p.title ASC
 const getPlaylistVideos = `
 SELECT 
   v.id AS video_id,
+  v.id,
   v.title,
   v.description,
   v.video_url,
+  v.file_url,
+  v.thumbnail_url,
   pv.added_at
 FROM videos v
 JOIN playlist_videos pv ON v.id = pv.video_id
