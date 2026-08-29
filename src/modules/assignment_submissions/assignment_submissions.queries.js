@@ -2,14 +2,24 @@
    ASSIGNMENT SUBMISSIONS QUERIES
    ============================================ */
 
-// Submit a new assignment (student)
+// ✅ Submit a new assignment - مع تحقق من حالة الواجب
 const submitAssignment = `
 INSERT INTO assignment_submissions (assignment_id, student_id, file_path)
-VALUES ($1, $2, $3)
+SELECT a.id, $2, $3
+FROM assignments a
+WHERE a.id = $1
+  AND a.deleted = 0
+  AND a.is_closed = 0
+  AND a.deadline > NOW()
+  AND NOT EXISTS (
+    SELECT 1 FROM assignment_submissions asub 
+    WHERE asub.assignment_id = a.id 
+      AND asub.student_id = $2
+  )
 RETURNING *
 `;
 
-// Update submission file before deadline (student)
+// ✅ Update submission - مع تحقق من حالة الواجب
 const updateSubmission = `
 UPDATE assignment_submissions asub
 SET file_path = $1, updated_at = NOW(), score = NULL, feedback = NULL
@@ -111,6 +121,7 @@ SELECT
   a.title,
   a.full_mark,
   a.deadline,
+  a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
   COUNT(asub.id) AS submitted_count,
   COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
@@ -121,7 +132,7 @@ FROM assignments a
 JOIN students s ON a.grade_id = s.grade_id AND s.deleted = 0
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = s.id
 WHERE a.id = $1 AND a.deleted = 0
-GROUP BY a.id, a.title, a.full_mark, a.deadline
+GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 `;
 
 // Get grade assignment submissions statistics
@@ -131,6 +142,7 @@ SELECT
   a.title,
   a.full_mark,
   a.deadline,
+  a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
   COUNT(asub.id) AS submitted_count,
   COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
@@ -139,7 +151,7 @@ FROM assignments a
 LEFT JOIN students s ON a.grade_id = s.grade_id AND s.deleted = 0
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = s.id
 WHERE a.grade_id = $1 AND a.deleted = 0
-GROUP BY a.id, a.title, a.full_mark, a.deadline
+GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 ORDER BY a.deadline DESC
 `;
 
@@ -150,6 +162,7 @@ SELECT
   a.title,
   a.full_mark,
   a.deadline,
+  a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
   COUNT(asub.id) AS submitted_count,
   COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
@@ -158,7 +171,7 @@ FROM assignments a
 LEFT JOIN students s ON a.group_id = s.group_id AND s.deleted = 0
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = s.id
 WHERE a.group_id = $1 AND a.deleted = 0
-GROUP BY a.id, a.title, a.full_mark, a.deadline
+GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 ORDER BY a.deadline DESC
 `;
 
