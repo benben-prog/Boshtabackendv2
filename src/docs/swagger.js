@@ -13,7 +13,7 @@ const swaggerOptions = {
     components: {
       securitySchemes: {
         ApiAuth: {
-          type: "https",
+          type: "http",
           scheme: "basic",
         },
         ClientToken: {
