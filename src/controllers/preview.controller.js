@@ -1,4 +1,5 @@
 const { query } = require("../config/database");
+const path = require("path");
 
 const previewAssignment = async (req, res, next) => {
   try {
@@ -10,9 +11,7 @@ const previewAssignment = async (req, res, next) => {
     const assignment = result.rows[0];
 
     if (!assignment || !assignment.file_path) {
-      return res
-        .status(404)
-        .json({ success: false, message: "File not found" });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
 
     const previewFile = require("../middlewares/preview.middleware");
@@ -25,15 +24,11 @@ const previewAssignment = async (req, res, next) => {
 const previewVideoFile = async (req, res, next) => {
   try {
     const { videoId } = req.params;
-    const result = await query("SELECT file_url FROM videos WHERE id = $1", [
-      videoId,
-    ]);
+    const result = await query("SELECT file_url FROM videos WHERE id = $1", [videoId]);
     const video = result.rows[0];
 
     if (!video || !video.file_url) {
-      return res
-        .status(404)
-        .json({ success: false, message: "File not found" });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
 
     const previewFile = require("../middlewares/preview.middleware");
@@ -53,9 +48,7 @@ const previewQuestionFile = async (req, res, next) => {
     const question = result.rows[0];
 
     if (!question || !question.file_path) {
-      return res
-        .status(404)
-        .json({ success: false, message: "File not found" });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
 
     const previewFile = require("../middlewares/preview.middleware");
@@ -75,9 +68,7 @@ const previewStudentAnswer = async (req, res, next) => {
     const answer = result.rows[0];
 
     if (!answer || !answer.file_path) {
-      return res
-        .status(404)
-        .json({ success: false, message: "File not found" });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
 
     const previewFile = require("../middlewares/preview.middleware");
