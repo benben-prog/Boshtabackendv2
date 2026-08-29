@@ -6,14 +6,32 @@ const path = require("path");
 const submitAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
-    const filePath = req.file.path;
+    const filePath = req.file?.path;
     const studentId = req.clientId;
+
+    if (!filePath) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى رفع ملف التسليم",
+      });
+    }
 
     const submission = await assignmentSubmissionService.submitAssignment(
       assignmentId,
       studentId,
       filePath,
     );
+
+    if (!submission) {
+      // حذف الملف المرفوع لو فشل التسليم
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        success: false,
+        message: "لا يمكن تسليم هذا الواجب - قد يكون مغلقاً أو منتهياً",
+      });
+    }
 
     // Log activity
     await logActivity({
@@ -39,8 +57,15 @@ const submitAssignment = async (req, res, next) => {
 const updateSubmission = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
-    const filePath = req.file.path;
+    const filePath = req.file?.path;
     const studentId = req.clientId;
+
+    if (!filePath) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى رفع ملف التسليم",
+      });
+    }
 
     const oldSubmission =
       await assignmentSubmissionService.getStudentSubmission(
@@ -49,7 +74,14 @@ const updateSubmission = async (req, res, next) => {
       );
 
     if (!oldSubmission) {
-      throw new Error("لا يوجد تسليم مسبق لهذا الواجب");
+      // حذف الملف المرفوع
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        success: false,
+        message: "لا يوجد تسليم مسبق لهذا الواجب",
+      });
     }
 
     const submission = await assignmentSubmissionService.updateSubmission(
@@ -59,9 +91,17 @@ const updateSubmission = async (req, res, next) => {
     );
 
     if (!submission) {
-      throw new Error("لا يمكن تعديل التسليم بعد التصحيح أو بعد انتهاء الوقت");
+      // حذف الملف المرفوع
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        success: false,
+        message: "لا يمكن تعديل التسليم - الواجب مغلق أو تم تصحيحه",
+      });
     }
 
+    // حذف الملف القديم
     if (oldSubmission.file_path) {
       const oldFilePath = path.join(
         __dirname,
@@ -105,10 +145,20 @@ const downloadSubmission = async (req, res, next) => {
     );
 
     if (!submission) {
-      throw new Error("التسليم غير موجود");
+      return res.status(404).json({
+        success: false,
+        message: "التسليم غير موجود",
+      });
     }
 
     const filePath = path.join(__dirname, "../../../", submission.file_path);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "الملف غير موجود",
+      });
+    }
 
     return res.download(filePath);
   } catch (error) {
@@ -146,7 +196,12 @@ const getStudentSubmission = async (req, res, next) => {
       studentId,
     );
 
-    if (!submission) throw new Error("التسليم غير موجود");
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "التسليم غير موجود",
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -211,7 +266,12 @@ const gradeSubmission = async (req, res, next) => {
       reviewedBy,
     );
 
-    if (!submission) throw new Error("التسليم غير موجود أو تم تصحيحه مسبقاً");
+    if (!submission) {
+      return res.status(400).json({
+        success: false,
+        message: "التسليم غير موجود أو تم تصحيحه مسبقاً",
+      });
+    }
 
     // Log activity
     await logActivity({
@@ -243,7 +303,12 @@ const getAssignmentSubmissionStats = async (req, res, next) => {
         assignmentId,
       );
 
-    if (!stats) throw new Error("الواجب غير موجود");
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        message: "الواجب غير موجود",
+      });
+    }
 
     return res.status(200).json({
       success: true,
