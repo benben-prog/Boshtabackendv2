@@ -5,47 +5,24 @@ const fs = require('fs');
 const previewFile = (filePath) => {
   return (req, res) => {
     if (!filePath) {
-      return res.status(404).json({
-        success: false,
-        message: "File not found",
-      });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
 
-    // تنظيف المسار
+    // تنظيف المسار من أي "/" في البداية
     let cleanPath = filePath.replace(/^\/+/, '');
     
-    // إذا كان المسار يبدأ بـ uploads/، قم بإزالته
-    if (cleanPath.startsWith('uploads/')) {
-      cleanPath = cleanPath.substring(8);
-    }
+    // بناء المسار المطلق. افترض أن مجلد "uploads" في جذر المشروع
+    // قد تحتاج لتعديل هذا المسار حسب هيكل مشروعك الفعلي
+    const fullPath = path.join(__dirname, '../../uploads', cleanPath); 
 
-    // بناء المسار الكامل
-    const fullPath = path.join(__dirname, '../uploads', cleanPath);
-    
-    console.log('Serving file:', fullPath); // للتصحيح
-
-    // التحقق من وجود الملف قبل الإرسال
+    // التحقق من وجود الملف
     if (!fs.existsSync(fullPath)) {
-      console.error('File not found:', fullPath);
-      return res.status(404).json({
-        success: false,
-        message: "File not found on server",
-      });
+      console.error('File not found at:', fullPath); // للتصحيح
+      return res.status(404).json({ success: false, message: "File not found on server" });
     }
 
-    // إرسال الملف مع معالجة الأخطاء
-    res.sendFile(fullPath, (err) => {
-      if (err) {
-        console.error('Error sending file:', err);
-        if (!res.headersSent) {
-          return res.status(500).json({
-            success: false,
-            message: "Error serving file",
-            error: err.message
-          });
-        }
-      }
-    });
+    // إرسال الملف
+    res.sendFile(fullPath);
   };
 };
 
