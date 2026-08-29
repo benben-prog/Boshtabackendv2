@@ -1,5 +1,4 @@
 const path = require("path");
-const fs = require("fs");
 
 const previewFile = (filePath) => {
   return (req, res) => {
@@ -10,28 +9,11 @@ const previewFile = (filePath) => {
       });
     }
 
-    const cleanPath = filePath.replace(/^\//, "");
+    const absolutePath = path.join(__dirname, "../../../", filePath);
     
-    const absolutePath = path.join(process.cwd(), cleanPath);
-
-    const srcPath = path.join(process.cwd(), "src", cleanPath);
-
-    let finalPath = absolutePath;
-    
-    if (!fs.existsSync(finalPath) && fs.existsSync(srcPath)) {
-      finalPath = srcPath;
-    }
-
-    if (!fs.existsSync(finalPath)) {
-      return res.status(404).json({
-        success: false,
-        message: `File not found: ${cleanPath}`,
-      });
-    }
-
-    const ext = path.extname(cleanPath).toLowerCase();
+    const ext = path.extname(filePath).toLowerCase();
     let contentType = "application/octet-stream";
-
+    
     if (ext === ".pdf") contentType = "application/pdf";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".png") contentType = "image/png";
@@ -42,7 +24,7 @@ const previewFile = (filePath) => {
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", "inline");
 
-    return res.sendFile(finalPath);
+    return res.sendFile(absolutePath);
   };
 };
 
