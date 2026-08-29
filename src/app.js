@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 // STATIC FILES
 // ============================================
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ============================================
 // SECURITY MIDDLEWARE
