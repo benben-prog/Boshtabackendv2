@@ -9,11 +9,12 @@ const previewFile = (filePath) => {
       });
     }
 
-    const absolutePath = path.join(__dirname, "../../../", filePath);
-    
-    const ext = path.extname(filePath).toLowerCase();
+    const cleanPath = filePath.replace(/^\//, "");
+    const absolutePath = path.join(__dirname, "../../../", cleanPath);
+
+    const ext = path.extname(cleanPath).toLowerCase();
     let contentType = "application/octet-stream";
-    
+
     if (ext === ".pdf") contentType = "application/pdf";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".png") contentType = "image/png";
