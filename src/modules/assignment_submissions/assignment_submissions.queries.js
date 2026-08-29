@@ -2,7 +2,7 @@
    ASSIGNMENT SUBMISSIONS QUERIES
    ============================================ */
 
-// ✅ Submit a new assignment - مع تحقق من حالة الواجب
+// Submit a new assignment - مع تحقق من حالة الواجب
 const submitAssignment = `
 INSERT INTO assignment_submissions (assignment_id, student_id, file_path)
 SELECT a.id, $2, $3
@@ -19,7 +19,7 @@ WHERE a.id = $1
 RETURNING *
 `;
 
-// ✅ Update submission - مع تحقق من حالة الواجب
+// Update submission - مع تحقق من حالة الواجب
 const updateSubmission = `
 UPDATE assignment_submissions asub
 SET file_path = $1, updated_at = NOW(), score = NULL, feedback = NULL
@@ -98,15 +98,19 @@ ORDER BY asub.submitted_at ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Get students who have not submitted an assignment
+// ✅ Get students who have not submitted - مع فلترة المجموعة
 const getNotSubmittedStudents = `
 SELECT 
   s.id,
   s.full_name,
   s.barcode
 FROM students s
-WHERE s.grade_id = (SELECT grade_id FROM assignments WHERE id = $1)
-  AND s.deleted = 0
+WHERE s.deleted = 0
+  AND s.grade_id = (SELECT grade_id FROM assignments WHERE id = $1)
+  AND (
+    (SELECT group_id FROM assignments WHERE id = $1) IS NULL
+    OR s.group_id = (SELECT group_id FROM assignments WHERE id = $1)
+  )
   AND s.id NOT IN (
     SELECT student_id FROM assignment_submissions WHERE assignment_id = $1
   )
@@ -114,7 +118,7 @@ ORDER BY s.full_name ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Get assignment submission statistics
+// ✅ Get assignment submission statistics - مع COUNT(DISTINCT)
 const getAssignmentSubmissionStats = `
 SELECT 
   a.id,
@@ -123,19 +127,20 @@ SELECT
   a.deadline,
   a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(asub.id) AS submitted_count,
-  COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
+  COUNT(DISTINCT asub.student_id) AS submitted_count,
+  COUNT(DISTINCT s.id) - COUNT(DISTINCT asub.student_id) AS not_submitted_count,
   ROUND(AVG(asub.score)::numeric, 2) AS average_score,
   MAX(asub.score) AS highest_score,
   MIN(asub.score) AS lowest_score
 FROM assignments a
 JOIN students s ON a.grade_id = s.grade_id AND s.deleted = 0
+  AND (a.group_id IS NULL OR s.group_id = a.group_id)
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = s.id
 WHERE a.id = $1 AND a.deleted = 0
 GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 `;
 
-// Get grade assignment submissions statistics
+// ✅ Get grade assignment submissions statistics - مع فلترة المجموعة
 const getGradeAssignmentSubmissionStats = `
 SELECT 
   a.id,
@@ -144,18 +149,19 @@ SELECT
   a.deadline,
   a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(asub.id) AS submitted_count,
-  COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
+  COUNT(DISTINCT asub.student_id) AS submitted_count,
+  COUNT(DISTINCT s.id) - COUNT(DISTINCT asub.student_id) AS not_submitted_count,
   ROUND(AVG(asub.score)::numeric, 2) AS average_score
 FROM assignments a
 LEFT JOIN students s ON a.grade_id = s.grade_id AND s.deleted = 0
+  AND (a.group_id IS NULL OR s.group_id = a.group_id)
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = s.id
 WHERE a.grade_id = $1 AND a.deleted = 0
 GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 ORDER BY a.deadline DESC
 `;
 
-// Get group assignment submissions statistics
+// ✅ Get group assignment submissions statistics - مع COUNT(DISTINCT)
 const getGroupAssignmentSubmissionStats = `
 SELECT 
   a.id,
@@ -164,8 +170,8 @@ SELECT
   a.deadline,
   a.is_closed,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(asub.id) AS submitted_count,
-  COUNT(DISTINCT s.id) - COUNT(asub.id) AS not_submitted_count,
+  COUNT(DISTINCT asub.student_id) AS submitted_count,
+  COUNT(DISTINCT s.id) - COUNT(DISTINCT asub.student_id) AS not_submitted_count,
   ROUND(AVG(asub.score)::numeric, 2) AS average_score
 FROM assignments a
 LEFT JOIN students s ON a.group_id = s.group_id AND s.deleted = 0
