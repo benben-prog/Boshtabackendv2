@@ -5,15 +5,15 @@ const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "JupiterLearn API",
+      title: "Boshta-Platform API",
       version: "1.0.0",
-      description: "JupiterLearn Platform API Documentation",
+      description: "Boshta-Platform Platform API Documentation",
     },
-    servers: [{ url: "http://localhost:3000/" }],
+    servers: [{ url: "https://backend.benb3n.cloud/" }],
     components: {
       securitySchemes: {
         ApiAuth: {
-          type: "http",
+          type: "https",
           scheme: "basic",
         },
         ClientToken: {
