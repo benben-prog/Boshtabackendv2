@@ -11,7 +11,7 @@ const previewFile = (filePath) => {
     const cleanPath = filePath.replace(/^\//, "");
 
     // Redirect للـ static URL
-    return res.redirect(`/uploads/${cleanPath}`);
+    return res.redirect(`${cleanPath}`);
   };
 };
 
