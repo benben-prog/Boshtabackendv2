@@ -7,6 +7,12 @@ const submitAssignment = async (assignmentId, studentId, filePath) => {
     studentId,
     filePath,
   ]);
+  
+  // لو مفيش نتيجة - يعني الواجب مغلق أو منتهي أو مكرر
+  if (!result.rows[0]) {
+    return null;
+  }
+  
   return result.rows[0];
 };
 
@@ -16,6 +22,12 @@ const updateSubmission = async (assignmentId, studentId, filePath) => {
     assignmentId,
     studentId,
   ]);
+  
+  // لو مفيش نتيجة - يعني الواجب مغلق أو مصحح
+  if (!result.rows[0]) {
+    return null;
+  }
+  
   return result.rows[0];
 };
 
