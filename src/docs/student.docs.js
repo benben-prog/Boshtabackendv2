@@ -1,8 +1,22 @@
 /**
  * @swagger
  * tags:
- *   name: Student
- *   description: Student portal endpoints - All student operations (Self-Service)
+ *   - name: Student - Dashboard & Profile
+ *     description: Student dashboard, profile, and account endpoints
+ *   - name: Student - Attendance
+ *     description: Student attendance endpoints
+ *   - name: Student - Paper Exams
+ *     description: Paper exam endpoints for student
+ *   - name: Student - Online Exams
+ *     description: Online exam endpoints for student
+ *   - name: Student - Questions & Options
+ *     description: Question and option endpoints for student
+ *   - name: Student - Assignments
+ *     description: Assignment and submission endpoints for student
+ *   - name: Student - Videos & Playlists
+ *     description: Video and playlist endpoints for student
+ *   - name: Student - Payments
+ *     description: Payment and subscription endpoints for student
  */
 
 /* ============================================
@@ -15,7 +29,7 @@
  *   get:
  *     summary: Get student dashboard
  *     description: Get comprehensive dashboard with student info, group details, attendance, upcoming exams, and assignments
- *     tags: [Student]
+ *     tags: [Student - Dashboard & Profile]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -28,7 +42,7 @@
  *   get:
  *     summary: Get student profile
  *     description: Get current student full profile with grade and group details
- *     tags: [Student]
+ *     tags: [Student - Dashboard & Profile]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -41,7 +55,7 @@
  *   get:
  *     summary: Get student quick stats
  *     description: Get attendance summary, exam averages, and payment totals
- *     tags: [Student]
+ *     tags: [Student - Dashboard & Profile]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -54,7 +68,7 @@
  *   put:
  *     summary: Update profile image
  *     description: Upload new profile image
- *     tags: [Student]
+ *     tags: [Student - Dashboard & Profile]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     requestBody:
  *       required: true
@@ -66,7 +80,6 @@
  *               image:
  *                 type: string
  *                 format: binary
- *                 description: Profile image file (jpg, png, webp)
  *     responses:
  *       200:
  *         description: Profile image updated successfully
@@ -78,7 +91,7 @@
  *   put:
  *     summary: Change password
  *     description: Update student password (requires old password)
- *     tags: [Student]
+ *     tags: [Student - Dashboard & Profile]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     requestBody:
  *       required: true
@@ -88,15 +101,9 @@
  *             type: object
  *             required: [oldPassword, password, confirmPassword]
  *             properties:
- *               oldPassword:
- *                 type: string
- *                 description: Current password
- *               password:
- *                 type: string
- *                 description: New password
- *               confirmPassword:
- *                 type: string
- *                 description: Confirm new password
+ *               oldPassword: { type: string }
+ *               password: { type: string }
+ *               confirmPassword: { type: string }
  *     responses:
  *       200:
  *         description: Password updated successfully
@@ -112,20 +119,15 @@
  *   get:
  *     summary: Get attendance history
  *     description: Get paginated attendance records with month filter
- *     tags: [Student]
+ *     tags: [Student - Attendance]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
- *         description: Filter by month (YYYY-MM)
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Attendance list retrieved successfully
@@ -136,8 +138,7 @@
  * /api/student/attendance/monthly:
  *   get:
  *     summary: Get monthly attendance stats
- *     description: Get attendance grouped by month
- *     tags: [Student]
+ *     tags: [Student - Attendance]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -149,8 +150,7 @@
  * /api/student/attendance/consecutive:
  *   get:
  *     summary: Get consecutive absences
- *     description: Get count of consecutive absences
- *     tags: [Student]
+ *     tags: [Student - Attendance]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -166,20 +166,15 @@
  * /api/student/exams/paper:
  *   get:
  *     summary: Get paper exams
- *     description: Get paper exams with scores and month filter
- *     tags: [Student]
+ *     tags: [Student - Paper Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Paper exams retrieved successfully
@@ -190,8 +185,7 @@
  * /api/student/exams/paper/{examId}:
  *   get:
  *     summary: Get paper exam details
- *     description: Get specific paper exam with rank and highest degree
- *     tags: [Student]
+ *     tags: [Student - Paper Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -208,20 +202,15 @@
  * /api/student/exams/results:
  *   get:
  *     summary: Get exam results
- *     description: Get all paper exam results
- *     tags: [Student]
+ *     tags: [Student - Paper Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Results retrieved successfully
@@ -236,15 +225,12 @@
  * /api/student/exams/online/available:
  *   get:
  *     summary: Get available online exams
- *     description: Get online exams available for student
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Available exams retrieved successfully
@@ -255,20 +241,15 @@
  * /api/student/exams/online/history:
  *   get:
  *     summary: Get online exams history
- *     description: Get submitted online exams with scores
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: History retrieved successfully
@@ -279,8 +260,7 @@
  * /api/student/exams/online/{attemptId}:
  *   get:
  *     summary: Get online exam details
- *     description: Get specific exam attempt with answers summary
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -297,8 +277,7 @@
  * /api/student/exams/online/{examId}/start:
  *   post:
  *     summary: Start online exam
- *     description: Start new exam attempt
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -315,8 +294,7 @@
  * /api/student/exams/online/{attemptId}/submit:
  *   put:
  *     summary: Submit online exam
- *     description: Submit exam with final score
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -331,9 +309,7 @@
  *             type: object
  *             required: [score]
  *             properties:
- *               score:
- *                 type: number
- *                 example: 8
+ *               score: { type: number }
  *     responses:
  *       200:
  *         description: Exam submitted successfully
@@ -344,8 +320,7 @@
  * /api/student/exams/online/{examId}/answer:
  *   post:
  *     summary: Submit MCQ/True-False answer
- *     description: Submit answer for MCQ or True/False question
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -360,10 +335,8 @@
  *             type: object
  *             required: [question_id, selected_option_id]
  *             properties:
- *               question_id:
- *                 type: integer
- *               selected_option_id:
- *                 type: integer
+ *               question_id: { type: integer }
+ *               selected_option_id: { type: integer }
  *     responses:
  *       200:
  *         description: Answer saved successfully
@@ -374,8 +347,7 @@
  * /api/student/exams/online/{examId}/essay:
  *   post:
  *     summary: Submit essay answer
- *     description: Submit essay answer with file upload
- *     tags: [Student]
+ *     tags: [Student - Online Exams]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -390,15 +362,68 @@
  *             type: object
  *             required: [question_id, file]
  *             properties:
- *               question_id:
- *                 type: integer
+ *               question_id: { type: integer }
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: Answer file (PDF/Word/Image)
  *     responses:
  *       200:
  *         description: Essay answer saved successfully
+ */
+
+/* ============================================
+   QUESTIONS & OPTIONS
+   ============================================ */
+
+/**
+ * @swagger
+ * /api/student/exams/online/{examId}/questions:
+ *   get:
+ *     summary: Get exam questions
+ *     tags: [Student - Questions & Options]
+ *     security: [{ ApiAuth: [], ClientToken: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Questions retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /api/student/exams/online/question/{questionId}:
+ *   get:
+ *     summary: Get question by ID
+ *     tags: [Student - Questions & Options]
+ *     security: [{ ApiAuth: [], ClientToken: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Question retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /api/student/options/question/{questionId}:
+ *   get:
+ *     summary: Get options by question
+ *     tags: [Student - Questions & Options]
+ *     security: [{ ApiAuth: [], ClientToken: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Options retrieved successfully
  */
 
 /* ============================================
@@ -410,20 +435,15 @@
  * /api/student/assignments:
  *   get:
  *     summary: Get assignments
- *     description: Get assignments with submission status
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Assignments retrieved successfully
@@ -434,8 +454,7 @@
  * /api/student/assignments/{assignmentId}:
  *   get:
  *     summary: Get assignment details
- *     description: Get specific assignment with submission details
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -452,8 +471,7 @@
  * /api/student/assignments/{assignmentId}/download:
  *   get:
  *     summary: Download assignment file
- *     description: Download assignment file
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -470,8 +488,7 @@
  * /api/student/assignments/{assignmentId}/submit:
  *   post:
  *     summary: Submit assignment
- *     description: Submit assignment with file upload
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -489,7 +506,6 @@
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: Solution file (PDF/Word/Image)
  *     responses:
  *       201:
  *         description: Assignment submitted successfully
@@ -500,8 +516,7 @@
  * /api/student/assignments/{assignmentId}/update:
  *   put:
  *     summary: Update assignment submission
- *     description: Update submission file before deadline
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -519,7 +534,6 @@
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: New solution file
  *     responses:
  *       200:
  *         description: Submission updated successfully
@@ -527,23 +541,35 @@
 
 /**
  * @swagger
+ * /api/student/homeWorkSubmission/{assignmentId}/download:
+ *   get:
+ *     summary: Download own submission
+ *     tags: [Student - Assignments]
+ *     security: [{ ApiAuth: [], ClientToken: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: File downloaded successfully
+ */
+
+/**
+ * @swagger
  * /api/student/submissions:
  *   get:
  *     summary: Get submissions
- *     description: Get all assignment submissions
- *     tags: [Student]
+ *     tags: [Student - Assignments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Submissions retrieved successfully
@@ -558,8 +584,7 @@
  * /api/student/playlists:
  *   get:
  *     summary: Get playlists
- *     description: Get playlists for student's grade
- *     tags: [Student]
+ *     tags: [Student - Videos & Playlists]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -571,8 +596,7 @@
  * /api/student/playlists/{playlistId}/videos:
  *   get:
  *     summary: Get playlist videos
- *     description: Get videos in specific playlist
- *     tags: [Student]
+ *     tags: [Student - Videos & Playlists]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: path
@@ -593,20 +617,15 @@
  * /api/student/payments:
  *   get:
  *     summary: Get payment history
- *     description: Get payment records with month filter
- *     tags: [Student]
+ *     tags: [Student - Payments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     parameters:
  *       - in: query
  *         name: month
- *         schema:
- *           type: string
- *           example: "2026-08"
+ *         schema: { type: string, example: "2026-08" }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           default: 1
+ *         schema: { type: integer, default: 1 }
  *     responses:
  *       200:
  *         description: Payments retrieved successfully
@@ -617,8 +636,7 @@
  * /api/student/payments/balance:
  *   get:
  *     summary: Get remaining balance
- *     description: Get total required, paid, and remaining
- *     tags: [Student]
+ *     tags: [Student - Payments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
@@ -630,91 +648,9 @@
  * /api/student/payments/current-subscription:
  *   get:
  *     summary: Get current subscription
- *     description: Get current month subscription status
- *     tags: [Student]
+ *     tags: [Student - Payments]
  *     security: [{ ApiAuth: [], ClientToken: [] }]
  *     responses:
  *       200:
  *         description: Subscription retrieved successfully
- */
-/**
- * @swagger
- * /api/student/exams/online/{examId}/questions:
- *   get:
- *     summary: Get exam questions
- *     description: Get all questions for specific online exam
- *     tags: [Student]
- *     security: [{ ApiAuth: [], ClientToken: [] }]
- *     parameters:
- *       - in: path
- *         name: examId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Questions retrieved successfully
- *//**
- * @swagger
- * /api/student/exams/online/question/{questionId}:
- *   get:
- *     summary: Get question by ID
- *     description: Get specific question details
- *     tags: [Student]
- *     security: [{ ApiAuth: [], ClientToken: [] }]
- *     parameters:
- *       - in: path
- *         name: questionId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Question retrieved successfully
- *//**
- * @swagger
- * /api/student/options/question/{questionId}:
- *   get:
- *     summary: Get options by question
- *     description: Get answer options for specific question
- *     tags: [Student]
- *     security: [{ ApiAuth: [], ClientToken: [] }]
- *     parameters:
- *       - in: path
- *         name: questionId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Options retrieved successfully
- *//**
- * @swagger
- * /api/student/assignments/{assignmentId}/download:
- *   get:
- *     summary: Download assignment file
- *     description: Download assignment file
- *     tags: [Student]
- *     security: [{ ApiAuth: [], ClientToken: [] }]
- *     parameters:
- *       - in: path
- *         name: assignmentId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: File downloaded successfully
- *//**
- * @swagger
- * /api/student/homeWorkSubmission/{assignmentId}/download:
- *   get:
- *     summary: Download own submission
- *     description: Download student's own submission file
- *     tags: [Student]
- *     security: [{ ApiAuth: [], ClientToken: [] }]
- *     parameters:
- *       - in: path
- *         name: assignmentId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: File downloaded successfully
  */
