@@ -89,6 +89,7 @@ const createAssignment = async (req, res, next) => {
       req.body;
     const file_path = req.file ? req.file.path : null;
     const created_by = req.clientId;
+    const is_closed = req.body.is_closed !== undefined ? parseInt(req.body.is_closed) : 0;
 
     const assignment = await assignmentService.createAssignment({
       title,
@@ -99,13 +100,13 @@ const createAssignment = async (req, res, next) => {
       full_mark,
       deadline,
       created_by,
+      is_closed,
     });
 
     if (!assignment) {
       throw new Error("فشل إنشاء الواجب حاول مرة أخرى!");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -126,21 +127,17 @@ const createAssignment = async (req, res, next) => {
   }
 };
 
-// Update assignment - with smart deadline handling
+// Update assignment - ✅ إصلاح is_closed
 const updateAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
 
-    // Collect data from body and file
+    // ✅ لو is_closed مش مبعوت، خليه 0 (مفتوح)
     const updateData = {
       ...req.body,
-      file_path: req.file ? req.file.path : undefined,
+      is_closed:
+        req.body.is_closed !== undefined ? req.body.is_closed : 0,
     };
-
-    // If new deadline is provided and assignment should be opened
-    if (updateData.deadline && !updateData.is_closed) {
-      updateData.is_closed = 0;
-    }
 
     const assignment = await assignmentService.updateAssignment(
       assignmentId,
@@ -151,7 +148,6 @@ const updateAssignment = async (req, res, next) => {
       throw new Error("فشل تعديل الواجب حاول مرة أخرى!");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -200,7 +196,6 @@ const softDeleteAssignment = async (req, res, next) => {
       throw new Error("فشل حذف الواجب حاول مرة أخرى!");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -232,7 +227,6 @@ const hardDeleteAssignment = async (req, res, next) => {
       throw new Error("فشل حذف الواجب نهائيًا حاول مرة أخرى!");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
