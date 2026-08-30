@@ -2,6 +2,7 @@ const studentAnswerService = require("./student_answers.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
+const { query } = require("../../config/database");
 
 // Submit MCQ/True-False answer
 const submitAnswer = async (req, res, next) => {
@@ -253,6 +254,40 @@ const getEssayAnswersByExam = async (req, res, next) => {
   }
 };
 
+// Download student answer file
+const downloadAnswerFile = async (req, res, next) => {
+  try {
+    const { answerId } = req.params;
+
+    const answer = await query(
+      "SELECT file_path FROM student_answers WHERE id = $1",
+      [answerId],
+    );
+
+    const answerData = answer.rows[0];
+
+    if (!answerData || !answerData.file_path) {
+      return res.status(404).json({
+        success: false,
+        message: "الملف غير موجود",
+      });
+    }
+
+    const filePath = path.join(__dirname, "../../../", answerData.file_path);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "الملف غير موجود",
+      });
+    }
+
+    return res.download(filePath);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   submitAnswer,
   submitEssayAnswer,
@@ -263,4 +298,5 @@ module.exports = {
   gradeEssayAnswer,
   getEssayAnswersForGrading,
   getEssayAnswersByExam,
+  downloadAnswerFile,
 };
