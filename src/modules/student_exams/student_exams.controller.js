@@ -1,29 +1,202 @@
 const studentExamService = require("./student_exams.service");
 
-// Create exam attempt (student starts exam)
-const createExamAttempt = async (req, res, next) => {
+// Check active attempt
+const checkActiveAttempt = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const studentId = req.clientId;
 
-    // التحقق من وجود محاولة سابقة
-    const existing = await studentExamService.checkExistingAttempt(
+    const attempt = await studentExamService.checkExistingAttempt(
       examId,
       studentId,
     );
-    if (existing) {
-      throw new Error("لقد قمت بمحاولة هذا الامتحان من قبل!");
+
+    if (!attempt) {
+      return res.status(200).json({
+        success: true,
+        message: "No previous attempt",
+        data: {
+          has_active_attempt: false,
+          submitted: false,
+        },
+      });
     }
+
+    if (attempt.submitted_at === null) {
+      return res.status(200).json({
+        success: true,
+        message: "Active attempt found",
+        data: {
+          has_active_attempt: true,
+          submitted: false,
+          attempt_id: attempt.id,
+          started_at: attempt.started_at,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Exam already submitted",
+      data: {
+        has_active_attempt: false,
+        submitted: true,
+        submitted_at: attempt.submitted_at,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Resume exam
+const resumeExam = async (req, res, next) => {
+  try {
+    const { examId } = req.params;
+    const studentId = req.clientId;
+
+    const attempt = await studentExamService.checkExistingAttempt(
+      examId,
+      studentId,
+    );
+
+    if (!attempt || attempt.submitted_at !== null) {
+      return res.status(400).json({
+        success: false,
+        message: "No active attempt found for this exam",
+      });
+    }
+
+    const examWithQuestions =
+      await studentExamService.getStudentExamWithQuestions(
+        attempt.id,
+        studentId,
+      );
+
+    return res.status(200).json({
+      success: true,
+      message: "Exam resumed successfully",
+      data: {
+        ...examWithQuestions,
+        is_resumed: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Start exam
+const createExamAttempt = async (req, res, next) => {
+  try {
+    const { examId } = req.params;
+    const studentId = req.clientId;
 
     const attempt = await studentExamService.createExamAttempt(
       examId,
       studentId,
     );
 
-    return res.status(201).json({
+    const examWithQuestions =
+      await studentExamService.getStudentExamWithQuestions(
+        attempt.id,
+        studentId,
+      );
+
+    return res.status(200).json({
       success: true,
-      message: "تم بدء الامتحان بنجاح!",
-      data: attempt,
+      message: attempt.is_resumed
+        ? "Exam resumed successfully"
+        : "Exam started successfully",
+      data: {
+        ...examWithQuestions,
+        is_resumed: attempt.is_resumed || false,
+      },
+    });
+  } catch (error) {
+    if (
+      error.message === "You have already completed this exam" ||
+      error.message === "Exam time has ended" ||
+      error.message === "Exam has not started yet" ||
+      error.message === "This exam is not available for your grade" ||
+      error.message === "This exam is not available for your group"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+// Submit exam
+const submitExam = async (req, res, next) => {
+  try {
+    const { attemptId } = req.params;
+    const studentId = req.clientId;
+
+    const result = await studentExamService.submitExam(attemptId, studentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Exam submitted successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get exam questions for student
+const getExamQuestionsForStudent = async (req, res, next) => {
+  try {
+    const { examId } = req.params;
+    const studentId = req.clientId;
+
+    const questions = await studentExamService.getExamQuestionsForStudent(
+      examId,
+      studentId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Questions loaded successfully",
+      data: questions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get single question for student
+const getQuestionForStudent = async (req, res, next) => {
+  try {
+    const { questionId } = req.params;
+
+    const question = await studentExamService.getQuestionForStudent(questionId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Question loaded successfully",
+      data: question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get options for student
+const getOptionsForStudent = async (req, res, next) => {
+  try {
+    const { questionId } = req.params;
+
+    const options = await studentExamService.getOptionsForStudent(questionId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Options loaded successfully",
+      data: options,
     });
   } catch (error) {
     next(error);
@@ -42,7 +215,7 @@ const getStudentExamsByExamId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المحاولات بنجاح!",
+      message: "Attempts loaded successfully",
       data: attempts,
     });
   } catch (error) {
@@ -57,12 +230,12 @@ const getExamAttemptStats = async (req, res, next) => {
     const stats = await studentExamService.getExamAttemptStats(examId);
 
     if (!stats) {
-      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
+      throw new Error("Failed to load stats");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "Stats loaded successfully",
       data: stats,
     });
   } catch (error) {
@@ -78,7 +251,7 @@ const getGradeExamAttemptsStats = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "Stats loaded successfully",
       data: stats,
     });
   } catch (error) {
@@ -94,7 +267,7 @@ const getGroupExamAttemptsStats = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "Stats loaded successfully",
       data: stats,
     });
   } catch (error) {
@@ -102,38 +275,16 @@ const getGroupExamAttemptsStats = async (req, res, next) => {
   }
 };
 
-// Submit exam
-const submitExam = async (req, res, next) => {
-  try {
-    const { attemptId } = req.params;
-    const { score } = req.body;
-    const studentId = req.clientId;
-
-    const result = await studentExamService.submitExam(
-      attemptId,
-      studentId,
-      score,
-    );
-
-    if (!result) {
-      throw new Error("فشل تسليم الامتحان حاول مرة أخرى!");
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تسليم الامتحان بنجاح!",
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
+  checkActiveAttempt,
+  resumeExam,
   createExamAttempt,
   getStudentExamsByExamId,
   getExamAttemptStats,
   getGradeExamAttemptsStats,
   getGroupExamAttemptsStats,
   submitExam,
+  getExamQuestionsForStudent,
+  getQuestionForStudent,
+  getOptionsForStudent,
 };
