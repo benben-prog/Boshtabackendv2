@@ -3,7 +3,6 @@ const studentQueries = require("./student.queries");
 
 // Get dashboard
 const getDashboard = async (studentId) => {
-  // 1. بيانات الطالب + المجموعة
   const studentInfo = await query(studentQueries.getStudentDashboard, [
     studentId,
   ]);
@@ -11,33 +10,27 @@ const getDashboard = async (studentId) => {
 
   if (!student) return null;
 
-  // 2. ملخص الحضور
   const attendance = await query(studentQueries.getAttendanceSummary, [
     studentId,
   ]);
 
-  // 3. الامتحانات القادمة (أونلاين)
   const upcomingOnline = await query(studentQueries.getUpcomingOnlineExams, [
     student.grade_id,
     student.group_id,
   ]);
 
-  // 4. الامتحانات القادمة (ورقي)
   const upcomingPaper = await query(studentQueries.getUpcomingPaperExams, [
     student.grade_id,
     student.group_id,
   ]);
 
-  // 5. الواجبات القادمة
   const upcomingAssignments = await query(
     studentQueries.getUpcomingAssignments,
     [studentId],
   );
 
-  // 6. ملخص الامتحانات
   const examsSummary = await query(studentQueries.getExamsSummary, [studentId]);
 
-  // 7. عدد الواجبات المعلقة
   const pendingAssignments = await query(
     studentQueries.getPendingAssignmentsCount,
     [studentId],
