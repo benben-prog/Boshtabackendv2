@@ -4,6 +4,7 @@ const questionController = require("../questions/questions.controller");
 const optionController = require("../options/options.controller");
 
 const studentController = require("./student.controller");
+const studentExamController = require("../student_exams/student_exams.controller");
 const studentAnswerController = require("../student_answers/student_answers.controller");
 const assignmentController = require("../assignments/assignments.controller");
 const assignmentSubmissionController = require("../assignment_submissions/assignment_submissions.controller");
@@ -71,11 +72,13 @@ routes.get(
   "/exams/online/:examId/check-attempt",
   studentController.checkActiveAttempt,
 );
+
 // Get exam review for student
 routes.get(
   "/exams/online/:attemptId/review",
   studentExamController.getExamReview,
 );
+
 // Resume exam
 routes.get("/exams/online/:examId/resume", studentController.resumeExam);
 
