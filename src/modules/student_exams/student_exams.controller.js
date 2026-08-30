@@ -172,10 +172,7 @@ const getExamReview = async (req, res, next) => {
     const { attemptId } = req.params;
     const studentId = req.clientId;
 
-    const review = await studentExamService.getExamReview(
-      attemptId,
-      studentId,
-    );
+    const review = await studentExamService.getExamReview(attemptId, studentId);
 
     return res.status(200).json({
       success: true,
