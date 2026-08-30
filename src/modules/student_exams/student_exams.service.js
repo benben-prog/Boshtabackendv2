@@ -406,9 +406,7 @@ const getExamReview = async (attemptId, studentId) => {
 
   const reviewQuestions = await Promise.all(
     questions.map(async (question) => {
-      const studentAnswer = answers.find(
-        (a) => a.question_id === question.id,
-      );
+      const studentAnswer = answers.find((a) => a.question_id === question.id);
 
       let reviewData = {
         question_id: question.id,
@@ -457,9 +455,7 @@ const getExamReview = async (attemptId, studentId) => {
   const correctAnswers = reviewQuestions.filter(
     (q) => q.is_correct === 1,
   ).length;
-  const wrongAnswers = reviewQuestions.filter(
-    (q) => q.is_correct === 0,
-  ).length;
+  const wrongAnswers = reviewQuestions.filter((q) => q.is_correct === 0).length;
   const unansweredQuestions = reviewQuestions.filter(
     (q) => q.is_correct === null,
   ).length;
