@@ -162,7 +162,6 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
         };
       }
 
-      // Essay question - add file_url for preview
       return {
         ...question,
         file_url: question.file_path,
@@ -352,6 +351,138 @@ const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
   }
 };
 
+// Get exam review after submission
+const getExamReview = async (attemptId, studentId) => {
+  const attemptResult = await query(
+    `SELECT 
+      se.id AS attempt_id,
+      se.exam_id,
+      se.score,
+      se.started_at,
+      se.submitted_at,
+      oe.title AS exam_title,
+      oe.full_mark,
+      oe.duration_minutes
+     FROM student_exams se
+     JOIN online_exams oe ON se.exam_id = oe.id
+     WHERE se.id = $1 AND se.student_id = $2 AND se.submitted_at IS NOT NULL`,
+    [attemptId, studentId],
+  );
+
+  const attempt = attemptResult.rows[0];
+
+  if (!attempt) {
+    throw new Error("الامتحان غير موجود أو لم يتم تسليمه بعد");
+  }
+
+  const questionsResult = await query(
+    `SELECT 
+      q.id,
+      q.question_text,
+      q.type,
+      q.file_path,
+      q."order"
+     FROM questions q
+     WHERE q.exam_id = $1
+     ORDER BY q."order" ASC`,
+    [attempt.exam_id],
+  );
+
+  const questions = questionsResult.rows;
+
+  const answersResult = await query(
+    `SELECT 
+      sa.id AS answer_id,
+      sa.question_id,
+      sa.selected_option_id,
+      sa.file_path,
+      sa.is_correct
+     FROM student_answers sa
+     WHERE sa.exam_id = $1 AND sa.student_id = $2`,
+    [attempt.exam_id, studentId],
+  );
+
+  const answers = answersResult.rows;
+
+  const reviewQuestions = await Promise.all(
+    questions.map(async (question) => {
+      const studentAnswer = answers.find(
+        (a) => a.question_id === question.id,
+      );
+
+      let reviewData = {
+        question_id: question.id,
+        question_text: question.question_text,
+        question_type: question.type,
+        file_path: question.file_path,
+        order: question.order,
+        student_answer: null,
+        is_correct: studentAnswer?.is_correct ?? null,
+      };
+
+      if (question.type === "mcq" || question.type === "true_false") {
+        const optionsResult = await query(
+          `SELECT 
+            id,
+            option_text,
+            is_correct,
+            "order"
+           FROM options
+           WHERE question_id = $1
+           ORDER BY "order" ASC`,
+          [question.id],
+        );
+
+        const options = optionsResult.rows;
+
+        reviewData.options = options.map((opt) => ({
+          option_id: opt.id,
+          option_text: opt.option_text,
+          is_correct: opt.is_correct === 1,
+          is_selected: studentAnswer?.selected_option_id === opt.id,
+        }));
+
+        reviewData.student_answer =
+          options.find((opt) => opt.id === studentAnswer?.selected_option_id)
+            ?.option_text || null;
+      } else if (question.type === "essay") {
+        reviewData.student_answer = studentAnswer?.file_path || null;
+      }
+
+      return reviewData;
+    }),
+  );
+
+  const totalQuestions = questions.length;
+  const correctAnswers = reviewQuestions.filter(
+    (q) => q.is_correct === 1,
+  ).length;
+  const wrongAnswers = reviewQuestions.filter(
+    (q) => q.is_correct === 0,
+  ).length;
+  const unansweredQuestions = reviewQuestions.filter(
+    (q) => q.is_correct === null,
+  ).length;
+
+  return {
+    attempt_id: attempt.attempt_id,
+    exam_id: attempt.exam_id,
+    exam_title: attempt.exam_title,
+    full_mark: attempt.full_mark,
+    score: attempt.score,
+    percentage:
+      attempt.full_mark > 0
+        ? Math.round((attempt.score / attempt.full_mark) * 100 * 100) / 100
+        : 0,
+    submitted_at: attempt.submitted_at,
+    total_questions: totalQuestions,
+    correct_answers: correctAnswers,
+    wrong_answers: wrongAnswers,
+    unanswered_questions: unansweredQuestions,
+    questions: reviewQuestions,
+  };
+};
+
 // Auto submit expired exams
 const autoSubmitExpiredExams = async () => {
   const expiredAttempts = await query(
@@ -455,7 +586,6 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
         };
       }
 
-      // Essay question - add file_url
       return {
         ...question,
         file_url: question.file_path,
@@ -532,6 +662,7 @@ module.exports = {
   getGroupExamAttemptsStats,
   submitExam,
   recalculateScoreAfterEssayGrading,
+  getExamReview,
   autoSubmitExpiredExams,
   markAbsentStudents,
   getStudentExamWithQuestions,
