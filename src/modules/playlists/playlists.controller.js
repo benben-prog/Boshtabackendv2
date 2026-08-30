@@ -1,10 +1,13 @@
 const playlistService = require("./playlists.service");
 const { logActivity } = require("../../utils/activityLogger");
+const fs = require("fs");
+const path = require("path");
 
 // Create playlist
 const createPlaylist = async (req, res, next) => {
   try {
-    const thumbnail_url = req.file ? req.file.path : null;
+    // ✅ الأولوية للملف المرفوع
+    const thumbnail_url = req.file ? req.file.path : req.body.thumbnail_url || null;
 
     const playlist = await playlistService.createPlaylist({
       ...req.body,
@@ -13,10 +16,9 @@ const createPlaylist = async (req, res, next) => {
     });
 
     if (!playlist) {
-      throw new Error("فشل إنشاء قائمة التشغيل حاول مرة أخرى!");
+      throw new Error("فشل إنشاء قائمة التشغيل");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -29,7 +31,7 @@ const createPlaylist = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء قائمة التشغيل بنجاح!",
+      message: "تم إنشاء قائمة التشغيل بنجاح",
       data: playlist,
     });
   } catch (error) {
@@ -43,13 +45,9 @@ const getAllPlaylists = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const playlists = await playlistService.getAllPlaylists(page);
 
-    if (!playlists) {
-      throw new Error("فشل تحميل قوائم التشغيل حاول مرة أخرى!");
-    }
-
     return res.status(200).json({
       success: true,
-      message: "تم تحميل قوائم التشغيل بنجاح!",
+      message: "تم تحميل قوائم التشغيل بنجاح",
       data: playlists,
     });
   } catch (error) {
@@ -64,12 +62,12 @@ const getPlaylistById = async (req, res, next) => {
     const playlist = await playlistService.getPlaylistById(playlistId);
 
     if (!playlist) {
-      throw new Error("فشل تحميل قائمة التشغيل حاول مرة أخرى!");
+      throw new Error("قائمة التشغيل غير موجودة");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل قائمة التشغيل بنجاح!",
+      message: "تم تحميل قائمة التشغيل بنجاح",
       data: playlist,
     });
   } catch (error) {
@@ -82,14 +80,11 @@ const getPlaylistsByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const playlists = await playlistService.getPlaylistsByGradeId(
-      gradeId,
-      page,
-    );
+    const playlists = await playlistService.getPlaylistsByGradeId(gradeId, page);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل قوائم التشغيل بنجاح!",
+      message: "تم تحميل قوائم التشغيل بنجاح",
       data: playlists,
     });
   } catch (error) {
@@ -101,7 +96,9 @@ const getPlaylistsByGradeId = async (req, res, next) => {
 const updatePlaylist = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
-    const thumbnail_url = req.file ? req.file.path : null;
+
+    // ✅ لو فيه ملف مرفوع → استخدمه، غير كده → استخدم body
+    const thumbnail_url = req.file ? req.file.path : req.body.thumbnail_url || null;
 
     const playlist = await playlistService.updatePlaylist(playlistId, {
       ...req.body,
@@ -109,10 +106,9 @@ const updatePlaylist = async (req, res, next) => {
     });
 
     if (!playlist) {
-      throw new Error("فشل تعديل قائمة التشغيل حاول مرة أخرى!");
+      throw new Error("فشل تعديل قائمة التشغيل");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -125,7 +121,7 @@ const updatePlaylist = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل قائمة التشغيل بنجاح!",
+      message: "تم تعديل قائمة التشغيل بنجاح",
       data: playlist,
     });
   } catch (error) {
@@ -140,10 +136,18 @@ const hardDeletePlaylist = async (req, res, next) => {
     const playlist = await playlistService.hardDeletePlaylist(playlistId);
 
     if (!playlist) {
-      throw new Error("فشل حذف قائمة التشغيل حاول مرة أخرى!");
+      throw new Error("فشل حذف قائمة التشغيل");
     }
 
-    // Log activity
+    // حذف ملف الـ thumbnail
+    const oldPlaylist = await playlistService.getPlaylistById(playlistId);
+    if (oldPlaylist?.thumbnail_url) {
+      const filePath = path.join(__dirname, "../../../", oldPlaylist.thumbnail_url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -156,7 +160,7 @@ const hardDeletePlaylist = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف قائمة التشغيل بنجاح!",
+      message: "تم حذف قائمة التشغيل بنجاح",
       data: playlist,
     });
   } catch (error) {
