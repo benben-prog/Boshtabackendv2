@@ -118,6 +118,14 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
 
   let questions = questionsResult.rows;
 
+  if (attempt.randomize_questions === 1) {
+    questions = questions.sort(() => Math.random() - 0.5);
+    questions = questions.map((q, index) => ({
+      ...q,
+      order: index + 1,
+    }));
+  }
+
   const answersResult = await query(
     `SELECT 
       question_id,
