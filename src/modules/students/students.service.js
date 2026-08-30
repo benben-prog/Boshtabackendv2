@@ -353,6 +353,7 @@ const resetStudentPassword = async (studentId, password) => {
 };
 
 // Generate passwords for all students without password
+// Generate passwords for all students without password (جماعي)
 const generatePasswordsForAllStudents = async () => {
   const studentsWithoutPassword = await getStudentsWithoutPassword();
 
@@ -363,7 +364,7 @@ const generatePasswordsForAllStudents = async () => {
   const generatedPasswords = [];
 
   for (const student of studentsWithoutPassword) {
-    const password = `${student.barcode}@jupiter.com`;
+    const password = `${student.barcode}${student.grade_id}${student.group_id}@boshta.benb3n`;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
