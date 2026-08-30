@@ -7,7 +7,7 @@ const path = require("path");
 const submitAnswer = async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { question_id, selected_option_id, is_correct } = req.body;
+    const { question_id, selected_option_id } = req.body; // ✅ من غير is_correct
     const studentId = req.clientId;
 
     const existing = await studentAnswerService.checkExistingAnswer(
@@ -20,7 +20,6 @@ const submitAnswer = async (req, res, next) => {
     if (existing) {
       answer = await studentAnswerService.updateAnswer(existing.id, {
         selected_option_id,
-        is_correct,
       });
     } else {
       answer = await studentAnswerService.insertAnswer({
@@ -28,14 +27,18 @@ const submitAnswer = async (req, res, next) => {
         student_id: studentId,
         question_id,
         selected_option_id,
-        is_correct,
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "تم حفظ الإجابة بنجاح!",
-      data: answer,
+      data: {
+        answer_id: answer.id,
+        question_id: answer.question_id,
+        selected_option_id: answer.selected_option_id,
+        is_correct: answer.is_correct, // نرجعها للطالب
+      },
     });
   } catch (error) {
     next(error);
@@ -62,21 +65,24 @@ const submitEssayAnswer = async (req, res, next) => {
 
     let answer;
     if (existing) {
-      const oldAnswer = await studentAnswerService.getStudentAnswersByExam(
+      // حذف الملف القديم
+      const oldAnswers = await studentAnswerService.getStudentAnswersByExam(
         examId,
         studentId,
       );
-      const oldFile = oldAnswer.find((a) => a.question_id === question_id);
-      if (oldFile && oldFile.file_path) {
+      const oldAnswer = oldAnswers.find((a) => a.question_id === question_id);
+
+      if (oldAnswer && oldAnswer.file_path) {
         const oldFilePath = path.join(
           __dirname,
           "../../../",
-          oldFile.file_path,
+          oldAnswer.file_path,
         );
         if (fs.existsSync(oldFilePath)) {
           fs.unlinkSync(oldFilePath);
         }
       }
+
       answer = await studentAnswerService.updateEssayAnswer(
         existing.id,
         file_path,
@@ -96,6 +102,10 @@ const submitEssayAnswer = async (req, res, next) => {
       data: answer,
     });
   } catch (error) {
+    // حذف الملف في حالة الخطأ
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, () => {});
+    }
     next(error);
   }
 };
@@ -177,6 +187,7 @@ const getMostSelectedOptions = async (req, res, next) => {
   }
 };
 
+// Grade essay answer
 const gradeEssayAnswer = async (req, res, next) => {
   try {
     const { answerId } = req.params;
