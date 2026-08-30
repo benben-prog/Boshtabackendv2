@@ -247,7 +247,7 @@ WHERE s.deleted = 0
   AND ($3::int IS NULL OR s.group_id = $3::int)
 `;
 
-//PART 2: PROFILE & STATISTICS
+// PART 2: PROFILE & STATISTICS
 
 // Get student full profile with all details
 const getStudentProfile = `
@@ -420,7 +420,7 @@ WHERE sub.student_id = $1
   AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
 `;
 
-//PART 3: EXAMS, ASSIGNMENTS & CONTENT
+// PART 3: EXAMS, ASSIGNMENTS & CONTENT
 
 // Get all paper exams with student status - month filter - 20 per page
 const getStudentPaperExams = `
@@ -447,22 +447,43 @@ ORDER BY e.exam_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
-// Get student exam results (attended exams only) - month filter - 20 per page
+// ✅ Get student exam results - paper + online combined
 const getStudentExamResults = `
 SELECT 
+  'paper' AS exam_type,
   er.id AS result_id,
-  er.degree,
-  er.notes,
+  er.degree AS score,
   e.title AS exam_title,
-  e.total_degree,
-  e.exam_date,
-  ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage
+  e.total_degree AS full_mark,
+  e.exam_date AS exam_date,
+  ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage,
+  NULL AS result_status
 FROM exam_results er
-JOIN exams e ON er.exam_id = e.id
+JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.student_id = $1
-  AND ($2 = '' OR TO_CHAR(e.exam_date, 'YYYY-MM') = $2)
-ORDER BY e.exam_date DESC
-LIMIT 20 OFFSET (($3::int - 1) * 20)
+
+UNION ALL
+
+SELECT 
+  'online' AS exam_type,
+  se.id AS result_id,
+  se.score AS score,
+  oe.title AS exam_title,
+  oe.full_mark AS full_mark,
+  se.submitted_at AS exam_date,
+  ROUND((se.score::numeric / NULLIF(oe.full_mark::numeric, 0)) * 100, 2) AS percentage,
+  CASE 
+    WHEN se.score IS NULL THEN 'pending'
+    WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
+    ELSE 'failed'
+  END AS result_status
+FROM student_exams se
+JOIN online_exams oe ON se.exam_id = oe.id AND oe.deleted = 0
+WHERE se.student_id = $1
+  AND se.submitted_at IS NOT NULL
+
+ORDER BY exam_date DESC
+LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
 // Get available online exams for student - 20 per page
@@ -505,6 +526,7 @@ SELECT
   se.started_at,
   se.submitted_at,
   CASE 
+    WHEN se.score IS NULL THEN 'pending'
     WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
     ELSE 'failed'
   END AS result_status
@@ -609,7 +631,6 @@ ORDER BY p.title ASC
 const getPlaylistVideos = `
 SELECT 
   v.id AS video_id,
-  v.id,
   v.title,
   v.description,
   v.video_url,
@@ -655,6 +676,7 @@ SELECT
   se.submitted_at,
   ROUND(EXTRACT(EPOCH FROM (se.submitted_at - se.started_at)) / 60) AS duration_minutes,
   CASE 
+    WHEN se.score IS NULL THEN 'pending'
     WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
     ELSE 'failed'
   END AS result_status,
@@ -757,7 +779,6 @@ RETURNING id, barcode, full_name
 `;
 
 module.exports = {
-  // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
   getStudentById,
@@ -776,7 +797,6 @@ module.exports = {
   hardDeleteStudent,
   restoreStudent,
   getStudentsCount,
-  // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,
   getAttendanceHistory,
@@ -786,7 +806,6 @@ module.exports = {
   getPaymentHistory,
   getRemainingBalance,
   getCurrentSubscription,
-  // Part 3: Exams, Assignments & Content
   getStudentPaperExams,
   getStudentExamResults,
   getAvailableOnlineExams,
