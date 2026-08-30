@@ -37,7 +37,11 @@ routes.put(
   validate(updateAssignmentSchema),
   assignmentController.updateAssignment,
 );
-
+// Download student answer file
+routes.get(
+  "/student-answers/:answerId/download",
+  studentAnswerController.downloadAnswerFile,
+);
 // Soft delete assignment
 routes.delete("/:assignmentId", assignmentController.softDeleteAssignment);
 
