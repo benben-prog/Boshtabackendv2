@@ -41,15 +41,9 @@ const getPaymentHistory = async (studentId, page = 1) => {
   return result.rows;
 };
 
-// Get paper exams
-const getPaperExams = async (studentId) => {
-  const result = await query(parentQueries.getPaperExams, [studentId]);
-  return result.rows;
-};
-
-// Get online exams
-const getOnlineExams = async (studentId) => {
-  const result = await query(parentQueries.getOnlineExams, [studentId]);
+// ✅ Get all exams (paper + online) combined
+const getAllExams = async (studentId) => {
+  const result = await query(parentQueries.getParentAllExams, [studentId]);
   return result.rows;
 };
 
@@ -79,8 +73,7 @@ module.exports = {
   getAttendanceHistory,
   getParentDashboardPayments,
   getPaymentHistory,
-  getPaperExams,
-  getOnlineExams,
+  getAllExams,
   getParentDashboardAssignments,
   getGroupInfo,
   getStudentOverallStats,
