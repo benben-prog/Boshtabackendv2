@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const stdQr = require("./students.queries");
 
-//PART 1: CRUD & SEARCH OPERATIONS
+// PART 1: CRUD & SEARCH OPERATIONS
 
 const generateParentToken = () => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -37,6 +37,7 @@ const createStudent = async (stdInfo) => {
     parent_token,
   };
 };
+
 // Get all students with filters
 const getAllStudents = async (filters) => {
   const { search = "", grade_id = null, group_id = null, page = 1 } = filters;
@@ -130,7 +131,6 @@ const getStudentProfileImage = async (id) => {
 };
 
 // Update student's password
-// Update student's password
 const updateStudentPassword = async (id, oldPassword, newPassword) => {
   const studentResult = await query(stdQr.getStudentById, [id]);
   const student = studentResult.rows[0];
@@ -150,6 +150,7 @@ const updateStudentPassword = async (id, oldPassword, newPassword) => {
   const result = await query(stdQr.updateStudentPassword, [hashedPassword, id]);
   return result.rows[0];
 };
+
 // Soft delete a student
 const softDeleteStudent = async (id) => {
   const result = await query(stdQr.softDeleteStudent, [id]);
@@ -179,7 +180,7 @@ const getStudentsCount = async (filters = {}) => {
   return result.rows[0];
 };
 
-//PART 2: PROFILE & STATISTICS
+// PART 2: PROFILE & STATISTICS
 
 // Get student full profile
 const getStudentProfile = async (id) => {
@@ -235,7 +236,7 @@ const getCurrentSubscription = async (id) => {
   return result.rows[0];
 };
 
-//PART 3: EXAMS, ASSIGNMENTS & CONTENT
+// PART 3: EXAMS, ASSIGNMENTS & CONTENT
 
 // Get all paper exams with student status
 const getStudentPaperExams = async (id, month = "", page = 1) => {
@@ -243,9 +244,9 @@ const getStudentPaperExams = async (id, month = "", page = 1) => {
   return result.rows;
 };
 
-// Get student exam results
+// ✅ Get student exam results - combined (paper + online)
 const getStudentExamResults = async (id, month = "", page = 1) => {
-  const result = await query(stdQr.getStudentExamResults, [id, month, page]);
+  const result = await query(stdQr.getStudentExamResults, [id, page]);
   return result.rows;
 };
 
@@ -351,7 +352,7 @@ const resetStudentPassword = async (studentId, password) => {
   };
 };
 
-// Generate passwords for all students without password (جماعي)
+// Generate passwords for all students without password
 const generatePasswordsForAllStudents = async () => {
   const studentsWithoutPassword = await getStudentsWithoutPassword();
 
@@ -383,7 +384,6 @@ const generatePasswordsForAllStudents = async () => {
 };
 
 module.exports = {
-  // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
   getStudentById,
@@ -402,7 +402,6 @@ module.exports = {
   hardDeleteStudent,
   restoreStudent,
   getStudentsCount,
-  // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,
   getAttendanceHistory,
@@ -412,7 +411,6 @@ module.exports = {
   getPaymentHistory,
   getRemainingBalance,
   getCurrentSubscription,
-  // Part 3: Exams, Assignments & Content
   getStudentPaperExams,
   getStudentExamResults,
   getAvailableOnlineExams,
