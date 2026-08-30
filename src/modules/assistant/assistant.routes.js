@@ -371,7 +371,11 @@ routes.post("/groups", groupsController.createGroup);
 routes.put("/groups/:id", groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
-
+// Download student answer file
+routes.get(
+  "/student-answers/:answerId/download",
+  studentAnswerController.downloadAnswerFile,
+);
 // Students - CRUD
 routes.get("/students", studentsController.getAllStudents);
 routes.get("/students/deleted", studentsController.getDeletedStudents);
