@@ -3,11 +3,11 @@ const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
 
-// Submit answer (MCQ/True-False)
+// Submit MCQ/True-False answer
 const submitAnswer = async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { question_id, selected_option_id } = req.body; // ✅ من غير is_correct
+    const { question_id, selected_option_id } = req.body;
     const studentId = req.clientId;
 
     const existing = await studentAnswerService.checkExistingAnswer(
@@ -32,12 +32,12 @@ const submitAnswer = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حفظ الإجابة بنجاح!",
+      message: "تم حفظ الإجابة بنجاح",
       data: {
         answer_id: answer.id,
         question_id: answer.question_id,
         selected_option_id: answer.selected_option_id,
-        is_correct: answer.is_correct, // نرجعها للطالب
+        is_correct: answer.is_correct,
       },
     });
   } catch (error) {
@@ -54,7 +54,7 @@ const submitEssayAnswer = async (req, res, next) => {
     const studentId = req.clientId;
 
     if (!file_path) {
-      throw new Error("يجب رفع ملف الإجابة!");
+      throw new Error("يجب رفع ملف الإجابة");
     }
 
     const existing = await studentAnswerService.checkExistingAnswer(
@@ -65,12 +65,13 @@ const submitEssayAnswer = async (req, res, next) => {
 
     let answer;
     if (existing) {
-      // حذف الملف القديم
       const oldAnswers = await studentAnswerService.getStudentAnswersByExam(
         examId,
         studentId,
       );
-      const oldAnswer = oldAnswers.find((a) => a.question_id === question_id);
+      const oldAnswer = oldAnswers.find(
+        (a) => a.question_id === parseInt(question_id),
+      );
 
       if (oldAnswer && oldAnswer.file_path) {
         const oldFilePath = path.join(
@@ -98,11 +99,10 @@ const submitEssayAnswer = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حفظ الإجابة بنجاح!",
+      message: "تم حفظ الإجابة بنجاح",
       data: answer,
     });
   } catch (error) {
-    // حذف الملف في حالة الخطأ
     if (req.file && req.file.path) {
       fs.unlink(req.file.path, () => {});
     }
@@ -117,12 +117,12 @@ const deleteAnswer = async (req, res, next) => {
     const answer = await studentAnswerService.deleteAnswer(answerId);
 
     if (!answer) {
-      throw new Error("فشل حذف الإجابة حاول مرة أخرى!");
+      throw new Error("فشل حذف الإجابة");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الإجابة بنجاح!",
+      message: "تم حذف الإجابة بنجاح",
       data: answer,
     });
   } catch (error) {
@@ -130,7 +130,7 @@ const deleteAnswer = async (req, res, next) => {
   }
 };
 
-// Get student answers for an exam
+// Get student answers
 const getStudentAnswersByExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -142,7 +142,7 @@ const getStudentAnswersByExam = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإجابات بنجاح!",
+      message: "تم تحميل الإجابات بنجاح",
       data: answers,
     });
   } catch (error) {
@@ -150,19 +150,19 @@ const getStudentAnswersByExam = async (req, res, next) => {
   }
 };
 
-// Get question answer stats
+// Get question stats
 const getQuestionAnswerStats = async (req, res, next) => {
   try {
     const { questionId } = req.params;
     const stats = await studentAnswerService.getQuestionAnswerStats(questionId);
 
     if (!stats) {
-      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
+      throw new Error("فشل تحميل الإحصائيات");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -179,7 +179,7 @@ const getMostSelectedOptions = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الاختيارات بنجاح!",
+      message: "تم تحميل الاختيارات بنجاح",
       data: options,
     });
   } catch (error) {
@@ -199,10 +199,9 @@ const gradeEssayAnswer = async (req, res, next) => {
     );
 
     if (!answer) {
-      throw new Error("فشل تصحيح الإجابة - قد تكون مصححة مسبقاً!");
+      throw new Error("فشل تصحيح الإجابة - قد تكون مصححة مسبقاً");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -215,7 +214,7 @@ const gradeEssayAnswer = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تصحيح الإجابة بنجاح!",
+      message: "تم تصحيح الإجابة بنجاح",
       data: answer,
     });
   } catch (error) {
@@ -230,7 +229,7 @@ const getEssayAnswersForGrading = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإجابات المقالية بنجاح!",
+      message: "تم تحميل الإجابات المقالية بنجاح",
       data: answers,
     });
   } catch (error) {
@@ -246,7 +245,7 @@ const getEssayAnswersByExam = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإجابات المقالية بنجاح!",
+      message: "تم تحميل الإجابات المقالية بنجاح",
       data: answers,
     });
   } catch (error) {
