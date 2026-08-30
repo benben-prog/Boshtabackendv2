@@ -14,7 +14,7 @@ const checkActiveAttempt = async (req, res, next) => {
     if (!attempt) {
       return res.status(200).json({
         success: true,
-        message: "No previous attempt",
+        message: "لا توجد محاولة سابقة",
         data: {
           has_active_attempt: false,
           submitted: false,
@@ -25,7 +25,7 @@ const checkActiveAttempt = async (req, res, next) => {
     if (attempt.submitted_at === null) {
       return res.status(200).json({
         success: true,
-        message: "Active attempt found",
+        message: "توجد محاولة نشطة",
         data: {
           has_active_attempt: true,
           submitted: false,
@@ -37,7 +37,7 @@ const checkActiveAttempt = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Exam already submitted",
+      message: "تم تسليم هذا الامتحان مسبقاً",
       data: {
         has_active_attempt: false,
         submitted: true,
@@ -63,7 +63,7 @@ const resumeExam = async (req, res, next) => {
     if (!attempt || attempt.submitted_at !== null) {
       return res.status(400).json({
         success: false,
-        message: "No active attempt found for this exam",
+        message: "لا توجد محاولة نشطة لهذا الامتحان",
       });
     }
 
@@ -75,7 +75,7 @@ const resumeExam = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Exam resumed successfully",
+      message: "تم استئناف الامتحان بنجاح",
       data: {
         ...examWithQuestions,
         is_resumed: true,
@@ -106,8 +106,8 @@ const createExamAttempt = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: attempt.is_resumed
-        ? "Exam resumed successfully"
-        : "Exam started successfully",
+        ? "تم استئناف الامتحان بنجاح"
+        : "تم بدء الامتحان بنجاح",
       data: {
         ...examWithQuestions,
         is_resumed: attempt.is_resumed || false,
@@ -121,9 +121,27 @@ const createExamAttempt = async (req, res, next) => {
       error.message === "This exam is not available for your grade" ||
       error.message === "This exam is not available for your group"
     ) {
+      let arabicMessage = error.message;
+
+      if (error.message === "You have already completed this exam") {
+        arabicMessage = "لقد قمت بحل هذا الامتحان من قبل";
+      } else if (error.message === "Exam time has ended") {
+        arabicMessage = "انتهى وقت الامتحان";
+      } else if (error.message === "Exam has not started yet") {
+        arabicMessage = "لم يبدأ الامتحان بعد";
+      } else if (
+        error.message === "This exam is not available for your grade"
+      ) {
+        arabicMessage = "هذا الامتحان غير متاح لصفك الدراسي";
+      } else if (
+        error.message === "This exam is not available for your group"
+      ) {
+        arabicMessage = "هذا الامتحان غير متاح لمجموعتك";
+      }
+
       return res.status(400).json({
         success: false,
-        message: error.message,
+        message: arabicMessage,
       });
     }
     next(error);
@@ -140,7 +158,7 @@ const submitExam = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Exam submitted successfully",
+      message: "تم تسليم الامتحان بنجاح",
       data: result,
     });
   } catch (error) {
@@ -161,7 +179,7 @@ const getExamQuestionsForStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Questions loaded successfully",
+      message: "تم تحميل الأسئلة بنجاح",
       data: questions,
     });
   } catch (error) {
@@ -169,7 +187,7 @@ const getExamQuestionsForStudent = async (req, res, next) => {
   }
 };
 
-// Get single question for student
+// Get single question
 const getQuestionForStudent = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -178,7 +196,7 @@ const getQuestionForStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Question loaded successfully",
+      message: "تم تحميل السؤال بنجاح",
       data: question,
     });
   } catch (error) {
@@ -195,7 +213,7 @@ const getOptionsForStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Options loaded successfully",
+      message: "تم تحميل الاختيارات بنجاح",
       data: options,
     });
   } catch (error) {
@@ -203,7 +221,7 @@ const getOptionsForStudent = async (req, res, next) => {
   }
 };
 
-// Get student exams by exam ID
+// Get students by exam
 const getStudentExamsByExamId = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -215,7 +233,7 @@ const getStudentExamsByExamId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Attempts loaded successfully",
+      message: "تم تحميل المحاولات بنجاح",
       data: attempts,
     });
   } catch (error) {
@@ -223,19 +241,19 @@ const getStudentExamsByExamId = async (req, res, next) => {
   }
 };
 
-// Get exam attempt stats
+// Get exam stats
 const getExamAttemptStats = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const stats = await studentExamService.getExamAttemptStats(examId);
 
     if (!stats) {
-      throw new Error("Failed to load stats");
+      throw new Error("فشل تحميل الإحصائيات");
     }
 
     return res.status(200).json({
       success: true,
-      message: "Stats loaded successfully",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -243,7 +261,7 @@ const getExamAttemptStats = async (req, res, next) => {
   }
 };
 
-// Get grade exam attempts stats
+// Get grade stats
 const getGradeExamAttemptsStats = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
@@ -251,7 +269,7 @@ const getGradeExamAttemptsStats = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Stats loaded successfully",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -259,7 +277,7 @@ const getGradeExamAttemptsStats = async (req, res, next) => {
   }
 };
 
-// Get group exam attempts stats
+// Get group stats
 const getGroupExamAttemptsStats = async (req, res, next) => {
   try {
     const { groupId } = req.params;
@@ -267,7 +285,7 @@ const getGroupExamAttemptsStats = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Stats loaded successfully",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: stats,
     });
   } catch (error) {
