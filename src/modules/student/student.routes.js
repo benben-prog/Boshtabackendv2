@@ -19,23 +19,18 @@ const {
    DASHBOARD & PROFILE
    ============================================ */
 
-// Get dashboard
 routes.get("/dashboard", studentController.getDashboard);
-
-// Get profile
 routes.get("/profile", studentController.getProfile);
-
-// Get quick stats
 routes.get("/stats", studentController.getQuickStats);
 
-// Update profile image
 routes.put(
   "/profile-image",
   profileImageUpload.single("image"),
   studentController.updateProfileImage,
 );
 
-// Update password
+routes.delete("/profile-image", studentController.deleteProfileImage);
+
 routes.put(
   "/password",
   validate(updateStudentPasswordSchema),
@@ -48,7 +43,10 @@ routes.put(
 
 routes.get("/attendance", studentController.getAttendanceHistory);
 routes.get("/attendance/monthly", studentController.getMonthlyAttendanceStats);
-routes.get("/attendance/consecutive", studentController.getConsecutiveAbsences);
+routes.get(
+  "/attendance/consecutive-absences",
+  studentController.getConsecutiveAbsences,
+);
 
 /* ============================================
    PAPER EXAMS
@@ -67,12 +65,27 @@ routes.get(
   studentController.getAvailableOnlineExams,
 );
 routes.get("/exams/online/history", studentController.getOnlineExamsHistory);
-routes.get("/exams/online/:attemptId", studentController.getOnlineExamById);
+
+// Check active attempt
+routes.get(
+  "/exams/online/:examId/check-attempt",
+  studentController.checkActiveAttempt,
+);
+
+// Resume exam
+routes.get("/exams/online/:examId/resume", studentController.resumeExam);
+
+// Start exam
 routes.post("/exams/online/:examId/start", studentController.startOnlineExam);
+
+// Submit exam - no score
 routes.put(
   "/exams/online/:attemptId/submit",
   studentController.submitOnlineExam,
 );
+
+// Get exam details
+routes.get("/exams/online/:attemptId", studentController.getOnlineExamById);
 
 // Submit answer (MCQ/True-False)
 routes.post(
@@ -91,22 +104,22 @@ routes.post(
    EXAM QUESTIONS & OPTIONS
    ============================================ */
 
-// Get questions by exam
+// Get questions by exam for student
 routes.get(
   "/exams/online/:examId/questions",
-  questionController.getQuestionsByExamId,
+  studentController.getExamQuestionsForStudent,
 );
 
-// Get question by ID
+// Get question by ID for student
 routes.get(
   "/exams/online/question/:questionId",
-  questionController.getQuestionById,
+  studentController.getQuestionForStudent,
 );
 
-// Get options by question
+// Get options by question for student
 routes.get(
   "/options/question/:questionId",
-  optionController.getOptionsByQuestionId,
+  studentController.getOptionsForStudent,
 );
 
 /* ============================================
@@ -124,7 +137,7 @@ routes.get(
 // Submit assignment
 routes.post(
   "/assignments/:assignmentId/submit",
-  assignmentUpload.single("file"), 
+  assignmentUpload.single("file"),
   assignmentSubmissionController.submitAssignment,
 );
 
@@ -133,6 +146,12 @@ routes.put(
   "/assignments/:assignmentId/update",
   assignmentUpload.single("file"),
   assignmentSubmissionController.updateSubmission,
+);
+
+// Download own submission
+routes.get(
+  "/homeWorkSubmission/:assignmentId/download",
+  assignmentSubmissionController.downloadSubmission,
 );
 
 routes.get("/submissions", studentController.getSubmissions);
