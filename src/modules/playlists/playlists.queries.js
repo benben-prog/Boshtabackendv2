@@ -12,7 +12,7 @@ RETURNING *
 // Get all playlists - 20 per page
 const getAllPlaylists = `
 SELECT 
-  p.id,
+  p.id AS playlist_id,
   p.title,
   p.description,
   p.grade_id,
@@ -33,7 +33,7 @@ LIMIT 20 OFFSET (($1::int - 1) * 20)
 // Get playlist by ID
 const getPlaylistById = `
 SELECT 
-  p.id,
+  p.id AS playlist_id,
   p.title,
   p.description,
   p.grade_id,
@@ -53,7 +53,7 @@ GROUP BY p.id, g.name
 // Get playlists by grade - 20 per page
 const getPlaylistsByGradeId = `
 SELECT 
-  p.id,
+  p.id AS playlist_id,
   p.title,
   p.description,
   p.grade_id,
