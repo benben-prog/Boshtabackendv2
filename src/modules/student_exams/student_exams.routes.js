@@ -17,6 +17,12 @@ routes.post("/exam/:examId/start", studentExamController.createExamAttempt);
 // Submit exam
 routes.put("/attempt/:attemptId/submit", studentExamController.submitExam);
 
+// Get exam review
+routes.get(
+  "/attempt/:attemptId/review",
+  studentExamController.getExamReview,
+);
+
 // Get exam questions for student
 routes.get(
   "/exam/:examId/questions",
