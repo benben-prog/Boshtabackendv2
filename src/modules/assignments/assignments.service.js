@@ -44,6 +44,7 @@ const createAssignment = async (assignmentData) => {
     full_mark,
     deadline,
     created_by,
+    is_closed = 0,
   } = assignmentData;
   const result = await query(assignmentQueries.createAssignment, [
     title,
@@ -54,11 +55,12 @@ const createAssignment = async (assignmentData) => {
     full_mark,
     deadline,
     created_by,
+    is_closed,
   ]);
   return result.rows[0];
 };
 
-// Update assignment - with smart is_closed handling
+// Update assignment - ✅ إصلاح is_closed
 const updateAssignment = async (assignmentId, assignmentData) => {
   const {
     title,
@@ -77,17 +79,6 @@ const updateAssignment = async (assignmentId, assignmentData) => {
   );
   if (!existing.rows[0]) return null;
 
-  // Smart is_closed logic
-  let updatedIsClosed = is_closed;
-
-  if (deadline && new Date(deadline) > new Date()) {
-    // New deadline is in the future - open the assignment
-    updatedIsClosed = 0;
-  } else if (deadline && new Date(deadline) <= new Date()) {
-    // New deadline is in the past - close the assignment
-    updatedIsClosed = 1;
-  }
-
   const updated = {
     title: title ?? existing.rows[0].title,
     description: description ?? existing.rows[0].description,
@@ -96,7 +87,12 @@ const updateAssignment = async (assignmentId, assignmentData) => {
     file_path: file_path ?? existing.rows[0].file_path,
     full_mark: full_mark ?? existing.rows[0].full_mark,
     deadline: deadline ?? existing.rows[0].deadline,
-    is_closed: updatedIsClosed ?? existing.rows[0].is_closed,
+    // ✅ لو is_closed مش مبعوت، خليه 0 (مفتوح)
+    // ✅ لو مبعوت كـ string، حوله لرقم
+    is_closed:
+      is_closed !== undefined && is_closed !== null
+        ? parseInt(is_closed)
+        : 0,
   };
 
   const result = await query(assignmentQueries.updateAssignment, [
