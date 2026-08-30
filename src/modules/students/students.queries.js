@@ -610,21 +610,19 @@ ORDER BY asub.submitted_at DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
-// Get student playlists
+// ✅ Get student playlists - with correct thumbnail
 const getStudentPlaylists = `
 SELECT 
   p.id AS playlist_id,
   p.title,
   p.description,
-  (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS videos_count,
-  (SELECT v.video_url FROM playlist_videos pv2 
-   JOIN videos v ON pv2.video_id = v.id 
-   WHERE pv2.playlist_id = p.id 
-   ORDER BY pv2.added_at ASC 
-   LIMIT 1) AS thumbnail_url
+  p.thumbnail_url,
+  p.created_at,
+  p.updated_at,
+  (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS videos_count
 FROM playlists p
 WHERE p.grade_id = (SELECT grade_id FROM students WHERE id = $1)
-ORDER BY p.title ASC
+ORDER BY p.created_at DESC
 `;
 
 // Get videos in a specific playlist
