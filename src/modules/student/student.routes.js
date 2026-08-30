@@ -71,7 +71,11 @@ routes.get(
   "/exams/online/:examId/check-attempt",
   studentController.checkActiveAttempt,
 );
-
+// Get exam review for student
+routes.get(
+  "/exams/online/:attemptId/review",
+  studentExamController.getExamReview,
+);
 // Resume exam
 routes.get("/exams/online/:examId/resume", studentController.resumeExam);
 
