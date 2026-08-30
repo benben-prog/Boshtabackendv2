@@ -2,6 +2,41 @@ const assignmentService = require("./assignments.service");
 const { logActivity } = require("../../utils/activityLogger");
 const path = require("path");
 
+// ✅ دالة مساعدة لتحويل التواقيت
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return d.toLocaleString('en-US', { 
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
+const formatDatesInArray = (items) => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.map(item => formatDatesInObject(item));
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في الكائن
+const formatDatesInObject = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const formatted = { ...obj };
+  const dateFields = ['created_at', 'updated_at', 'deadline', 'submitted_at', 'date'];
+  dateFields.forEach(field => {
+    if (formatted[field] !== undefined && formatted[field] !== null) {
+      formatted[field] = formatDate(formatted[field]);
+    }
+  });
+  return formatted;
+};
+
 // Get all assignments
 const getAllAssignments = async (req, res, next) => {
   try {
@@ -12,10 +47,13 @@ const getAllAssignments = async (req, res, next) => {
       throw new Error("فشل تحميل الواجبات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedAssignments = formatDatesInArray(assignments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الواجبات بنجاح!",
-      data: assignments,
+      data: formattedAssignments,
     });
   } catch (error) {
     next(error);
@@ -32,10 +70,13 @@ const getAssignmentById = async (req, res, next) => {
       throw new Error("فشل تحميل الواجب حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedAssignment = formatDatesInObject(assignment);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الواجب بنجاح!",
-      data: assignment,
+      data: formattedAssignment,
     });
   } catch (error) {
     next(error);
@@ -52,10 +93,13 @@ const getAssignmentsByGradeId = async (req, res, next) => {
       page,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedAssignments = formatDatesInArray(assignments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الواجبات بنجاح!",
-      data: assignments,
+      data: formattedAssignments,
     });
   } catch (error) {
     next(error);
@@ -72,10 +116,13 @@ const getAssignmentsByGroupId = async (req, res, next) => {
       page,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedAssignments = formatDatesInArray(assignments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الواجبات بنجاح!",
-      data: assignments,
+      data: formattedAssignments,
     });
   } catch (error) {
     next(error);
@@ -117,10 +164,13 @@ const createAssignment = async (req, res, next) => {
       description: `إنشاء واجب: ${assignment.title}`,
     });
 
+    // ✅ تحويل التواقيت في الـ response
+    const formattedAssignment = formatDatesInObject(assignment);
+
     return res.status(201).json({
       success: true,
       message: "تم إنشاء الواجب بنجاح!",
-      data: assignment,
+      data: formattedAssignment,
     });
   } catch (error) {
     next(error);
@@ -158,10 +208,13 @@ const updateAssignment = async (req, res, next) => {
       description: `تعديل واجب (ID: ${assignmentId})`,
     });
 
+    // ✅ تحويل التواقيت في الـ response
+    const formattedAssignment = formatDatesInObject(assignment);
+
     return res.status(200).json({
       success: true,
       message: "تم تعديل الواجب بنجاح!",
-      data: assignment,
+      data: formattedAssignment,
     });
   } catch (error) {
     next(error);
