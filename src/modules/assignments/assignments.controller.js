@@ -126,13 +126,25 @@ const createAssignment = async (req, res, next) => {
   }
 };
 
-// Update assignment
+// Update assignment - with smart deadline handling
 const updateAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
+
+    // Collect data from body and file
+    const updateData = {
+      ...req.body,
+      file_path: req.file ? req.file.path : undefined,
+    };
+
+    // If new deadline is provided and assignment should be opened
+    if (updateData.deadline && !updateData.is_closed) {
+      updateData.is_closed = 0;
+    }
+
     const assignment = await assignmentService.updateAssignment(
       assignmentId,
-      req.body,
+      updateData,
     );
 
     if (!assignment) {
