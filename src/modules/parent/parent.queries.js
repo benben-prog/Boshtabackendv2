@@ -90,44 +90,47 @@ ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Get paper exams
-const getPaperExams = `
+// ✅ Get all exams (paper + online) combined
+const getParentAllExams = `
 SELECT 
-  e.id,
+  'paper' AS exam_type,
+  e.id AS exam_id,
   e.title,
-  e.total_degree,
+  e.total_degree AS full_mark,
   e.exam_date,
-  er.degree AS student_degree,
+  er.degree AS score,
   ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage,
   CASE 
     WHEN ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) >= 50 THEN 'passed'
     ELSE 'failed'
-  END AS status
+  END AS status,
+  e.exam_date AS sort_date
 FROM exam_results er
 JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.student_id = $1
-ORDER BY e.exam_date DESC
-`;
 
-// Get online exams
-const getOnlineExams = `
+UNION ALL
+
 SELECT 
-  oe.id,
+  'online' AS exam_type,
+  oe.id AS exam_id,
   oe.title,
-  oe.full_mark,
-  oe.duration_minutes,
-  se.score,
-  se.started_at,
-  se.submitted_at,
+  oe.full_mark AS full_mark,
+  se.submitted_at AS exam_date,
+  se.score AS score,
   ROUND((se.score::numeric / NULLIF(oe.full_mark::numeric, 0)) * 100, 2) AS percentage,
   CASE 
+    WHEN se.score IS NULL THEN 'pending'
     WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
     ELSE 'failed'
-  END AS status
+  END AS status,
+  se.submitted_at AS sort_date
 FROM student_exams se
-JOIN online_exams oe ON se.exam_id = oe.id
-WHERE se.student_id = $1 AND se.submitted_at IS NOT NULL
-ORDER BY se.submitted_at DESC
+JOIN online_exams oe ON se.exam_id = oe.id AND oe.deleted = 0
+WHERE se.student_id = $1
+  AND se.submitted_at IS NOT NULL
+
+ORDER BY sort_date DESC
 `;
 
 // Get assignments
@@ -191,8 +194,7 @@ module.exports = {
   getAttendanceHistory,
   getParentDashboardPayments,
   getPaymentHistory,
-  getPaperExams,
-  getOnlineExams,
+  getParentAllExams,
   getParentDashboardAssignments,
   getGroupInfo,
   getStudentOverallStats,
