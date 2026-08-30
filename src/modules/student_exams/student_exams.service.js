@@ -10,7 +10,7 @@ const createExamAttempt = async (examId, studentId) => {
   const exam = examCheck.rows[0];
 
   if (!exam) {
-    throw new Error("Exam not found");
+    throw new Error("الامتحان غير موجود");
   }
 
   const existingAttempt = await query(studentExamQueries.checkExistingAttempt, [
@@ -19,16 +19,7 @@ const createExamAttempt = async (examId, studentId) => {
   ]);
 
   if (existingAttempt.rows[0]) {
-    const attempt = existingAttempt.rows[0];
-
-    if (attempt.submitted_at === null) {
-      return {
-        ...attempt,
-        is_resumed: true,
-      };
-    }
-
-    throw new Error("You have already completed this exam");
+    throw new Error("لقد بدأت هذا الامتحان بالفعل");
   }
 
   const now = new Date();
@@ -36,11 +27,11 @@ const createExamAttempt = async (examId, studentId) => {
   const endAt = new Date(exam.end_at);
 
   if (now < startAt) {
-    throw new Error("Exam has not started yet");
+    throw new Error("لم يبدأ الامتحان بعد");
   }
 
   if (now > endAt) {
-    throw new Error("Exam time has ended");
+    throw new Error("انتهى وقت الامتحان");
   }
 
   const studentCheck = await query(
@@ -50,15 +41,15 @@ const createExamAttempt = async (examId, studentId) => {
   const student = studentCheck.rows[0];
 
   if (!student) {
-    throw new Error("Student not found");
+    throw new Error("الطالب غير موجود");
   }
 
   if (student.grade_id !== exam.grade_id) {
-    throw new Error("This exam is not available for your grade");
+    throw new Error("هذا الامتحان غير متاح لصفك الدراسي");
   }
 
   if (exam.group_id && student.group_id !== exam.group_id) {
-    throw new Error("This exam is not available for your group");
+    throw new Error("هذا الامتحان غير متاح لمجموعتك");
   }
 
   const result = await query(studentExamQueries.createExamAttempt, [
@@ -100,7 +91,7 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
   const attempt = attemptResult.rows[0];
 
   if (!attempt) {
-    throw new Error("Attempt not found or already submitted");
+    throw new Error("المحاولة غير موجودة أو تم تسليمها");
   }
 
   const questionsResult = await query(
@@ -171,8 +162,10 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
         };
       }
 
+      // Essay question - add file_url for preview
       return {
         ...question,
+        file_url: question.file_path,
         previous_answer: previousAnswers[question.id] || null,
       };
     }),
@@ -216,7 +209,7 @@ const checkExistingAttempt = async (examId, studentId) => {
   return result.rows[0];
 };
 
-// Submit exam - auto calculate score
+// Submit exam - with essay support
 const submitExam = async (attemptId, studentId) => {
   const attemptResult = await query(
     "SELECT * FROM student_exams WHERE id = $1 AND student_id = $2 AND submitted_at IS NULL",
@@ -225,7 +218,7 @@ const submitExam = async (attemptId, studentId) => {
   const attempt = attemptResult.rows[0];
 
   if (!attempt) {
-    throw new Error("Attempt not found or already submitted");
+    throw new Error("المحاولة غير موجودة أو تم تسليمها مسبقاً");
   }
 
   const examResult = await query(
@@ -235,7 +228,7 @@ const submitExam = async (attemptId, studentId) => {
   const exam = examResult.rows[0];
 
   if (!exam) {
-    throw new Error("Exam not found");
+    throw new Error("الامتحان غير موجود");
   }
 
   const questionsResult = await query(
@@ -245,7 +238,7 @@ const submitExam = async (attemptId, studentId) => {
   const questions = questionsResult.rows;
 
   if (questions.length === 0) {
-    throw new Error("Exam has no questions");
+    throw new Error("الامتحان لا يحتوي على أسئلة");
   }
 
   const answersResult = await query(
@@ -261,7 +254,7 @@ const submitExam = async (attemptId, studentId) => {
   );
   const essayQuestions = questions.filter((q) => q.type === "essay");
 
-  let score = 0;
+  let autoScore = 0;
   let answeredCount = 0;
   const questionScore = exam.full_mark / questions.length;
 
@@ -270,33 +263,93 @@ const submitExam = async (attemptId, studentId) => {
     if (answer) {
       answeredCount++;
       if (answer.is_correct === 1) {
-        score += questionScore;
+        autoScore += questionScore;
       }
     }
   });
 
-  const isFullyGraded = essayQuestions.length === 0;
+  const hasEssayQuestions = essayQuestions.length > 0;
+  const finalScore = hasEssayQuestions ? null : autoScore;
+  const isFullyGraded = !hasEssayQuestions;
 
   const updatedAttempt = await query(
     `UPDATE student_exams 
      SET score = $1, submitted_at = NOW()
      WHERE id = $2 AND submitted_at IS NULL
      RETURNING *`,
-    [score, attemptId],
+    [finalScore, attemptId],
   );
 
   if (!updatedAttempt.rows[0]) {
-    throw new Error("Failed to submit exam");
+    throw new Error("فشل تسليم الامتحان");
   }
 
   return {
     ...updatedAttempt.rows[0],
     is_fully_graded: isFullyGraded,
     pending_essay_questions: essayQuestions.length,
-    auto_graded_score: score,
+    auto_graded_score: autoScore,
     total_questions: questions.length,
     answered_questions: answeredCount,
   };
+};
+
+// Recalculate score after essay grading
+const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
+  const examResult = await query(
+    "SELECT id, full_mark FROM online_exams WHERE id = $1 AND deleted = 0",
+    [examId],
+  );
+  const exam = examResult.rows[0];
+
+  if (!exam) {
+    throw new Error("الامتحان غير موجود");
+  }
+
+  const questionsResult = await query(
+    `SELECT id, type FROM questions WHERE exam_id = $1`,
+    [examId],
+  );
+  const questions = questionsResult.rows;
+
+  if (questions.length === 0) {
+    return;
+  }
+
+  const answersResult = await query(
+    `SELECT question_id, selected_option_id, is_correct, file_path 
+     FROM student_answers 
+     WHERE exam_id = $1 AND student_id = $2`,
+    [examId, studentId],
+  );
+  const answers = answersResult.rows;
+
+  const questionScore = exam.full_mark / questions.length;
+  let totalScore = 0;
+  let allGraded = true;
+
+  questions.forEach((question) => {
+    const answer = answers.find((a) => a.question_id === question.id);
+
+    if (question.type === "mcq" || question.type === "true_false") {
+      if (answer && answer.is_correct === 1) {
+        totalScore += questionScore;
+      }
+    } else if (question.type === "essay") {
+      if (answer && answer.is_correct === 1) {
+        totalScore += questionScore;
+      } else if (answer && answer.is_correct === null) {
+        allGraded = false;
+      }
+    }
+  });
+
+  if (allGraded) {
+    await query(
+      `UPDATE student_exams SET score = $1 WHERE exam_id = $2 AND student_id = $3`,
+      [totalScore, examId, studentId],
+    );
+  }
 };
 
 // Auto submit expired exams
@@ -363,7 +416,7 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
   );
 
   if (!attemptCheck.rows[0]) {
-    throw new Error("Please start the exam first");
+    throw new Error("يجب بدء الامتحان أولاً");
   }
 
   const questionsResult = await query(
@@ -402,14 +455,18 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
         };
       }
 
-      return question;
+      // Essay question - add file_url
+      return {
+        ...question,
+        file_url: question.file_path,
+      };
     }),
   );
 
   return questionsWithOptions;
 };
 
-// Get single question for student with options
+// Get single question for student
 const getQuestionForStudent = async (questionId) => {
   const questionResult = await query(
     `SELECT 
@@ -427,7 +484,7 @@ const getQuestionForStudent = async (questionId) => {
   const question = questionResult.rows[0];
 
   if (!question) {
-    throw new Error("Question not found");
+    throw new Error("السؤال غير موجود");
   }
 
   if (question.type === "mcq" || question.type === "true_false") {
@@ -443,12 +500,14 @@ const getQuestionForStudent = async (questionId) => {
     );
 
     question.options = optionsResult.rows;
+  } else {
+    question.file_url = question.file_path;
   }
 
   return question;
 };
 
-// Get options for student without is_correct
+// Get options for student
 const getOptionsForStudent = async (questionId) => {
   const optionsResult = await query(
     `SELECT 
@@ -472,6 +531,7 @@ module.exports = {
   getGradeExamAttemptsStats,
   getGroupExamAttemptsStats,
   submitExam,
+  recalculateScoreAfterEssayGrading,
   autoSubmitExpiredExams,
   markAbsentStudents,
   getStudentExamWithQuestions,
