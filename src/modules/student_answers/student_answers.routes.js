@@ -13,6 +13,9 @@ routes.post(
   studentAnswerController.submitEssayAnswer,
 );
 
+// Download answer file
+routes.get("/:answerId/download", studentAnswerController.downloadAnswerFile);
+
 // Delete answer
 routes.delete("/:answerId", studentAnswerController.deleteAnswer);
 
