@@ -4,8 +4,8 @@
 
 // Create assignment
 const createAssignment = `
-INSERT INTO assignments (title, description, grade_id, group_id, file_path, full_mark, deadline, created_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO assignments (title, description, grade_id, group_id, file_path, full_mark, deadline, created_by, is_closed)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *
 `;
 
