@@ -18,10 +18,7 @@ routes.post("/exam/:examId/start", studentExamController.createExamAttempt);
 routes.put("/attempt/:attemptId/submit", studentExamController.submitExam);
 
 // Get exam review
-routes.get(
-  "/attempt/:attemptId/review",
-  studentExamController.getExamReview,
-);
+routes.get("/attempt/:attemptId/review", studentExamController.getExamReview);
 
 // Get exam questions for student
 routes.get(
