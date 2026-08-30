@@ -166,6 +166,27 @@ const submitExam = async (req, res, next) => {
   }
 };
 
+// Get exam review after submission
+const getExamReview = async (req, res, next) => {
+  try {
+    const { attemptId } = req.params;
+    const studentId = req.clientId;
+
+    const review = await studentExamService.getExamReview(
+      attemptId,
+      studentId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل مراجعة الامتحان بنجاح",
+      data: review,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get exam questions for student
 const getExamQuestionsForStudent = async (req, res, next) => {
   try {
@@ -302,6 +323,7 @@ module.exports = {
   getGradeExamAttemptsStats,
   getGroupExamAttemptsStats,
   submitExam,
+  getExamReview,
   getExamQuestionsForStudent,
   getQuestionForStudent,
   getOptionsForStudent,
