@@ -22,7 +22,7 @@ const createPayment = async (paymentData) => {
   }
 
   // Amount equals required amount (no partial payment)
-  const amount = required_amount;
+ // const amount = required_amount;
 
   // Create payment
   const paymentResult = await query(paymentQueries.createPayment, [
