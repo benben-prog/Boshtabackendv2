@@ -3,7 +3,7 @@ const paymentQueries = require("./payments.queries");
 
 // Create payment - auto set amount from subscription required_amount
 const createPayment = async (paymentData) => {
-  const { subscription_id, student_id, amont,payment_date, notes } = paymentData;
+  const { subscription_id, student_id, amount,payment_date, notes } = paymentData;
 
   // Get subscription required amount
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
