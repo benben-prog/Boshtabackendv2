@@ -1,6 +1,41 @@
 const paymentService = require("./payments.service");
 const { logActivity } = require("../../utils/activityLogger");
 
+// ✅ دالة مساعدة لتحويل التواقيت
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return d.toLocaleString('en-US', { 
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
+const formatDatesInArray = (items) => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.map(item => formatDatesInObject(item));
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في الكائن
+const formatDatesInObject = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const formatted = { ...obj };
+  const dateFields = ['created_at', 'updated_at', 'payment_date', 'date', 'submitted_at'];
+  dateFields.forEach(field => {
+    if (formatted[field] !== undefined && formatted[field] !== null) {
+      formatted[field] = formatDate(formatted[field]);
+    }
+  });
+  return formatted;
+};
+
 // Create payment
 const createPayment = async (req, res, next) => {
   try {
@@ -21,10 +56,13 @@ const createPayment = async (req, res, next) => {
       description: `تسجيل دفعة للطالب (ID: ${payment.student_id}) بمبلغ ${payment.amount}`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedPayment = formatDatesInObject(payment);
+
     return res.status(201).json({
       success: true,
       message: "تم تسجيل الدفعة بنجاح!",
-      data: payment,
+      data: formattedPayment,
     });
   } catch (error) {
     next(error);
@@ -50,10 +88,13 @@ const getAllPayments = async (req, res, next) => {
       group_id: group_id ? parseInt(group_id) : null,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedPayments = formatDatesInArray(payments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعات بنجاح!",
-      data: payments,
+      data: formattedPayments,
       pagination: {
         page,
         limit: 20,
@@ -77,10 +118,13 @@ const getPaymentById = async (req, res, next) => {
       throw new Error("فشل تحميل الدفعة حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedPayment = formatDatesInObject(payment);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعة بنجاح!",
-      data: payment,
+      data: formattedPayment,
     });
   } catch (error) {
     next(error);
@@ -109,10 +153,13 @@ const updatePayment = async (req, res, next) => {
       description: `تعديل دفعة (ID: ${id})`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedPayment = formatDatesInObject(payment);
+
     return res.status(200).json({
       success: true,
       message: "تم تعديل الدفعة بنجاح!",
-      data: payment,
+      data: formattedPayment,
     });
   } catch (error) {
     next(error);
@@ -161,10 +208,13 @@ const getPaymentsByGradeAndMonth = async (req, res, next) => {
       month,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedPayments = formatDatesInArray(payments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعات بنجاح!",
-      data: payments,
+      data: formattedPayments,
     });
   } catch (error) {
     next(error);
@@ -181,10 +231,13 @@ const getPaymentsByGroupAndMonth = async (req, res, next) => {
       month,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedPayments = formatDatesInArray(payments);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعات بنجاح!",
-      data: payments,
+      data: formattedPayments,
     });
   } catch (error) {
     next(error);
@@ -196,10 +249,13 @@ const getMonthlyCollections = async (req, res, next) => {
   try {
     const collections = await paymentService.getMonthlyCollections();
 
+    // ✅ تحويل التواقيت
+    const formattedCollections = formatDatesInArray(collections);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل التحصيلات بنجاح!",
-      data: collections,
+      data: formattedCollections,
     });
   } catch (error) {
     next(error);
@@ -211,10 +267,13 @@ const getUnpaidStudentsCurrentMonth = async (req, res, next) => {
   try {
     const students = await paymentService.getUnpaidStudentsCurrentMonth();
 
+    // ✅ تحويل التواقيت
+    const formattedStudents = formatDatesInArray(students);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الطلاب بنجاح!",
-      data: students,
+      data: formattedStudents,
     });
   } catch (error) {
     next(error);
@@ -232,10 +291,13 @@ const getGradePaymentStats = async (req, res, next) => {
       throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedStats = formatDatesInObject(stats);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الإحصائيات بنجاح!",
-      data: stats,
+      data: formattedStats,
     });
   } catch (error) {
     next(error);
@@ -253,10 +315,13 @@ const getGroupPaymentStats = async (req, res, next) => {
       throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedStats = formatDatesInObject(stats);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الإحصائيات بنجاح!",
-      data: stats,
+      data: formattedStats,
     });
   } catch (error) {
     next(error);
@@ -268,10 +333,13 @@ const getOverallPaymentStats = async (req, res, next) => {
   try {
     const stats = await paymentService.getOverallPaymentStats();
 
+    // ✅ تحويل التواقيت
+    const formattedStats = formatDatesInObject(stats);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الإحصائيات بنجاح!",
-      data: stats,
+      data: formattedStats,
     });
   } catch (error) {
     next(error);
@@ -283,10 +351,13 @@ const getAllStudentsPaymentStatus = async (req, res, next) => {
   try {
     const students = await paymentService.getAllStudentsPaymentStatus();
 
+    // ✅ تحويل التواقيت
+    const formattedStudents = formatDatesInArray(students);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الطلاب بنجاح!",
-      data: students,
+      data: formattedStudents,
     });
   } catch (error) {
     next(error);
