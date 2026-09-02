@@ -1,6 +1,41 @@
 const onlineExamService = require("./online_exams.service");
 const { logActivity } = require("../../utils/activityLogger");
 
+// ✅ دالة مساعدة لتحويل التواقيت
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return d.toLocaleString('en-US', { 
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
+const formatDatesInArray = (items) => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.map(item => formatDatesInObject(item));
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في الكائن
+const formatDatesInObject = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const formatted = { ...obj };
+  const dateFields = ['created_at', 'updated_at', 'start_at', 'end_at', 'submitted_at', 'started_at'];
+  dateFields.forEach(field => {
+    if (formatted[field] !== undefined && formatted[field] !== null) {
+      formatted[field] = formatDate(formatted[field]);
+    }
+  });
+  return formatted;
+};
+
 // Get all online exams
 const getAllOnlineExams = async (req, res, next) => {
   try {
@@ -11,10 +46,13 @@ const getAllOnlineExams = async (req, res, next) => {
       throw new Error("فشل تحميل الامتحانات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedExams = formatDatesInArray(exams);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحانات بنجاح!",
-      data: exams,
+      data: formattedExams,
     });
   } catch (error) {
     next(error);
@@ -31,10 +69,13 @@ const getOnlineExamById = async (req, res, next) => {
       throw new Error("فشل تحميل الامتحان حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedExam = formatDatesInObject(exam);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحان بنجاح!",
-      data: exam,
+      data: formattedExam,
     });
   } catch (error) {
     next(error);
@@ -51,10 +92,13 @@ const getOnlineExamsByGradeId = async (req, res, next) => {
       page,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedExams = formatDatesInArray(exams);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحانات بنجاح!",
-      data: exams,
+      data: formattedExams,
     });
   } catch (error) {
     next(error);
@@ -71,10 +115,13 @@ const getOnlineExamsByGroupId = async (req, res, next) => {
       page,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedExams = formatDatesInArray(exams);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحانات بنجاح!",
-      data: exams,
+      data: formattedExams,
     });
   } catch (error) {
     next(error);
@@ -86,10 +133,13 @@ const getAvailableOnlineExams = async (req, res, next) => {
   try {
     const exams = await onlineExamService.getAvailableOnlineExams();
 
+    // ✅ تحويل التواقيت
+    const formattedExams = formatDatesInArray(exams);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحانات المتاحة بنجاح!",
-      data: exams,
+      data: formattedExams,
     });
   } catch (error) {
     next(error);
@@ -101,10 +151,13 @@ const getExpiredOnlineExams = async (req, res, next) => {
   try {
     const exams = await onlineExamService.getExpiredOnlineExams();
 
+    // ✅ تحويل التواقيت
+    const formattedExams = formatDatesInArray(exams);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الامتحانات المنتهية بنجاح!",
-      data: exams,
+      data: formattedExams,
     });
   } catch (error) {
     next(error);
@@ -121,10 +174,13 @@ const getOnlineExamStats = async (req, res, next) => {
       throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedStats = formatDatesInObject(stats);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الإحصائيات بنجاح!",
-      data: stats,
+      data: formattedStats,
     });
   } catch (error) {
     next(error);
@@ -141,10 +197,13 @@ const getGradeOnlineExamStats = async (req, res, next) => {
       throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedStats = formatDatesInObject(stats);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل الإحصائيات بنجاح!",
-      data: stats,
+      data: formattedStats,
     });
   } catch (error) {
     next(error);
@@ -174,10 +233,13 @@ const createOnlineExam = async (req, res, next) => {
       description: `إنشاء امتحان إلكتروني: ${exam.title}`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedExam = formatDatesInObject(exam);
+
     return res.status(201).json({
       success: true,
       message: "تم إنشاء الامتحان بنجاح!",
-      data: exam,
+      data: formattedExam,
     });
   } catch (error) {
     next(error);
@@ -205,10 +267,13 @@ const updateOnlineExam = async (req, res, next) => {
       description: `تعديل امتحان إلكتروني (ID: ${examId})`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedExam = formatDatesInObject(exam);
+
     return res.status(200).json({
       success: true,
       message: "تم تعديل الامتحان بنجاح!",
-      data: exam,
+      data: formattedExam,
     });
   } catch (error) {
     next(error);
