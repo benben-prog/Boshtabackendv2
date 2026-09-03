@@ -36,12 +36,34 @@ function hasPhone(phone) {
   return normalizePhone(phone).length >= 11;
 }
 
+// ✅ دالة لجلب التاريخ بتوقيت مصر (YYYY-MM-DD)
+function getEgyptDate() {
+  const now = new Date();
+  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return cairoTime.toISOString().split("T")[0];
+}
+
+// ✅ دالة لجلب اليوم بالعربي بتوقيت مصر
+function getEgyptDayName() {
+  const now = new Date();
+  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return cairoTime.toLocaleString("ar-EG", { weekday: "long" });
+}
+
+// ✅ دالة لجلب التاريخ والوقت بتوقيت مصر
+function getEgyptDateTime() {
+  const now = new Date();
+  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return cairoTime.toISOString();
+}
+
+// ⚠️ دلوقتي استخدم getEgyptDate بدل getToday
 function getToday() {
-  return new Date().toLocaleDateString("en-GB");
+  return getEgyptDate();
 }
 
 function getDayName() {
-  return new Date().toLocaleString("ar-EG", { weekday: "long" });
+  return getEgyptDayName();
 }
 
 // ============ Send Template Message ============
@@ -156,13 +178,16 @@ async function sendAbsentMsg(student, date) {
   const phone = student.parent_phone || student.phone;
   const parentToken = student.parent_token || student.parentToken;
 
+  // ✅ استخدم getEgyptDate بدل getToday
+  const absenceDate = date || getEgyptDate();
+
   return sendTemplate({
     phone,
     templateName: TEMPLATES.ABSENCE,
     parameters: [
       student.full_name || student.name || "Student",
       student.barcode || "N/A",
-      date || getToday(),
+      absenceDate,
     ],
     buttonParams: parentToken,
     lang_code:"ar"
@@ -199,6 +224,10 @@ Amount: ${paymentData.amount || 0}
 async function sendExamMsg(student, examData) {
   const phone = student.parent_phone || student.phone;
 
+  // ✅ استخدم getEgyptDate و getEgyptDayName بدل getToday و getDayName
+  const examDate = examData.date || getEgyptDate();
+  const dayName = getEgyptDayName();
+
   return sendTemplate({
     phone,
     templateName: TEMPLATES.EXAM,
@@ -206,8 +235,8 @@ async function sendExamMsg(student, examData) {
       student.full_name || student.name || "Student",
       examData.score || 0,
       examData.fullMark || 100,
-      examData.date || getToday(),
-      getDayName(),
+      examDate,
+      dayName,
       student.barcode || "N/A",
     ],
     lang_code:"ar"
@@ -244,4 +273,7 @@ module.exports = {
   hasPhone,
   getToday,
   getDayName,
+  getEgyptDate,
+  getEgyptDayName,
+  getEgyptDateTime,
 };
