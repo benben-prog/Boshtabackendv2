@@ -2,6 +2,41 @@ const whatsappDispatcher = require("./whatsapp_dispatcher.service");
 const { query } = require("../../config/database");
 const { logActivity } = require("../../utils/activityLogger");
 
+// ✅ دالة مساعدة لتحويل التواقيت
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return d.toLocaleString('en-US', { 
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
+const formatDatesInArray = (items) => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.map(item => formatDatesInObject(item));
+};
+
+// ✅ دالة مساعدة لتحويل التواقيت في الكائن
+const formatDatesInObject = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const formatted = { ...obj };
+  const dateFields = ['created_at', 'updated_at', 'sent_at', 'scheduled_at'];
+  dateFields.forEach(field => {
+    if (formatted[field] !== undefined && formatted[field] !== null) {
+      formatted[field] = formatDate(formatted[field]);
+    }
+  });
+  return formatted;
+};
+
 // ============ Send Welcome Message ============
 
 const sendWelcome = async (req, res, next) => {
@@ -454,9 +489,12 @@ const getAllMessages = async (req, res, next) => {
       params,
     );
 
+    // ✅ تحويل التواقيت
+    const formattedMessages = formatDatesInArray(result.rows);
+
     return res.status(200).json({
       success: true,
-      data: result.rows,
+      data: formattedMessages,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -482,9 +520,12 @@ const getMessageById = async (req, res, next) => {
       throw new Error("Message not found");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedMessage = formatDatesInObject(message);
+
     return res.status(200).json({
       success: true,
-      data: message,
+      data: formattedMessage,
     });
   } catch (error) {
     next(error);
@@ -539,9 +580,12 @@ const getAllTemplates = async (req, res, next) => {
       ORDER BY created_at DESC
     `);
 
+    // ✅ تحويل التواقيت
+    const formattedTemplates = formatDatesInArray(result.rows);
+
     return res.status(200).json({
       success: true,
-      data: result.rows,
+      data: formattedTemplates,
     });
   } catch (error) {
     next(error);
@@ -567,9 +611,12 @@ const getTemplateById = async (req, res, next) => {
       throw new Error("Template not found");
     }
 
+    // ✅ تحويل التواقيت
+    const formattedTemplate = formatDatesInObject(result.rows[0]);
+
     return res.status(200).json({
       success: true,
-      data: result.rows[0],
+      data: formattedTemplate,
     });
   } catch (error) {
     next(error);
@@ -605,10 +652,13 @@ const createTemplate = async (req, res, next) => {
       description: `Created WhatsApp template: ${template.slice(0, 50)}...`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedTemplate = formatDatesInObject(result.rows[0]);
+
     return res.status(201).json({
       success: true,
       message: "Template created successfully",
-      data: result.rows[0],
+      data: formattedTemplate,
     });
   } catch (error) {
     next(error);
@@ -655,10 +705,13 @@ const updateTemplate = async (req, res, next) => {
       description: `Updated WhatsApp template (ID: ${templateId})`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedTemplate = formatDatesInObject(result.rows[0]);
+
     return res.status(200).json({
       success: true,
       message: "Template updated successfully",
-      data: result.rows[0],
+      data: formattedTemplate,
     });
   } catch (error) {
     next(error);
@@ -701,10 +754,13 @@ const toggleTemplateActive = async (req, res, next) => {
       description: `Toggled WhatsApp template (ID: ${templateId}) to ${result.rows[0].is_active === 1 ? "active" : "inactive"}`,
     });
 
+    // ✅ تحويل التواقيت
+    const formattedTemplate = formatDatesInObject(result.rows[0]);
+
     return res.status(200).json({
       success: true,
       message: `Template ${result.rows[0].is_active === 1 ? "activated" : "deactivated"} successfully`,
-      data: result.rows[0],
+      data: formattedTemplate,
     });
   } catch (error) {
     next(error);
