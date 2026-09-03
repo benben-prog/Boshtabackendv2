@@ -2,6 +2,13 @@ const whatsappDispatcher = require("./whatsapp_dispatcher.service");
 const { query } = require("../../config/database");
 const { logActivity } = require("../../utils/activityLogger");
 
+// ✅ دالة لجلب التاريخ بتوقيت مصر
+const getEgyptDate = () => {
+  const now = new Date();
+  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return cairoTime.toISOString().split("T")[0];
+};
+
 // ✅ دالة مساعدة لتحويل التواقيت
 const formatDate = (date) => {
   if (!date) return null;
@@ -60,7 +67,7 @@ const sendWelcome = async (req, res, next) => {
     }
 
     const studentData = student.rows[0];
-    const refKey = `welcome_${studentId}_${new Date().toISOString().split("T")[0]}`;
+    const refKey = `welcome_${studentId}_${getEgyptDate()}`;
 
     const result = await whatsappDispatcher.enqueueMessage({
       student_id: studentId,
@@ -129,7 +136,7 @@ const sendAbsence = async (req, res, next) => {
     }
 
     const studentData = student.rows[0];
-    const absenceDate = date || new Date().toISOString().split("T")[0];
+    const absenceDate = date || getEgyptDate();
     const refKey = `absence_${studentId}_${absenceDate}`;
 
     const result = await whatsappDispatcher.enqueueMessage({
@@ -318,7 +325,7 @@ const sendExam = async (req, res, next) => {
       fullMark: resultData.total_degree || 100,
       date: resultData.created_at
         ? new Date(resultData.created_at).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
+        : getEgyptDate(),
     };
 
     const refKey = `exam_${resultId}`;
@@ -489,7 +496,6 @@ const getAllMessages = async (req, res, next) => {
       params,
     );
 
-    // ✅ تحويل التواقيت
     const formattedMessages = formatDatesInArray(result.rows);
 
     return res.status(200).json({
@@ -520,7 +526,6 @@ const getMessageById = async (req, res, next) => {
       throw new Error("Message not found");
     }
 
-    // ✅ تحويل التواقيت
     const formattedMessage = formatDatesInObject(message);
 
     return res.status(200).json({
@@ -580,7 +585,6 @@ const getAllTemplates = async (req, res, next) => {
       ORDER BY created_at DESC
     `);
 
-    // ✅ تحويل التواقيت
     const formattedTemplates = formatDatesInArray(result.rows);
 
     return res.status(200).json({
@@ -611,7 +615,6 @@ const getTemplateById = async (req, res, next) => {
       throw new Error("Template not found");
     }
 
-    // ✅ تحويل التواقيت
     const formattedTemplate = formatDatesInObject(result.rows[0]);
 
     return res.status(200).json({
@@ -652,7 +655,6 @@ const createTemplate = async (req, res, next) => {
       description: `Created WhatsApp template: ${template.slice(0, 50)}...`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedTemplate = formatDatesInObject(result.rows[0]);
 
     return res.status(201).json({
@@ -705,7 +707,6 @@ const updateTemplate = async (req, res, next) => {
       description: `Updated WhatsApp template (ID: ${templateId})`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedTemplate = formatDatesInObject(result.rows[0]);
 
     return res.status(200).json({
@@ -754,7 +755,6 @@ const toggleTemplateActive = async (req, res, next) => {
       description: `Toggled WhatsApp template (ID: ${templateId}) to ${result.rows[0].is_active === 1 ? "active" : "inactive"}`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedTemplate = formatDatesInObject(result.rows[0]);
 
     return res.status(200).json({
