@@ -47,29 +47,20 @@ const {
 
 /* ============================================
    PROFILE & DASHBOARD & ACTIVITY LOG
-   (متاحة لكل المساعدين)
    ============================================ */
 
-// Get assistant profile
 routes.get("/profile", assistantController.getProfile);
-
-// Get dashboard
 routes.get("/dashboard", assistantController.getDashboard);
-
-// Get activity log
 routes.get("/activity-log", assistantController.getActivityLog);
 
-// Update profile image
 routes.put(
   "/profile-image",
   profileImageUpload.single("image"),
   usersController.updateUserProfileImage,
 );
 
-// Delete profile image
 routes.delete("/profile-image", usersController.deleteUserProfileImage);
 
-// Update password
 routes.put(
   "/password",
   validate(updateUserPasswordSchema),
@@ -78,13 +69,10 @@ routes.put(
 
 /* ============================================
    ONLINE MANAGEMENT ROUTES
-   (متاحة للمساعدين بـ online_management أو center_management)
    ============================================ */
 
 routes.use(onlineManagementAuth);
 
-// Online Exams - CRUD كامل
-// Preview routes
 routes.get(
   "/assignments/:assignmentId/preview",
   previewController.previewAssignment,
@@ -98,6 +86,7 @@ routes.get(
   "/student-answers/:answerId/preview",
   previewController.previewStudentAnswer,
 );
+
 routes.get("/online-exams", onlineExamController.getAllOnlineExams);
 routes.get(
   "/online-exams/available",
@@ -132,7 +121,6 @@ routes.delete(
   onlineExamController.hardDeleteOnlineExam,
 );
 
-// Questions - CRUD (مع رفع ملف)
 routes.get("/questions/exam/:examId", questionController.getQuestionsByExamId);
 routes.get("/questions/:questionId", questionController.getQuestionById);
 routes.get(
@@ -151,7 +139,6 @@ routes.put(
 );
 routes.delete("/questions/:questionId", questionController.deleteQuestion);
 
-// Options - CRUD
 routes.get(
   "/options/question/:questionId",
   optionController.getOptionsByQuestionId,
@@ -161,7 +148,6 @@ routes.post("/options", optionController.createOption);
 routes.put("/options/:optionId", optionController.updateOption);
 routes.delete("/options/:optionId", optionController.deleteOption);
 
-// Assignments - CRUD (مع رفع ملف)
 routes.get("/assignments", assignmentController.getAllAssignments);
 routes.get(
   "/assignments/grade/:gradeId",
@@ -198,7 +184,6 @@ routes.delete(
   assignmentController.hardDeleteAssignment,
 );
 
-// Assignment Submissions - Grade
 routes.get(
   "/assignment-submissions/stats/grade/:gradeId",
   assignmentSubmissionController.getGradeAssignmentSubmissionStats,
@@ -232,7 +217,6 @@ routes.put(
   assignmentSubmissionController.gradeSubmission,
 );
 
-// Videos - CRUD (مع رفع ملف وصورة)
 routes.get("/videos", videoController.getAllVideos);
 routes.get("/videos/grade/:gradeId", videoController.getVideosByGradeId);
 routes.get("/videos/:videoId/download", videoController.downloadVideoFile);
@@ -255,7 +239,6 @@ routes.put(
 );
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
-// Playlists - CRUD (مع رفع صورة)
 routes.get("/playlists", playlistController.getAllPlaylists);
 routes.get(
   "/playlists/grade/:gradeId",
@@ -274,7 +257,6 @@ routes.put(
 );
 routes.delete("/playlists/:playlistId", playlistController.hardDeletePlaylist);
 
-// Playlist Videos
 routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
@@ -287,16 +269,10 @@ routes.delete(
 
 /* ============================================
    CENTER MANAGEMENT ROUTES
-   (متاحة للمساعدين بـ center_management فقط)
    ============================================ */
 
 routes.use(centerManagementAuth);
 
-// ============================================
-// BULK UPLOAD ROUTES (Excel)
-// ============================================
-
-// Students Bulk Upload
 routes.get(
   "/students/template",
   studentsBulkController.downloadStudentsTemplate,
@@ -307,7 +283,6 @@ routes.post(
   studentsBulkController.bulkUploadStudents,
 );
 
-// Grades Bulk Upload
 routes.get("/grades/template", gradesBulkController.downloadGradesTemplate);
 routes.post(
   "/grades/bulk-upload",
@@ -315,7 +290,6 @@ routes.post(
   gradesBulkController.bulkUploadGrades,
 );
 
-// Groups Bulk Upload
 routes.get("/groups/template", groupsBulkController.downloadGroupsTemplate);
 routes.post(
   "/groups/bulk-upload",
@@ -323,7 +297,6 @@ routes.post(
   groupsBulkController.bulkUploadGroups,
 );
 
-// Exam Results Bulk Upload
 routes.get(
   "/exam-results/template",
   examResultsBulkController.downloadExamResultsTemplate,
@@ -334,11 +307,6 @@ routes.post(
   examResultsBulkController.bulkUploadExamResults,
 );
 
-// ============================================
-// REGULAR ROUTES
-// ============================================
-
-// Grades - CRUD
 routes.get("/grades", gradesController.getAllGrades);
 routes.get("/grades/groups-count", gradesController.getGradesWithGroupsCount);
 routes.get(
@@ -354,7 +322,6 @@ routes.put("/grades/:id", gradesController.updateGrade);
 routes.delete("/grades/:id", gradesController.softDeleteGrade);
 routes.delete("/grades/:id/permanent", gradesController.hardDeleteGrade);
 
-// Groups - CRUD
 routes.get("/groups", groupsController.getAllGroups);
 routes.get("/groups/with-grade-name", groupsController.getGroupsWithGradeName);
 routes.get(
@@ -371,12 +338,12 @@ routes.post("/groups", groupsController.createGroup);
 routes.put("/groups/:id", groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
-// Download student answer file
+
 routes.get(
   "/student-answers/:answerId/download",
   studentAnswerController.downloadAnswerFile,
 );
-// Students - CRUD
+
 routes.get("/students", studentsController.getAllStudents);
 routes.get("/students/deleted", studentsController.getDeletedStudents);
 routes.get("/students/search/barcode", studentsController.getStudentByBarcode);
@@ -473,7 +440,6 @@ routes.delete(
 );
 routes.post("/students/:studentId/restore", studentsController.restoreStudent);
 
-// Attendance
 routes.get("/attendance/dashboard", attendanceController.getDashboard);
 routes.get(
   "/attendance/overall-stats",
@@ -508,7 +474,6 @@ routes.post(
 routes.put("/attendance/:id", attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 
-// Attendance Sessions
 routes.post("/attendance/sessions/start", attendanceController.startSession);
 routes.get(
   "/attendance/sessions/active/:groupId",
@@ -521,7 +486,6 @@ routes.put(
 routes.post("/attendance/scan-barcode", attendanceController.scanBarcode);
 routes.post("/attendance/sessions/lock", attendanceController.lockSession);
 
-// Payments
 routes.get("/payments", paymentsController.getAllPayments);
 routes.get("/payments/collections", paymentsController.getMonthlyCollections);
 routes.get(
@@ -554,7 +518,6 @@ routes.post("/payments", paymentsController.createPayment);
 routes.put("/payments/:id", paymentsController.updatePayment);
 routes.delete("/payments/:id", paymentsController.deletePayment);
 
-// Subscriptions
 routes.get(
   "/subscriptions/overall",
   subscriptionsController.getOverallSubscriptionStats,
@@ -586,7 +549,6 @@ routes.put(
 );
 routes.delete("/subscriptions/:id", subscriptionsController.deleteSubscription);
 
-// Exams (ورقية)
 routes.get("/exams", examsController.getAllExams);
 routes.get("/exams/grade/:gradeId/stats", examsController.getGradeExamStats);
 routes.get("/exams/grade/:gradeId", examsController.getExamsByGradeId);
@@ -598,7 +560,6 @@ routes.put("/exams/:id", examsController.updateExam);
 routes.delete("/exams/:id", examsController.softDeleteExam);
 routes.delete("/exams/:id/permanent", examsController.hardDeleteExam);
 
-// Exam Results
 routes.get(
   "/exam-results/grade/:gradeId/stats",
   examResultsController.getGradeExamResultsStats,
@@ -621,7 +582,6 @@ routes.post(
 routes.put("/exam-results/:id", examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
-// Student Exams - قراءة
 routes.get(
   "/student-exams/exam/:examId",
   studentExamController.getStudentExamsByExamId,
@@ -639,7 +599,6 @@ routes.get(
   studentExamController.getGroupExamAttemptsStats,
 );
 
-// Student Answers - إحصائيات
 routes.get(
   "/student-answers/question/:questionId/stats",
   studentAnswerController.getQuestionAnswerStats,
@@ -648,26 +607,19 @@ routes.get(
   "/student-answers/question/:questionId/options",
   studentAnswerController.getMostSelectedOptions,
 );
-
-// Get essay answers for grading
 routes.get(
   "/student-answers/essay/pending",
   studentAnswerController.getEssayAnswersForGrading,
 );
-
-// Get essay answers by exam
 routes.get(
   "/student-answers/essay/exam/:examId",
   studentAnswerController.getEssayAnswersByExam,
 );
-
-// Grade essay answer
 routes.put(
   "/student-answers/:answerId/grade",
   studentAnswerController.gradeEssayAnswer,
 );
 
-// WhatsApp Templates
 routes.get("/whatsapp-messages", whatsappController.getAllTemplates);
 routes.get(
   "/whatsapp-messages/:templateId",

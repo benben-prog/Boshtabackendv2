@@ -1,25 +1,41 @@
 const express = require("express");
 const routes = express.Router();
 const whatsappController = require("./whatsapp_messages.controller");
-const validate = require("../../middlewares/validate.middleware");
-const {
-  createTemplateSchema,
-  updateTemplateSchema,
-} = require("../../middlewares/validations/whatsapp.validation");
 
-// Get all templates
-routes.get("/", whatsappController.getAllTemplates);
+// ============ Send Instant Messages ============
 
-// Get template by ID
-routes.get("/:templateId", whatsappController.getTemplateById);
+// POST /api/assistant/whatsapp/send/welcome/:studentId?instant=true
+routes.post("/send/welcome/:studentId", whatsappController.sendWelcome);
 
-// Create template
-routes.post("/", validate(createTemplateSchema), whatsappController.createTemplate);
+// POST /api/assistant/whatsapp/send/absence/:studentId?instant=true&date=2024-01-15
+routes.post("/send/absence/:studentId", whatsappController.sendAbsence);
 
-// Update template
-routes.put("/:templateId", validate(updateTemplateSchema), whatsappController.updateTemplate);
+// POST /api/assistant/whatsapp/send/payment/:paymentId?instant=true
+routes.post("/send/payment/:paymentId", whatsappController.sendPayment);
 
-// Toggle active
-routes.put("/:templateId/toggle", whatsappController.toggleTemplateActive);
+// POST /api/assistant/whatsapp/send/exam/:resultId?instant=true
+routes.post("/send/exam/:resultId", whatsappController.sendExam);
+
+// ============ Queue Management ============
+
+// POST /api/assistant/whatsapp/queue/send
+routes.post("/queue/send", whatsappController.sendQueue);
+
+// GET /api/assistant/whatsapp/queue/stats
+routes.get("/queue/stats", whatsappController.getQueueStats);
+
+// POST /api/assistant/whatsapp/queue/reset-failed
+routes.post("/queue/reset-failed", whatsappController.resetFailed);
+
+// ============ Message Management ============
+
+// GET /api/assistant/whatsapp/messages?status=pending&type=welcome&page=1&limit=20
+routes.get("/messages", whatsappController.getAllMessages);
+
+// GET /api/assistant/whatsapp/messages/:messageId
+routes.get("/messages/:messageId", whatsappController.getMessageById);
+
+// DELETE /api/assistant/whatsapp/messages/:messageId
+routes.delete("/messages/:messageId", whatsappController.deleteMessage);
 
 module.exports = routes;

@@ -1,86 +1,650 @@
-const whatsappService = require("./whatsapp_messages.service");
+const whatsappDispatcher = require("./whatsapp_dispatcher.service");
+const { query } = require("../../config/database");
 const { logActivity } = require("../../utils/activityLogger");
 
-// Create template
-const createTemplate = async (req, res, next) => {
-  try {
-    const template = await whatsappService.createTemplate(req.body);
+// ============ Send Welcome Message ============
 
-    if (!template) {
-      throw new Error("فشل إنشاء القالب حاول مرة أخرى!");
+const sendWelcome = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { instant = "false" } = req.query;
+
+    const student = await query(
+      `
+      SELECT s.*, g.name AS grade_name, gr.name AS group_name
+      FROM students s
+      LEFT JOIN grades g ON s.grade_id = g.id
+      LEFT JOIN groups gr ON s.group_id = gr.id
+      WHERE s.id = $1 AND s.deleted = 0
+    `,
+      [studentId],
+    );
+
+    if (!student.rows[0]) {
+      throw new Error("Student not found");
     }
 
-    // Log activity
+    const studentData = student.rows[0];
+    const refKey = `welcome_${studentId}_${new Date().toISOString().split("T")[0]}`;
+
+    const result = await whatsappDispatcher.enqueueMessage({
+      student_id: studentId,
+      type: "welcome",
+      recipient: "parent",
+      phone: studentData.parent_phone || studentData.phone,
+      params: studentData,
+      ref_key: refKey,
+    });
+
+    let sendResult = null;
+    if (instant === "true" && result.inserted) {
+      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: instant === "true" ? "send_welcome_instant" : "enqueue_welcome",
+      entity_type: "whatsapp",
+      entity_id: result.id,
+      description:
+        instant === "true"
+          ? `Sent instant welcome message to ${studentData.full_name}`
+          : `Added welcome message to queue for ${studentData.full_name}`,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        instant === "true"
+          ? "Welcome message sent"
+          : "Welcome message added to queue",
+      data: {
+        message_id: result.id,
+        inserted: result.inserted,
+        sent: sendResult,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Send Absence Message ============
+
+const sendAbsence = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { date, instant = "false" } = req.query;
+
+    const student = await query(
+      `
+      SELECT s.*, g.name AS grade_name, gr.name AS group_name
+      FROM students s
+      LEFT JOIN grades g ON s.grade_id = g.id
+      LEFT JOIN groups gr ON s.group_id = gr.id
+      WHERE s.id = $1 AND s.deleted = 0
+    `,
+      [studentId],
+    );
+
+    if (!student.rows[0]) {
+      throw new Error("Student not found");
+    }
+
+    const studentData = student.rows[0];
+    const absenceDate = date || new Date().toISOString().split("T")[0];
+    const refKey = `absence_${studentId}_${absenceDate}`;
+
+    const result = await whatsappDispatcher.enqueueMessage({
+      student_id: studentId,
+      type: "absence",
+      recipient: "parent",
+      phone: studentData.parent_phone || studentData.phone,
+      params: { date: absenceDate },
+      ref_key: refKey,
+    });
+
+    let sendResult = null;
+    if (instant === "true" && result.inserted) {
+      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: instant === "true" ? "send_absence_instant" : "enqueue_absence",
+      entity_type: "whatsapp",
+      entity_id: result.id,
+      description:
+        instant === "true"
+          ? `Sent instant absence message to ${studentData.full_name}`
+          : `Added absence message to queue for ${studentData.full_name}`,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        instant === "true"
+          ? "Absence message sent"
+          : "Absence message added to queue",
+      data: {
+        message_id: result.id,
+        inserted: result.inserted,
+        sent: sendResult,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Send Payment Message ============
+
+const sendPayment = async (req, res, next) => {
+  try {
+    const { paymentId } = req.params;
+    const { instant = "false" } = req.query;
+
+    const payment = await query(
+      `
+      SELECT 
+        p.*,
+        s.id AS student_id,
+        s.full_name,
+        s.barcode,
+        s.phone,
+        s.parent_phone,
+        s.parent_token,
+        sub.month
+      FROM payments p
+      JOIN students s ON p.student_id = s.id AND s.deleted = 0
+      LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
+      WHERE p.id = $1
+    `,
+      [paymentId],
+    );
+
+    if (!payment.rows[0]) {
+      throw new Error("Payment not found");
+    }
+
+    const paymentData = payment.rows[0];
+
+    const student = {
+      id: paymentData.student_id,
+      full_name: paymentData.full_name,
+      name: paymentData.full_name,
+      barcode: paymentData.barcode,
+      phone: paymentData.phone,
+      parent_phone: paymentData.parent_phone,
+      parent_token: paymentData.parent_token,
+    };
+
+    const paymentInfo = {
+      month: paymentData.month || "N/A",
+      year: new Date().getFullYear(),
+      amount: paymentData.amount || 0,
+    };
+
+    const refKey = `payment_${paymentId}`;
+
+    const result = await whatsappDispatcher.enqueueMessage({
+      student_id: paymentData.student_id,
+      type: "payment",
+      recipient: "parent",
+      phone: paymentData.parent_phone || paymentData.phone,
+      params: paymentInfo,
+      ref_key: refKey,
+    });
+
+    let sendResult = null;
+    if (instant === "true" && result.inserted) {
+      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: instant === "true" ? "send_payment_instant" : "enqueue_payment",
+      entity_type: "whatsapp",
+      entity_id: result.id,
+      description:
+        instant === "true"
+          ? `Sent instant payment message to ${student.full_name}`
+          : `Added payment message to queue for ${student.full_name}`,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        instant === "true"
+          ? "Payment message sent"
+          : "Payment message added to queue",
+      data: {
+        message_id: result.id,
+        inserted: result.inserted,
+        sent: sendResult,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Send Exam Result Message ============
+
+const sendExam = async (req, res, next) => {
+  try {
+    const { resultId } = req.params;
+    const { instant = "false" } = req.query;
+
+    const examResult = await query(
+      `
+      SELECT 
+        er.*,
+        s.id AS student_id,
+        s.full_name,
+        s.barcode,
+        s.phone,
+        s.parent_phone,
+        s.parent_token,
+        e.title AS exam_title,
+        e.total_degree
+      FROM exam_results er
+      JOIN students s ON er.student_id = s.id AND s.deleted = 0
+      JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
+      WHERE er.id = $1
+    `,
+      [resultId],
+    );
+
+    if (!examResult.rows[0]) {
+      throw new Error("Exam result not found");
+    }
+
+    const resultData = examResult.rows[0];
+
+    const student = {
+      id: resultData.student_id,
+      full_name: resultData.full_name,
+      name: resultData.full_name,
+      barcode: resultData.barcode,
+      phone: resultData.phone,
+      parent_phone: resultData.parent_phone,
+      parent_token: resultData.parent_token,
+    };
+
+    const examInfo = {
+      score: resultData.degree || 0,
+      fullMark: resultData.total_degree || 100,
+      date: resultData.created_at
+        ? new Date(resultData.created_at).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+    };
+
+    const refKey = `exam_${resultId}`;
+
+    const result = await whatsappDispatcher.enqueueMessage({
+      student_id: resultData.student_id,
+      type: "exam",
+      recipient: "parent",
+      phone: resultData.parent_phone || resultData.phone,
+      params: examInfo,
+      ref_key: refKey,
+    });
+
+    let sendResult = null;
+    if (instant === "true" && result.inserted) {
+      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: instant === "true" ? "send_exam_instant" : "enqueue_exam",
+      entity_type: "whatsapp",
+      entity_id: result.id,
+      description:
+        instant === "true"
+          ? `Sent instant exam result message to ${student.full_name}`
+          : `Added exam result message to queue for ${student.full_name}`,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        instant === "true"
+          ? "Exam result message sent"
+          : "Exam result message added to queue",
+      data: {
+        message_id: result.id,
+        inserted: result.inserted,
+        sent: sendResult,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Send Queue ============
+
+const sendQueue = async (req, res, next) => {
+  try {
+    const { delaySeconds = 5, limit = 100, statuses = ["pending"] } = req.body;
+
+    const result = await whatsappDispatcher.sendQueue({
+      statuses,
+      delaySeconds,
+      limit,
+    });
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "send_queue",
+      entity_type: "whatsapp",
+      entity_id: null,
+      description: `Queue sent: ${result.sent} success, ${result.failed} failed`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Queue processed",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Get Queue Statistics ============
+
+const getQueueStats = async (req, res, next) => {
+  try {
+    const stats = await whatsappDispatcher.getStats();
+    return res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Reset Failed Messages ============
+
+const resetFailed = async (req, res, next) => {
+  try {
+    const result = await whatsappDispatcher.resetFailed();
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "reset_failed_messages",
+      entity_type: "whatsapp",
+      entity_id: null,
+      description: `Reset ${result.length} failed messages`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Reset ${result.length} messages`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Get All Messages ============
+
+const getAllMessages = async (req, res, next) => {
+  try {
+    const { status, type, page = 1, limit = 20 } = req.query;
+
+    let whereClause = "";
+    const params = [];
+    let paramIndex = 1;
+
+    if (status) {
+      whereClause += ` WHERE m.status = $${paramIndex}`;
+      params.push(status);
+      paramIndex++;
+    }
+
+    if (type) {
+      whereClause += status
+        ? ` AND m.type = $${paramIndex}`
+        : ` WHERE m.type = $${paramIndex}`;
+      params.push(type);
+      paramIndex++;
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const result = await query(
+      `
+      SELECT 
+        m.*,
+        s.full_name AS student_name,
+        s.barcode
+      FROM messages m
+      LEFT JOIN students s ON m.student_id = s.id
+      ${whereClause}
+      ORDER BY m.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `,
+      [...params, parseInt(limit), offset],
+    );
+
+    const countResult = await query(
+      `
+      SELECT COUNT(*) AS total
+      FROM messages m
+      ${whereClause}
+    `,
+      params,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: parseInt(countResult.rows[0]?.total || 0),
+        totalPages: Math.ceil(
+          parseInt(countResult.rows[0]?.total || 0) / parseInt(limit),
+        ),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Get Message by ID ============
+
+const getMessageById = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const message = await whatsappDispatcher.getMessageById(messageId);
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Delete Message ============
+
+const deleteMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+
+    const result = await query(
+      "DELETE FROM messages WHERE id = $1 RETURNING id",
+      [messageId],
+    );
+
+    if (!result.rows[0]) {
+      throw new Error("Message not found");
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "delete_message",
+      entity_type: "whatsapp",
+      entity_id: messageId,
+      description: `Deleted message (ID: ${messageId})`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Message deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// WHATSAPP TEMPLATES CRUD
+// ============================================
+
+// ============ Get All Templates ============
+
+const getAllTemplates = async (req, res, next) => {
+  try {
+    const result = await query(`
+      SELECT id, template, is_active, sent_to, delay, created_at
+      FROM whatsapp_messages
+      ORDER BY created_at DESC
+    `);
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Get Template By ID ============
+
+const getTemplateById = async (req, res, next) => {
+  try {
+    const { templateId } = req.params;
+
+    const result = await query(
+      `
+      SELECT id, template, is_active, sent_to, delay, created_at
+      FROM whatsapp_messages
+      WHERE id = $1
+    `,
+      [templateId],
+    );
+
+    if (!result.rows[0]) {
+      throw new Error("Template not found");
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============ Create Template ============
+
+const createTemplate = async (req, res, next) => {
+  try {
+    const { template, sent_to, delay = 60 } = req.body;
+
+    if (!template || !sent_to) {
+      throw new Error("Template and sent_to are required");
+    }
+
+    const result = await query(
+      `
+      INSERT INTO whatsapp_messages (template, sent_to, delay)
+      VALUES ($1, $2, $3)
+      RETURNING id, template, is_active, sent_to, delay, created_at
+    `,
+      [template, sent_to, delay],
+    );
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
       action: "create_whatsapp_template",
       entity_type: "whatsapp_template",
-      entity_id: template.id,
-      description: `إنشاء قالب واتساب جديد`,
+      entity_id: result.rows[0].id,
+      description: `Created WhatsApp template: ${template.slice(0, 50)}...`,
     });
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء القالب بنجاح!",
-      data: template,
+      message: "Template created successfully",
+      data: result.rows[0],
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Get all templates
-const getAllTemplates = async (req, res, next) => {
-  try {
-    const templates = await whatsappService.getAllTemplates();
+// ============ Update Template ============
 
-    if (!templates) {
-      throw new Error("فشل تحميل القوالب حاول مرة أخرى!");
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل القوالب بنجاح!",
-      data: templates,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get template by ID
-const getTemplateById = async (req, res, next) => {
-  try {
-    const { templateId } = req.params;
-    const template = await whatsappService.getTemplateById(templateId);
-
-    if (!template) {
-      throw new Error("فشل تحميل القالب حاول مرة أخرى!");
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل القالب بنجاح!",
-      data: template,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Update template
 const updateTemplate = async (req, res, next) => {
   try {
     const { templateId } = req.params;
-    const template = await whatsappService.updateTemplate(templateId, req.body);
+    const { template, sent_to, delay } = req.body;
 
-    if (!template) {
-      throw new Error("فشل تعديل القالب حاول مرة أخرى!");
+    const existing = await query(
+      "SELECT id FROM whatsapp_messages WHERE id = $1",
+      [templateId],
+    );
+
+    if (!existing.rows[0]) {
+      throw new Error("Template not found");
     }
 
-    // Log activity
+    const result = await query(
+      `
+      UPDATE whatsapp_messages
+      SET 
+        template = COALESCE($1, template),
+        sent_to = COALESCE($2, sent_to),
+        delay = COALESCE($3, delay),
+        updated_at = NOW()
+      WHERE id = $4
+      RETURNING id, template, is_active, sent_to, delay, created_at
+    `,
+      [template, sent_to, delay, templateId],
+    );
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -88,30 +652,45 @@ const updateTemplate = async (req, res, next) => {
       action: "update_whatsapp_template",
       entity_type: "whatsapp_template",
       entity_id: templateId,
-      description: `تعديل قالب واتساب (ID: ${templateId})`,
+      description: `Updated WhatsApp template (ID: ${templateId})`,
     });
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل القالب بنجاح!",
-      data: template,
+      message: "Template updated successfully",
+      data: result.rows[0],
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Toggle template active
+// ============ Toggle Template Active Status ============
+
 const toggleTemplateActive = async (req, res, next) => {
   try {
     const { templateId } = req.params;
-    const template = await whatsappService.toggleTemplateActive(templateId);
 
-    if (!template) {
-      throw new Error("فشل تغيير حالة القالب حاول مرة أخرى!");
+    const existing = await query(
+      "SELECT id, is_active FROM whatsapp_messages WHERE id = $1",
+      [templateId],
+    );
+
+    if (!existing.rows[0]) {
+      throw new Error("Template not found");
     }
 
-    // Log activity
+    const result = await query(
+      `
+      UPDATE whatsapp_messages
+      SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, template, is_active, sent_to, delay, created_at
+    `,
+      [templateId],
+    );
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -119,13 +698,13 @@ const toggleTemplateActive = async (req, res, next) => {
       action: "toggle_whatsapp_template",
       entity_type: "whatsapp_template",
       entity_id: templateId,
-      description: `تغيير حالة قالب واتساب (ID: ${templateId})`,
+      description: `Toggled WhatsApp template (ID: ${templateId}) to ${result.rows[0].is_active === 1 ? "active" : "inactive"}`,
     });
 
     return res.status(200).json({
       success: true,
-      message: "تم تغيير حالة القالب بنجاح!",
-      data: template,
+      message: `Template ${result.rows[0].is_active === 1 ? "activated" : "deactivated"} successfully`,
+      data: result.rows[0],
     });
   } catch (error) {
     next(error);
@@ -133,9 +712,19 @@ const toggleTemplateActive = async (req, res, next) => {
 };
 
 module.exports = {
-  createTemplate,
+  sendWelcome,
+  sendAbsence,
+  sendPayment,
+  sendExam,
+  sendQueue,
+  getQueueStats,
+  resetFailed,
+  getAllMessages,
+  getMessageById,
+  deleteMessage,
   getAllTemplates,
   getTemplateById,
+  createTemplate,
   updateTemplate,
   toggleTemplateActive,
 };

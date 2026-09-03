@@ -10,7 +10,6 @@ if (process.env.VERCEL) {
 
   async function start() {
     try {
-      // Test database connection
       const isConnected = await testConnection();
 
       if (!isConnected) {
@@ -18,24 +17,29 @@ if (process.env.VERCEL) {
         process.exit(1);
       }
 
-      // Start server
       server = app.listen(env.PORT, () => {
         console.log(`Server running on port ${env.PORT}`);
         console.log(`Environment: ${env.NODE_ENV}`);
         console.log(`API Docs: http://localhost:${env.PORT}/api-docs`);
       });
 
-      // Server settings
       server.keepAliveTimeout = 65000;
       server.headersTimeout = 66000;
       server.requestTimeout = 0;
+
+      // Load WhatsApp queue job
+      try {
+        require("./jobs/whatsappQueueJob");
+        console.log("WhatsApp queue job loaded");
+      } catch (error) {
+        console.log("WhatsApp queue job not loaded:", error.message);
+      }
     } catch (error) {
       console.error("Failed to start server:", error);
       process.exit(1);
     }
   }
 
-  // Graceful shutdown
   const gracefulShutdown = async (signal) => {
     console.log(`\n${signal} received, shutting down gracefully...`);
 
@@ -47,7 +51,6 @@ if (process.env.VERCEL) {
         process.exit(0);
       });
 
-      // Force shutdown after 10 seconds
       setTimeout(() => {
         console.error("Forced shutdown");
         process.exit(1);
@@ -57,11 +60,9 @@ if (process.env.VERCEL) {
     }
   };
 
-  // Listen for shutdown signals
   process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
   process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-  // Handle unexpected errors
   process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
     gracefulShutdown("uncaughtException");

@@ -46,4 +46,9 @@ module.exports = {
   DB_POOL_IDLE_TIMEOUT: Number(process.env.DB_POOL_IDLE_TIMEOUT) || 30000,
   DB_POOL_CONNECTION_TIMEOUT:
     Number(process.env.DB_POOL_CONNECTION_TIMEOUT) || 5000,
+
+  // Whatsapp Configuration
+  WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN,
+  WHATSAPP_PHONE_ID: process.env.WHATSAPP_PHONE_ID,
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
 };

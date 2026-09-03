@@ -1,7 +1,6 @@
 const { query } = require("../../config/database");
 const assistantQueries = require("./assistant.queries");
 
-// Get assistant profile
 const getAssistantProfile = async (assistantId) => {
   const result = await query(assistantQueries.getAssistantProfile, [
     assistantId,
@@ -9,7 +8,6 @@ const getAssistantProfile = async (assistantId) => {
   return result.rows[0];
 };
 
-// Get activity logs
 const getActivityLogs = async (filters, userRole, userPermissions, userId) => {
   const { entity_type = "", date = null, page = 1 } = filters;
 
@@ -17,7 +15,6 @@ const getActivityLogs = async (filters, userRole, userPermissions, userId) => {
   let countResult;
 
   if (userRole === "super_admin" || userRole === "teacher") {
-    // Super admin and teacher see all logs
     logsResult = await query(assistantQueries.getActivityLogs, [
       entity_type,
       date,
@@ -33,7 +30,6 @@ const getActivityLogs = async (filters, userRole, userPermissions, userId) => {
     userRole === "assistant" &&
     userPermissions === "center_management"
   ) {
-    // Center assistant sees all assistants logs
     logsResult = await query(assistantQueries.getActivityLogs, [
       entity_type,
       date,
@@ -46,7 +42,6 @@ const getActivityLogs = async (filters, userRole, userPermissions, userId) => {
       "assistant",
     ]);
   } else {
-    // Online assistant sees only his logs
     logsResult = await query(assistantQueries.getMyActivityLogs, [
       userId,
       page,
@@ -62,7 +57,6 @@ const getActivityLogs = async (filters, userRole, userPermissions, userId) => {
   };
 };
 
-// Get dashboard
 const getDashboard = async (userPermissions) => {
   if (userPermissions === "center_management") {
     const result = await query(assistantQueries.getCenterAssistantDashboard);

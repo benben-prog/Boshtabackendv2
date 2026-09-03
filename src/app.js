@@ -11,6 +11,8 @@ const parentRoutes = require("./modules/parent/parent.routes");
 const assistantRoutes = require("./modules/assistant/assistant.routes");
 const teacherRoutes = require("./modules/teacher/teacher.routes");
 const superAdminRoutes = require("./modules/super-admin/super-admin.routes");
+const whatsappRoutes = require("./modules/whatsapp_messages/whatsapp_messages.routes");
+const webhookRoutes = require("./routes/webhook.routes");
 
 // Middleware
 const {
@@ -22,6 +24,7 @@ const clientAuth = require("./middlewares/clientAuth.middleware");
 const assistantAuth = require("./middlewares/assistantAuth.middleware");
 const teacherAuth = require("./middlewares/teacherAuth.middleware");
 const superAdminAuth = require("./middlewares/superAdminAuth.middleware");
+const rateLimit = require("express-rate-limit");
 
 // Database
 const { query } = require("./config/database");
@@ -33,11 +36,42 @@ const swaggerSpec = require("./docs/swagger");
 const app = express();
 
 // ============================================
-// CORS HEADERS - MUST BE VERY FIRST
+// RATE LIMITING
 // ============================================
 
+const globalLimiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+  max: env.RATE_LIMIT_MAX || 100,
+  message: {
+    success: false,
+    message: "Too many requests from this IP",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+  max: env.RATE_LIMIT_AUTH_MAX || 5,
+  message: {
+    success: false,
+    message: "Too many login attempts from this IP",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ============================================
+// CORS HEADERS
+// ============================================
+
+const allowedOrigins = env.CORS_ORIGINS || ["*"];
+
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
@@ -46,6 +80,7 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, x-client-key, x-super-admin-key",
   );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -58,7 +93,22 @@ app.use((req, res, next) => {
 // STATIC FILES
 // ============================================
 
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+const staticFileAuth = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: "Authorization required",
+    });
+  }
+  next();
+};
+
+app.use(
+  "/uploads",
+  staticFileAuth,
+  express.static(path.join(process.cwd(), "uploads")),
+);
 
 // ============================================
 // SECURITY MIDDLEWARE
@@ -72,7 +122,6 @@ app.use(
 );
 
 app.use(compression());
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -142,22 +191,46 @@ app.get("/api-docs", (req, res) => {
 // PLATFORM STATUS CHECK
 // ============================================
 
+let platformStatusCache = {
+  status: "active",
+  lastChecked: null,
+};
+const CACHE_TTL = 60000;
+
 const checkPlatformStatus = async (req, res, next) => {
   try {
+    const now = Date.now();
     if (
       req.path.includes("/super-admin") ||
       req.path.includes("/auth") ||
       req.path.includes("/health") ||
       req.path.includes("/uploads") ||
-      req.path.includes("/api-docs")
+      req.path.includes("/api-docs") ||
+      req.path.includes("/webhook")
     ) {
+      return next();
+    }
+
+    if (
+      platformStatusCache.lastChecked &&
+      now - platformStatusCache.lastChecked < CACHE_TTL
+    ) {
+      if (platformStatusCache.status === "paused") {
+        return res.status(403).json({
+          success: false,
+          message: "Platform is temporarily closed for maintenance",
+        });
+      }
       return next();
     }
 
     const result = await query(
       "SELECT platform_status FROM settings WHERE id = 1",
     );
-    const platformStatus = result.rows[0]?.platform_status;
+    const platformStatus = result.rows[0]?.platform_status || "active";
+
+    platformStatusCache.status = platformStatus;
+    platformStatusCache.lastChecked = now;
 
     if (platformStatus === "paused") {
       return res.status(403).json({
@@ -178,7 +251,7 @@ app.use(checkPlatformStatus);
 // API ROUTES
 // ============================================
 
-app.use("/api/auth", apiMiddelware, authRouts);
+app.use("/api/auth", authLimiter, authRouts);
 app.use("/api/student", apiMiddelware, clientAuth, studentModuleRoutes);
 app.use("/api/parent", apiMiddelware, parentRoutes);
 app.use(
@@ -195,6 +268,19 @@ app.use(
   clientAuth,
   superAdminAuth,
   superAdminRoutes,
+);
+
+// ============================================
+// WHATSAPP ROUTES
+// ============================================
+
+app.use("/webhook", webhookRoutes);
+app.use(
+  "/api/assistant/whatsapp",
+  apiMiddelware,
+  clientAuth,
+  assistantAuth,
+  whatsappRoutes,
 );
 
 // ============================================
