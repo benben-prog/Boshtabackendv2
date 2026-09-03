@@ -36,12 +36,19 @@ function hasPhone(phone) {
   return normalizePhone(phone).length >= 11;
 }
 
+function getEgyptTime() {
+  const now = new Date();
+  return new Date(now.toLocaleString("en-US", { timeZone: "Africa/Cairo" }));
+}
+
 function getToday() {
-  return new Date().toLocaleDateString("en-GB");
+  const egyptTime = getEgyptTime();
+  return egyptTime.toLocaleDateString("en-GB");
 }
 
 function getDayName() {
-  return new Date().toLocaleString("ar-EG", { weekday: "long" });
+  const egyptTime = getEgyptTime();
+  return egyptTime.toLocaleString("ar-EG", { weekday: "long" });
 }
 
 // ============ Send Template Message ============
@@ -51,7 +58,7 @@ async function sendTemplate({
   templateName,
   parameters,
   buttonParams = null,
-  lang_code
+  lang_code = "ar",
 }) {
   const to = normalizePhone(phone);
   if (!hasPhone(to)) {
@@ -146,7 +153,7 @@ async function sendWelcomeMsg(student) {
       student.barcode || "N/A",
     ],
     buttonParams: parentToken,
-    lang_code:"en"
+    lang_code: "en",
   });
 }
 
@@ -156,16 +163,18 @@ async function sendAbsentMsg(student, date) {
   const phone = student.parent_phone || student.phone;
   const parentToken = student.parent_token || student.parentToken;
 
+  const absenceDate = date || getToday();
+
   return sendTemplate({
     phone,
     templateName: TEMPLATES.ABSENCE,
     parameters: [
       student.full_name || student.name || "Student",
       student.barcode || "N/A",
-      date || getToday(),
+      absenceDate,
     ],
     buttonParams: parentToken,
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -190,7 +199,7 @@ Amount: ${paymentData.amount || 0}
       paymentData.year || new Date().getFullYear(),
       paymentData.amount || 0,
     ],
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -210,7 +219,7 @@ async function sendExamMsg(student, examData) {
       getDayName(),
       student.barcode || "N/A",
     ],
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -244,4 +253,5 @@ module.exports = {
   hasPhone,
   getToday,
   getDayName,
+  getEgyptTime,
 };
