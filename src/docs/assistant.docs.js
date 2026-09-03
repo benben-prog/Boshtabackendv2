@@ -234,7 +234,7 @@
  *         schema:
  *           type: string
  *           format: date
- *         description: "Absence date (default: today)"
+ *         description: "Absence date (default today)"
  *       - in: query
  *         name: instant
  *         schema:
