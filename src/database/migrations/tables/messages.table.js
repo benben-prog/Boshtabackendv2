@@ -7,11 +7,20 @@ async function createMessagesTable() {
       student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
       phone TEXT NOT NULL,
       message TEXT NOT NULL,
-      status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+      type VARCHAR(50) DEFAULT 'custom',
+      recipient VARCHAR(20) DEFAULT 'parent',
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'delivered')),
+      params JSONB,
+      ref_key VARCHAR(100) UNIQUE,
+      template_id INTEGER REFERENCES whatsapp_messages(id) ON DELETE SET NULL,
+      attempts INTEGER DEFAULT 0,
+      error_message TEXT,
+      message_id VARCHAR(255),
       scheduled_at TIMESTAMP,
       sent_at TIMESTAMP,
-      error_message TEXT,
-      created_at TIMESTAMP DEFAULT NOW()
+      delivered_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
     )
   `);
 
@@ -23,6 +32,13 @@ async function createMessagesTable() {
   );
   await query(
     `CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)`,
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_messages_ref_key ON messages(ref_key)`,
+  );
+  await query(`CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type)`);
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient)`,
   );
 
   console.log("messages table created");

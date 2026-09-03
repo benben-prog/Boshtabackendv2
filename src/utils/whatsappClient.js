@@ -8,13 +8,18 @@ const CENTER = {
 };
 
 // ============ API Configuration ============
-const WHATSAPP_TOKEN =
-  env.WHATSAPP_TOKEN ||
-  "EAAes0x5d0CUBSfuhonhfebaifDNBZAQ0344oWIMAeBK6UH5Uy6QomqA9lrDISKdWSZAZBThZBo3VfnEQQOapsqP3WXFZC3Dh9I4QSsqgGpILcqZBaEg89NbtbaCtqp1As0dZCE4RsrYpYn0u4vXzxB5MrkeJZAURhRd9IwXWnqB8PDU97k3myeOjDRBJHq7nlJ31nwZDZD";
-
+const WHATSAPP_TOKEN = env.WHATSAPP_TOKEN;
 const WHATSAPP_PHONE_ID = env.WHATSAPP_PHONE_ID || "1300602659800445";
 const API_URL = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_ID}/messages`;
 const LANG_CODE = "ar";
+
+// ============ Template Names ============
+const TEMPLATES = {
+  WELCOME: env.WHATSAPP_TEMPLATE_WELCOME || "welcome",
+  ABSENCE: env.WHATSAPP_TEMPLATE_ABSENCE || "absent",
+  PAYMENT: env.WHATSAPP_TEMPLATE_PAYMENT || "payment",
+  EXAM: env.WHATSAPP_TEMPLATE_EXAM || "exam",
+};
 
 // ============ Helper Functions ============
 
@@ -46,6 +51,7 @@ async function sendTemplate({
   templateName,
   parameters,
   buttonParams = null,
+  lang_code
 }) {
   const to = normalizePhone(phone);
   if (!hasPhone(to)) {
@@ -82,7 +88,7 @@ async function sendTemplate({
     type: "template",
     template: {
       name: templateName,
-      language: { code: LANG_CODE },
+      language: { code: lang_code },
       components,
     },
   };
@@ -134,9 +140,13 @@ async function sendWelcomeMsg(student) {
 
   return sendTemplate({
     phone,
-    templateName: "welcome",
-    parameters: [student.full_name || student.name, student.barcode],
+    templateName: TEMPLATES.WELCOME,
+    parameters: [
+      student.full_name || student.name || "Student",
+      student.barcode || "N/A",
+    ],
     buttonParams: parentToken,
+    lang_code:"en"
   });
 }
 
@@ -148,13 +158,14 @@ async function sendAbsentMsg(student, date) {
 
   return sendTemplate({
     phone,
-    templateName: "absent",
+    templateName: TEMPLATES.ABSENCE,
     parameters: [
-      student.full_name || student.name,
-      student.barcode,
+      student.full_name || student.name || "Student",
+      student.barcode || "N/A",
       date || getToday(),
     ],
     buttonParams: parentToken,
+    lang_code:"ar"
   });
 }
 
@@ -172,13 +183,14 @@ Amount: ${paymentData.amount || 0}
 
   return sendTemplate({
     phone,
-    templateName: "payment",
+    templateName: TEMPLATES.PAYMENT,
     parameters: [
-      student.full_name || student.name,
+      student.full_name || student.name || "Student",
       paymentData.month || "N/A",
       paymentData.year || new Date().getFullYear(),
       paymentData.amount || 0,
     ],
+    lang_code:"ar"
   });
 }
 
@@ -189,15 +201,16 @@ async function sendExamMsg(student, examData) {
 
   return sendTemplate({
     phone,
-    templateName: "exam",
+    templateName: TEMPLATES.EXAM,
     parameters: [
-      student.full_name || student.name,
+      student.full_name || student.name || "Student",
       examData.score || 0,
       examData.fullMark || 100,
       examData.date || getToday(),
       getDayName(),
-      student.barcode,
+      student.barcode || "N/A",
     ],
+    lang_code:"ar"
   });
 }
 
@@ -220,6 +233,7 @@ async function sendByType(type, payload) {
 
 module.exports = {
   CENTER,
+  TEMPLATES,
   sendWelcomeMsg,
   sendAbsentMsg,
   sendPaymentMsg,
@@ -228,4 +242,6 @@ module.exports = {
   sendTemplate,
   normalizePhone,
   hasPhone,
+  getToday,
+  getDayName,
 };
