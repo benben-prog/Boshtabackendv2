@@ -216,10 +216,7 @@ const checkPlatformStatus = async (req, res, next) => {
       return next();
     }
 
-    // ✅ Auth routes always accessible (login should work)
-    if (req.path.includes("/auth")) {
-      return next();
-    }
+
 
     // ✅ Super admin routes always accessible (admin needs to manage)
     if (req.path.includes("/super-admin")) {
