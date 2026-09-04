@@ -718,13 +718,13 @@ const updateSettings = async (req, res, next) => {
       `
       UPDATE settings 
       SET 
-        whatsapp_daily_limit = COALESCE($1, whatsapp_daily_limit),
-        whatsapp_delay_seconds = COALESCE($2, whatsapp_delay_seconds),
+        whatsapp_daily_limit = COALESCE($1::int, whatsapp_daily_limit),
+        whatsapp_delay_seconds = COALESCE($2::int, whatsapp_delay_seconds),
         updated_at = NOW()
       WHERE id = 1
       RETURNING whatsapp_daily_limit, whatsapp_delay_seconds
       `,
-      [whatsapp_daily_limit, whatsapp_delay_seconds]
+      [whatsapp_daily_limit ?? null, whatsapp_delay_seconds ?? null],
     );
 
     return res.status(200).json({
