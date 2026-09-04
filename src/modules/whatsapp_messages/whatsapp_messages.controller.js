@@ -1,42 +1,45 @@
+// src/modules/whatsapp_messages/whatsapp_messages.controller.js
 const whatsappDispatcher = require("./whatsapp_dispatcher.service");
 const { query } = require("../../config/database");
 const { logActivity } = require("../../utils/activityLogger");
 
-// ✅ دالة لجلب التاريخ بتوقيت مصر
 const getEgyptDate = () => {
   const now = new Date();
   const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
   return cairoTime.toISOString().split("T")[0];
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت
 const formatDate = (date) => {
   if (!date) return null;
   const d = new Date(date);
   if (isNaN(d.getTime())) return date;
-  return d.toLocaleString('en-US', { 
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return d.toLocaleString("en-US", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
 const formatDatesInArray = (items) => {
   if (!items || !Array.isArray(items)) return items;
-  return items.map(item => formatDatesInObject(item));
+  return items.map((item) => formatDatesInObject(item));
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في الكائن
 const formatDatesInObject = (obj) => {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const formatted = { ...obj };
-  const dateFields = ['created_at', 'updated_at', 'sent_at', 'scheduled_at'];
-  dateFields.forEach(field => {
+  const dateFields = [
+    "created_at",
+    "updated_at",
+    "sent_at",
+    "delivered_at",
+    "scheduled_at",
+  ];
+  dateFields.forEach((field) => {
     if (formatted[field] !== undefined && formatted[field] !== null) {
       formatted[field] = formatDate(formatted[field]);
     }
@@ -44,12 +47,9 @@ const formatDatesInObject = (obj) => {
   return formatted;
 };
 
-// ============ Send Welcome Message ============
-
 const sendWelcome = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const { instant = "false" } = req.query;
 
     const student = await query(
       `
@@ -67,58 +67,43 @@ const sendWelcome = async (req, res, next) => {
     }
 
     const studentData = student.rows[0];
-    const refKey = `welcome_${studentId}_${getEgyptDate()}`;
 
-    const result = await whatsappDispatcher.enqueueMessage({
-      student_id: studentId,
-      type: "welcome",
-      recipient: "parent",
-      phone: studentData.parent_phone || studentData.phone,
-      params: studentData,
-      ref_key: refKey,
+    const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
+      full_name: studentData.full_name,
+      barcode: studentData.barcode,
+      parent_token: studentData.parent_token,
     });
 
-    let sendResult = null;
-    if (instant === "true" && result.inserted) {
-      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
-    }
+    const results = await whatsappDispatcher.enqueueForStudentAndParent(
+      studentData,
+      "welcome",
+      { message: welcomeMessage },
+    );
 
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
-      action: instant === "true" ? "send_welcome_instant" : "enqueue_welcome",
+      action: "enqueue_welcome",
       entity_type: "whatsapp",
-      entity_id: result.id,
-      description:
-        instant === "true"
-          ? `Sent instant welcome message to ${studentData.full_name}`
-          : `Added welcome message to queue for ${studentData.full_name}`,
+      entity_id: null,
+      description: `Added welcome message to queue for ${studentData.full_name}`,
     });
 
     return res.status(201).json({
       success: true,
-      message:
-        instant === "true"
-          ? "Welcome message sent"
-          : "Welcome message added to queue",
-      data: {
-        message_id: result.id,
-        inserted: result.inserted,
-        sent: sendResult,
-      },
+      message: "Welcome message added to queue",
+      data: results,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// ============ Send Absence Message ============
-
 const sendAbsence = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const { date, instant = "false" } = req.query;
+    const { date } = req.query;
 
     const student = await query(
       `
@@ -137,58 +122,41 @@ const sendAbsence = async (req, res, next) => {
 
     const studentData = student.rows[0];
     const absenceDate = date || getEgyptDate();
-    const refKey = `absence_${studentId}_${absenceDate}`;
 
-    const result = await whatsappDispatcher.enqueueMessage({
-      student_id: studentId,
-      type: "absence",
-      recipient: "parent",
-      phone: studentData.parent_phone || studentData.phone,
-      params: { date: absenceDate },
-      ref_key: refKey,
-    });
+    const absenceMessage = whatsappDispatcher.generateAbsenceMessage(
+      studentData,
+      absenceDate,
+    );
 
-    let sendResult = null;
-    if (instant === "true" && result.inserted) {
-      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
-    }
+    const results = await whatsappDispatcher.enqueueForStudentAndParent(
+      studentData,
+      "absence",
+      { message: absenceMessage, date: absenceDate },
+    );
 
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
-      action: instant === "true" ? "send_absence_instant" : "enqueue_absence",
+      action: "enqueue_absence",
       entity_type: "whatsapp",
-      entity_id: result.id,
-      description:
-        instant === "true"
-          ? `Sent instant absence message to ${studentData.full_name}`
-          : `Added absence message to queue for ${studentData.full_name}`,
+      entity_id: null,
+      description: `Added absence message to queue for ${studentData.full_name}`,
     });
 
     return res.status(201).json({
       success: true,
-      message:
-        instant === "true"
-          ? "Absence message sent"
-          : "Absence message added to queue",
-      data: {
-        message_id: result.id,
-        inserted: result.inserted,
-        sent: sendResult,
-      },
+      message: "Absence message added to queue",
+      data: results,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// ============ Send Payment Message ============
-
 const sendPayment = async (req, res, next) => {
   try {
     const { paymentId } = req.params;
-    const { instant = "false" } = req.query;
 
     const payment = await query(
       `
@@ -218,7 +186,6 @@ const sendPayment = async (req, res, next) => {
     const student = {
       id: paymentData.student_id,
       full_name: paymentData.full_name,
-      name: paymentData.full_name,
       barcode: paymentData.barcode,
       phone: paymentData.phone,
       parent_phone: paymentData.parent_phone,
@@ -231,58 +198,40 @@ const sendPayment = async (req, res, next) => {
       amount: paymentData.amount || 0,
     };
 
-    const refKey = `payment_${paymentId}`;
+    const paymentMessage = whatsappDispatcher.generatePaymentMessage(
+      student,
+      paymentInfo,
+    );
 
-    const result = await whatsappDispatcher.enqueueMessage({
-      student_id: paymentData.student_id,
-      type: "payment",
-      recipient: "parent",
-      phone: paymentData.parent_phone || paymentData.phone,
-      params: paymentInfo,
-      ref_key: refKey,
-    });
-
-    let sendResult = null;
-    if (instant === "true" && result.inserted) {
-      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
-    }
+    const results = await whatsappDispatcher.enqueueForStudentAndParent(
+      student,
+      "payment",
+      { message: paymentMessage, paymentData: paymentInfo },
+    );
 
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
-      action: instant === "true" ? "send_payment_instant" : "enqueue_payment",
+      action: "enqueue_payment",
       entity_type: "whatsapp",
-      entity_id: result.id,
-      description:
-        instant === "true"
-          ? `Sent instant payment message to ${student.full_name}`
-          : `Added payment message to queue for ${student.full_name}`,
+      entity_id: null,
+      description: `Added payment message to queue for ${student.full_name}`,
     });
 
     return res.status(201).json({
       success: true,
-      message:
-        instant === "true"
-          ? "Payment message sent"
-          : "Payment message added to queue",
-      data: {
-        message_id: result.id,
-        inserted: result.inserted,
-        sent: sendResult,
-      },
+      message: "Payment message added to queue",
+      data: results,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// ============ Send Exam Result Message ============
-
 const sendExam = async (req, res, next) => {
   try {
     const { resultId } = req.params;
-    const { instant = "false" } = req.query;
 
     const examResult = await query(
       `
@@ -295,7 +244,8 @@ const sendExam = async (req, res, next) => {
         s.parent_phone,
         s.parent_token,
         e.title AS exam_title,
-        e.total_degree
+        e.total_degree,
+        e.exam_date
       FROM exam_results er
       JOIN students s ON er.student_id = s.id AND s.deleted = 0
       JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
@@ -313,78 +263,63 @@ const sendExam = async (req, res, next) => {
     const student = {
       id: resultData.student_id,
       full_name: resultData.full_name,
-      name: resultData.full_name,
       barcode: resultData.barcode,
       phone: resultData.phone,
       parent_phone: resultData.parent_phone,
       parent_token: resultData.parent_token,
     };
 
+    const examDate = resultData.exam_date
+      ? new Date(resultData.exam_date).toISOString().split("T")[0]
+      : getEgyptDate();
+
+    const dayName = resultData.exam_date
+      ? new Date(resultData.exam_date).toLocaleString("en-US", {
+          weekday: "long",
+        })
+      : "";
+
     const examInfo = {
       score: resultData.degree || 0,
       fullMark: resultData.total_degree || 100,
-      date: resultData.created_at
-        ? new Date(resultData.created_at).toISOString().split("T")[0]
-        : getEgyptDate(),
+      date: examDate,
+      day: dayName,
     };
 
-    const refKey = `exam_${resultId}`;
+    const examMessage = whatsappDispatcher.generateExamMessage(
+      student,
+      examInfo,
+    );
 
-    const result = await whatsappDispatcher.enqueueMessage({
-      student_id: resultData.student_id,
-      type: "exam",
-      recipient: "parent",
-      phone: resultData.parent_phone || resultData.phone,
-      params: examInfo,
-      ref_key: refKey,
-    });
-
-    let sendResult = null;
-    if (instant === "true" && result.inserted) {
-      sendResult = await whatsappDispatcher.dispatchMessage(result.id);
-    }
+    const results = await whatsappDispatcher.enqueueForStudentAndParent(
+      student,
+      "exam",
+      { message: examMessage, examData: examInfo },
+    );
 
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
-      action: instant === "true" ? "send_exam_instant" : "enqueue_exam",
+      action: "enqueue_exam",
       entity_type: "whatsapp",
-      entity_id: result.id,
-      description:
-        instant === "true"
-          ? `Sent instant exam result message to ${student.full_name}`
-          : `Added exam result message to queue for ${student.full_name}`,
+      entity_id: null,
+      description: `Added exam result message to queue for ${student.full_name}`,
     });
 
     return res.status(201).json({
       success: true,
-      message:
-        instant === "true"
-          ? "Exam result message sent"
-          : "Exam result message added to queue",
-      data: {
-        message_id: result.id,
-        inserted: result.inserted,
-        sent: sendResult,
-      },
+      message: "Exam result message added to queue",
+      data: results,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// ============ Send Queue ============
-
 const sendQueue = async (req, res, next) => {
   try {
-    const { delaySeconds = 5, limit = 100, statuses = ["pending"] } = req.body;
-
-    const result = await whatsappDispatcher.sendQueue({
-      statuses,
-      delaySeconds,
-      limit,
-    });
+    const result = await whatsappDispatcher.sendQueue({ limit: 5 });
 
     await logActivity({
       user_id: req.clientId,
@@ -406,8 +341,6 @@ const sendQueue = async (req, res, next) => {
   }
 };
 
-// ============ Get Queue Statistics ============
-
 const getQueueStats = async (req, res, next) => {
   try {
     const stats = await whatsappDispatcher.getStats();
@@ -419,8 +352,6 @@ const getQueueStats = async (req, res, next) => {
     next(error);
   }
 };
-
-// ============ Reset Failed Messages ============
 
 const resetFailed = async (req, res, next) => {
   try {
@@ -446,9 +377,7 @@ const resetFailed = async (req, res, next) => {
   }
 };
 
-// ============ Get All Messages ============
-
-const getAllMessages = async (req, res, next) => {
+const getMessages = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
 
@@ -475,9 +404,22 @@ const getAllMessages = async (req, res, next) => {
     const result = await query(
       `
       SELECT 
-        m.*,
+        m.id,
+        m.student_id,
         s.full_name AS student_name,
-        s.barcode
+        s.barcode,
+        m.phone,
+        m.message,
+        m.type,
+        m.recipient,
+        m.status,
+        m.attempts,
+        m.error_message,
+        m.message_id,
+        m.sent_at,
+        m.delivered_at,
+        m.created_at,
+        m.updated_at
       FROM messages m
       LEFT JOIN students s ON m.student_id = s.id
       ${whereClause}
@@ -515,8 +457,6 @@ const getAllMessages = async (req, res, next) => {
   }
 };
 
-// ============ Get Message by ID ============
-
 const getMessageById = async (req, res, next) => {
   try {
     const { messageId } = req.params;
@@ -536,8 +476,6 @@ const getMessageById = async (req, res, next) => {
     next(error);
   }
 };
-
-// ============ Delete Message ============
 
 const deleteMessage = async (req, res, next) => {
   try {
@@ -571,20 +509,11 @@ const deleteMessage = async (req, res, next) => {
   }
 };
 
-// ============================================
-// WHATSAPP TEMPLATES CRUD
-// ============================================
-
-// getAllTemplates
 const getAllTemplates = async (req, res, next) => {
   try {
-    const result = await query(`
-      SELECT id, type, template, is_active, sent_to, delay, created_at
-      FROM whatsapp_messages
-      ORDER BY created_at DESC
-    `);
+    const templates = await whatsappDispatcher.getAllTemplates();
 
-    const formattedTemplates = formatDatesInArray(result.rows);
+    const formattedTemplates = formatDatesInArray(templates);
 
     return res.status(200).json({
       success: true,
@@ -595,14 +524,13 @@ const getAllTemplates = async (req, res, next) => {
   }
 };
 
-// getTemplateById
 const getTemplateById = async (req, res, next) => {
   try {
     const { templateId } = req.params;
 
     const result = await query(
       `
-      SELECT id, type, template, is_active, sent_to, delay, created_at
+      SELECT id, type, template, is_active, sent_to, delay, created_at, updated_at
       FROM whatsapp_messages
       WHERE id = $1
     `,
@@ -624,20 +552,24 @@ const getTemplateById = async (req, res, next) => {
   }
 };
 
-// createTemplate
 const createTemplate = async (req, res, next) => {
   try {
-    const { type = "custom", template, sent_to, delay = 60 } = req.body;
+    const {
+      type = "custom",
+      template,
+      sent_to = "parents",
+      delay = 45,
+    } = req.body;
 
-    if (!template || !sent_to) {
-      throw new Error("Template and sent_to are required");
+    if (!template) {
+      throw new Error("Template is required");
     }
 
     const result = await query(
       `
-      INSERT INTO whatsapp_messages (type, template, sent_to, delay)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, type, template, is_active, sent_to, delay, created_at
+      INSERT INTO whatsapp_messages (type, template, is_active, sent_to, delay)
+      VALUES ($1, $2, 1, $3, $4)
+      RETURNING id, type, template, is_active, sent_to, delay, created_at, updated_at
     `,
       [type, template, sent_to, delay],
     );
@@ -664,7 +596,6 @@ const createTemplate = async (req, res, next) => {
   }
 };
 
-// updateTemplate
 const updateTemplate = async (req, res, next) => {
   try {
     const { templateId } = req.params;
@@ -689,7 +620,7 @@ const updateTemplate = async (req, res, next) => {
         delay = COALESCE($4, delay),
         updated_at = NOW()
       WHERE id = $5
-      RETURNING id, type, template, is_active, sent_to, delay, created_at
+      RETURNING id, type, template, is_active, sent_to, delay, created_at, updated_at
     `,
       [type, template, sent_to, delay, templateId],
     );
@@ -716,10 +647,6 @@ const updateTemplate = async (req, res, next) => {
   }
 };
 
-// toggleTemplateActive تفضل زي ما هي بالظبط، مش محتاجة تعديل
-
-// ============ Toggle Template Active Status ============
-
 const toggleTemplateActive = async (req, res, next) => {
   try {
     const { templateId } = req.params;
@@ -739,7 +666,7 @@ const toggleTemplateActive = async (req, res, next) => {
       SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
           updated_at = NOW()
       WHERE id = $1
-      RETURNING id, template, is_active, sent_to, delay, created_at
+      RETURNING id, type, template, is_active, sent_to, delay, created_at, updated_at
     `,
       [templateId],
     );
@@ -766,6 +693,24 @@ const toggleTemplateActive = async (req, res, next) => {
   }
 };
 
+const getDashboard = async (req, res, next) => {
+  try {
+    const stats = await whatsappDispatcher.getStats();
+    const templates = await whatsappDispatcher.getAllTemplates();
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp dashboard data loaded successfully",
+      data: {
+        stats,
+        templates,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   sendWelcome,
   sendAbsence,
@@ -774,7 +719,7 @@ module.exports = {
   sendQueue,
   getQueueStats,
   resetFailed,
-  getAllMessages,
+  getMessages,
   getMessageById,
   deleteMessage,
   getAllTemplates,
@@ -782,4 +727,5 @@ module.exports = {
   createTemplate,
   updateTemplate,
   toggleTemplateActive,
+  getDashboard,
 };

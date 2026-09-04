@@ -1,6 +1,6 @@
 const { query } = require("../../config/database");
 const examResultQueries = require("./exam_results.queries");
-
+const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 // Create exam result
 const createExamResult = async (examResultData) => {
   const { exam_id, student_id, degree, notes } = examResultData;
@@ -10,7 +10,49 @@ const createExamResult = async (examResultData) => {
     degree,
     notes,
   ]);
-  return result.rows[0];
+
+  const examResult = result.rows[0];
+
+  if (examResult) {
+    const studentResult = await query(
+      "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
+      [student_id]
+    );
+    const student = studentResult.rows[0];
+
+    if (student) {
+      const examInfoResult = await query(
+        "SELECT id, title, total_degree, exam_date FROM exams WHERE id = $1 AND deleted = 0",
+        [exam_id]
+      );
+      const exam = examInfoResult.rows[0];
+
+      if (exam) {
+        const examDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split("T")[0] : "";
+        const dayName = exam.exam_date ? new Date(exam.exam_date).toLocaleString("en-US", { weekday: "long" }) : "";
+
+        const examData = {
+          score: degree,
+          fullMark: exam.total_degree,
+          date: examDate,
+          day: dayName,
+        };
+
+        const examMessage = whatsappDispatcher.generateExamMessage(
+          student,
+          examData
+        );
+
+        await whatsappDispatcher.enqueueForStudentAndParent(
+          student,
+          "exam",
+          { message: examMessage, examData }
+        );
+      }
+    }
+  }
+
+  return examResult;
 };
 
 // Upsert exam result

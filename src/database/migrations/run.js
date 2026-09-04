@@ -9,6 +9,7 @@ const createExamsTable = require("./tables/exams.table");
 const createExamResultsTable = require("./tables/exam_results.table");
 const createMessagesTable = require("./tables/messages.table");
 const createWhatsappMessagesTable = require("./tables/whatsapp.table");
+const seedWhatsappTemplates = require("./seed/whatsapp.seed");
 const createSettingsTable = require("./tables/settings.table");
 const createVideosTable = require("./tables/videos.table");
 const createPlaylistsTable = require("./tables/playlists.table");
@@ -35,6 +36,7 @@ async function runMigrations() {
   await createExamResultsTable();
   await createMessagesTable();
   await createWhatsappMessagesTable();
+  await seedWhatsappTemplates();
   await createSettingsTable();
   await createVideosTable();
   await createPlaylistsTable();

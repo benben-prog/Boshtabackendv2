@@ -1,6 +1,6 @@
 const { query } = require("../../config/database");
 const attendanceQueries = require("./attendance.queries");
-
+const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 // Create or update attendance record (Upsert)
 const createAttendance = async (attendanceData) => {
   const {
@@ -28,9 +28,31 @@ const createAttendance = async (attendanceData) => {
     makeup_group_id,
     notes,
   ]);
-  return result.rows[0];
-};
 
+  const attendance = result.rows[0];
+
+  if (attendance && status === "absent") {
+    const studentResult = await query(
+      "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
+      [student_id],
+    );
+    const student = studentResult.rows[0];
+
+    if (student) {
+      const absenceMessage = whatsappDispatcher.generateAbsenceMessage(
+        student,
+        attendance_date,
+      );
+
+      await whatsappDispatcher.enqueueForStudentAndParent(student, "absence", {
+        message: absenceMessage,
+        date: attendance_date,
+      });
+    }
+  }
+
+  return attendance;
+};
 // Get attendance by group and date
 const getAttendanceByGroupAndDate = async (groupId, date) => {
   const result = await query(attendanceQueries.getAttendanceByGroupAndDate, [
@@ -121,7 +143,6 @@ const getDashboard = async () => {
   const result = await query(attendanceQueries.getDashboard);
   return result.rows[0];
 };
-
 
 // Start new session
 const startSession = async (sessionData) => {

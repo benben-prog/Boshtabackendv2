@@ -1,13 +1,13 @@
+// src/modules/students/students.bulk.service.js
 const { query } = require("../../config/database");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const {
   validateEgyptianPhone,
   cleanPhone,
 } = require("../../utils/excelValidator");
+const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
-/**
- * توليد parent_token
- */
 const generateParentToken = () => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let token = "";
@@ -17,18 +17,12 @@ const generateParentToken = () => {
   return token;
 };
 
-/**
- * معالجة بيانات الطلاب من Excel
- * @param {Array} data - البيانات المنظفة
- * @returns {Object} - تقرير النتائج
- */
 const processStudentsBulk = async (data) => {
   const results = [];
   const errors = [];
   let successCount = 0;
   let errorCount = 0;
 
-  // مصفوفات للـ bulk insert
   const barcodes = [];
   const fullNames = [];
   const phones = [];
@@ -38,85 +32,64 @@ const processStudentsBulk = async (data) => {
   const groupIds = [];
   const notesList = [];
 
-  // معالجة كل صف
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    const rowNumber = i + 2; // +2 لأن الصف الأول هو العناوين
+    const rowNumber = i + 2;
 
     try {
-      // التحقق من البيانات المطلوبة
       const barcode = String(row.barcode || "").trim();
       const full_name = String(row.full_name || "").trim();
       const grade_name = String(row.grade_name || "").trim();
       const group_name = String(row.group_name || "").trim();
 
-      if (!barcode) {
-        throw new Error("الباركود مطلوب");
-      }
+      if (!barcode) throw new Error("Barcode required");
+      if (!full_name) throw new Error("Student name required");
+      if (!grade_name) throw new Error("Grade name required");
+      if (!group_name) throw new Error("Group name required");
 
-      if (!full_name) {
-        throw new Error("اسم الطالب مطلوب");
-      }
-
-      if (!grade_name) {
-        throw new Error("اسم الصف مطلوب");
-      }
-
-      if (!group_name) {
-        throw new Error("اسم المجموعة مطلوب");
-      }
-
-      // التحقق من الهاتف
       const phone = cleanPhone(row.phone);
       if (phone && !validateEgyptianPhone(phone)) {
-        throw new Error(`رقم الهاتف غير صحيح: ${row.phone}`);
+        throw new Error(`Invalid phone: ${row.phone}`);
       }
 
       const parent_phone = cleanPhone(row.parent_phone);
       if (parent_phone && !validateEgyptianPhone(parent_phone)) {
-        throw new Error(`رقم هاتف ولي الأمر غير صحيح: ${row.parent_phone}`);
+        throw new Error(`Invalid parent phone: ${row.parent_phone}`);
       }
 
-      // التحقق من عدم تكرار الباركود في الملف
       if (barcodes.includes(barcode)) {
-        throw new Error(`الباركود مكرر في الملف: ${barcode}`);
+        throw new Error(`Duplicate barcode: ${barcode}`);
       }
 
-      // التحقق من عدم وجود الباركود في قاعدة البيانات
       const existingBarcode = await query(
         "SELECT id FROM students WHERE barcode = $1 AND deleted = 0",
         [barcode],
       );
       if (existingBarcode.rows[0]) {
-        throw new Error(`الباركود موجود مسبقاً: ${barcode}`);
+        throw new Error(`Barcode exists: ${barcode}`);
       }
 
-      // البحث عن الصف
       const gradeResult = await query(
         "SELECT id FROM grades WHERE name = $1 AND deleted = 0",
         [grade_name],
       );
       const grade = gradeResult.rows[0];
-      if (!grade) {
-        throw new Error(`الصف غير موجود: ${grade_name}`);
-      }
+      if (!grade) throw new Error(`Grade not found: ${grade_name}`);
 
-      // البحث عن المجموعة
       const groupResult = await query(
         "SELECT id FROM groups WHERE name = $1 AND grade_id = $2 AND deleted = 0",
         [group_name, grade.id],
       );
       const group = groupResult.rows[0];
-      if (!group) {
-        throw new Error(`المجموعة غير موجودة: ${group_name} في صف ${grade_name}`);
-      }
+      if (!group) throw new Error(`Group not found: ${group_name}`);
 
-      // إضافة البيانات للمصفوفات
+      const parentToken = generateParentToken();
+
       barcodes.push(barcode);
       fullNames.push(full_name);
       phones.push(phone);
       parentPhones.push(parent_phone);
-      parentTokens.push(generateParentToken());
+      parentTokens.push(parentToken);
       gradeIds.push(grade.id);
       groupIds.push(group.id);
       notesList.push(row.notes ? String(row.notes).trim() : null);
@@ -139,7 +112,6 @@ const processStudentsBulk = async (data) => {
     }
   }
 
-  // Bulk insert للصفوف الصحيحة
   if (barcodes.length > 0) {
     try {
       const insertResult = await query(
@@ -154,7 +126,7 @@ const processStudentsBulk = async (data) => {
            $7::int[],
            $8::text[]
          )
-         RETURNING id, barcode, full_name`,
+         RETURNING id, barcode, full_name, phone, parent_phone, parent_token`,
         [
           barcodes,
           fullNames,
@@ -167,8 +139,22 @@ const processStudentsBulk = async (data) => {
         ],
       );
 
-      // تحديث النتائج بالـ IDs
       const insertedStudents = insertResult.rows;
+
+      for (const student of insertedStudents) {
+        const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
+          full_name: student.full_name,
+          barcode: student.barcode,
+          parent_token: student.parent_token,
+        });
+
+        await whatsappDispatcher.enqueueForStudentAndParent(
+          student,
+          "welcome",
+          { message: welcomeMessage },
+        );
+      }
+
       results.forEach((result) => {
         const inserted = insertedStudents.find(
           (s) => s.barcode === result.barcode,
@@ -178,9 +164,8 @@ const processStudentsBulk = async (data) => {
         }
       });
     } catch (error) {
-      console.error("❌ Bulk insert error:", error);
-      // لو فشل الـ bulk insert، نرجع خطأ عام
-      throw new Error(`فشل إدخال البيانات: ${error.message}`);
+      console.error("Bulk insert error:", error);
+      throw new Error(`Failed to insert data: ${error.message}`);
     }
   }
 

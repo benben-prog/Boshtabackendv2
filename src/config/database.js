@@ -1,10 +1,9 @@
+// src/config/database.js
 const { Pool } = require("pg");
 const env = require("./env");
 
-// Set timezone
 process.env.TZ = "Africa/Cairo";
 
-// SSL configuration
 function getSslConfig() {
   if (env.NODE_ENV === "production") {
     const isLocalhost =
@@ -33,7 +32,6 @@ function getSslConfig() {
   return false;
 }
 
-// Pool configuration
 function getPoolConfig() {
   const config = {
     connectionTimeoutMillis: env.DB_POOL_CONNECTION_TIMEOUT,
@@ -61,10 +59,8 @@ function getPoolConfig() {
   };
 }
 
-// Create pool
 const pool = new Pool(getPoolConfig());
 
-// Pool events
 pool.on("connect", async (client) => {
   try {
     await client.query("SET TIME ZONE 'Africa/Cairo'");
@@ -81,7 +77,6 @@ pool.on("error", (err) => {
   console.error("Database error:", err.message);
 });
 
-// Query function
 async function query(text, params) {
   const client = await pool.connect();
   try {
@@ -103,7 +98,6 @@ async function query(text, params) {
   }
 }
 
-// Transaction helper
 async function transaction(callback) {
   const client = await pool.connect();
   try {
@@ -120,9 +114,10 @@ async function transaction(callback) {
   }
 }
 
-// Helper functions
 async function getCurrentTime() {
-  const result = await query("SELECT NOW() AS current_time");
+  const result = await query(
+    "SELECT NOW() AT TIME ZONE 'Africa/Cairo' AS current_time",
+  );
   return result.rows[0].current_time;
 }
 
@@ -146,7 +141,6 @@ async function testConnection() {
   }
 }
 
-// Graceful shutdown
 async function closePool() {
   try {
     await pool.end();

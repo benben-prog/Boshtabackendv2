@@ -2,7 +2,7 @@ const { query } = require("../../config/database");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const stdQr = require("./students.queries");
-
+const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 // PART 1: CRUD & SEARCH OPERATIONS
 
 const generateParentToken = () => {
@@ -14,7 +14,6 @@ const generateParentToken = () => {
   return token;
 };
 
-// Create a new student
 const createStudent = async (stdInfo) => {
   const { barcode, full_name, phone, parent_phone, grade_id, group_id, notes } =
     stdInfo;
@@ -32,8 +31,22 @@ const createStudent = async (stdInfo) => {
     notes,
   ]);
 
+  const student = result.rows[0];
+
+  if (student) {
+    const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
+      full_name: student.full_name,
+      barcode: student.barcode,
+      parent_token: parent_token,
+    });
+
+    await whatsappDispatcher.enqueueForStudentAndParent(student, "welcome", {
+      message: welcomeMessage,
+    });
+  }
+
   return {
-    ...result.rows[0],
+    ...student,
     parent_token,
   };
 };

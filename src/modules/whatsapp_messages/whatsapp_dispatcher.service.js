@@ -1,46 +1,186 @@
+// src/modules/whatsapp_messages/whatsapp_dispatcher.service.js
 const { query } = require("../../config/database");
 const whatsappClient = require("../../utils/whatsappClient");
+const { messages } = require("../../constants/messages");
 
-// ============ Check Template Active ============
-// ✅ جديد: بيتأكد إن قالب الـ type ده مفعل قبل أي إرسال
-async function isTemplateActive(type) {
-  if (!type) return true;
-
+async function getWhatsappSettings() {
   const result = await query(
-    `SELECT is_active FROM whatsapp_messages WHERE type = $1 LIMIT 1`,
-    [type],
+    "SELECT whatsapp_daily_limit, whatsapp_delay_seconds FROM settings WHERE id = 1",
   );
-
-  // لو مفيش قالب مسجل لنوع الرسالة ده أصلاً، سيبها تتبعت عادي
-  // (عشان الرسائل الـ custom اللي مالهاش قالب مرتبط بالتحكم)
-  if (result.rows.length === 0) return true;
-
-  return Number(result.rows[0].is_active) === 1;
+  return (
+    result.rows[0] || { whatsapp_daily_limit: 250, whatsapp_delay_seconds: 45 }
+  );
 }
 
-// ============ Dispatch Single Message ============
+async function getTodaySentCount() {
+  const result = await query(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE status IN ('sent', 'delivered', 'read')
+      AND DATE(created_at AT TIME ZONE 'Africa/Cairo') = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
+  `,
+  );
+  return parseInt(result.rows[0]?.count || 0);
+}
+
+async function getTemplateByType(type) {
+  const result = await query(
+    `
+    SELECT id, type, template, is_active, sent_to, delay
+    FROM whatsapp_messages
+    WHERE type = $1
+  `,
+    [type],
+  );
+  return result.rows[0];
+}
+
+async function getAllTemplates() {
+  const result = await query(`
+    SELECT 
+      id,
+      type,
+      template,
+      is_active,
+      sent_to,
+      delay,
+      created_at,
+      updated_at
+    FROM whatsapp_messages
+    ORDER BY created_at DESC
+  `);
+  return result.rows;
+}
+
+function generateWelcomeMessage(student) {
+  return messages.welcome(
+    student.full_name,
+    student.barcode,
+    student.parent_token,
+  );
+}
+
+function generateAbsenceMessage(student, date) {
+  return messages.absent(
+    student.full_name,
+    student.barcode,
+    date,
+    student.parent_token,
+  );
+}
+
+function generatePaymentMessage(student, paymentData) {
+  return messages.payment(
+    student.full_name,
+    paymentData.month,
+    paymentData.amount,
+  );
+}
+
+function generateExamMessage(student, examData) {
+  return messages.exams(
+    student.full_name,
+    examData.score,
+    examData.fullMark,
+    examData.date,
+    examData.day,
+    student.barcode,
+  );
+}
+
+async function enqueueMessage(messageData) {
+  const { student_id, type, phone, recipient, message, ref_key } = messageData;
+
+  if (!phone) {
+    return { inserted: false, error: "Phone number required" };
+  }
+
+  if (ref_key) {
+    const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [
+      ref_key,
+    ]);
+    if (existing.rows.length > 0) {
+      return { inserted: false, id: existing.rows[0].id, message: "Duplicate" };
+    }
+  }
+
+  const result = await query(
+    `
+    INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW(), NOW())
+    RETURNING id
+  `,
+    [student_id, phone, message, type, recipient, ref_key],
+  );
+
+  return { inserted: true, id: result.rows[0].id };
+}
+
+async function enqueueForStudentAndParent(student, type, messageData) {
+  const template = await getTemplateByType(type);
+
+  if (!template || Number(template.is_active) !== 1) {
+    return [{ inserted: false, error: "Template inactive", skipped: true }];
+  }
+
+  const results = [];
+  const baseRefKey = `${type}_${student.id}_${
+    new Date().toISOString().split("T")[0]
+  }`;
+
+  const sendTo = template.sent_to || "parents";
+  const phones = [];
+
+  if (sendTo === "parents" || sendTo === "both") {
+    if (student.parent_phone) {
+      phones.push({ phone: student.parent_phone, recipient: "parent" });
+    }
+  }
+
+  if (sendTo === "both") {
+    if (student.phone) {
+      phones.push({ phone: student.phone, recipient: "student" });
+    }
+  }
+
+  for (const phoneInfo of phones) {
+    const message = messageData.message;
+    const refKey = `${baseRefKey}_${phoneInfo.recipient}`;
+
+    const result = await enqueueMessage({
+      student_id: student.id,
+      type,
+      phone: phoneInfo.phone,
+      recipient: phoneInfo.recipient,
+      message,
+      ref_key: refKey,
+    });
+
+    results.push(result);
+  }
+
+  if (results.length === 0) {
+    return [
+      { inserted: false, error: "No phone numbers available", skipped: true },
+    ];
+  }
+
+  return results;
+}
 
 async function dispatchMessage(messageId) {
-  console.log(`Processing message ID: ${messageId}`);
-
   const result = await query(
     `
     SELECT 
       m.*,
-      s.id AS student_id,
       s.full_name,
       s.barcode,
-      s.phone,
-      s.parent_phone,
       s.parent_token,
-      s.grade_id,
-      s.group_id,
-      g.name AS grade_name,
-      gr.name AS group_name
+      s.phone AS student_phone,
+      s.parent_phone
     FROM messages m
     LEFT JOIN students s ON m.student_id = s.id
-    LEFT JOIN grades g ON s.grade_id = g.id
-    LEFT JOIN groups gr ON s.group_id = gr.id
     WHERE m.id = $1
   `,
     [messageId],
@@ -55,21 +195,10 @@ async function dispatchMessage(messageId) {
     return { success: false, error: `Message status is ${message.status}` };
   }
 
-  // ✅ فحص جديد: لو القالب موقوف، ما ترسلش خالص وسجلها فاشلة بسبب واضح
-  const templateActive = await isTemplateActive(message.type);
-  if (!templateActive) {
-    await markFailed(message.id, "القالب موقوف من لوحة التحكم - تم إلغاء الإرسال");
-    console.log(`Message ${messageId} skipped: template for type "${message.type}" is inactive`);
+  const template = await getTemplateByType(message.type);
+  if (!template || Number(template.is_active) !== 1) {
+    await markFailed(message.id, "Template inactive");
     return { success: false, skipped: true, error: "Template inactive" };
-  }
-
-  const phone = message.recipient === "student" 
-    ? message.phone 
-    : message.parent_phone || message.phone;
-
-  if (!whatsappClient.hasPhone(phone)) {
-    await markFailed(message.id, "No valid phone number");
-    return { success: false, skipped: true, error: "No valid phone number" };
   }
 
   const student = {
@@ -77,56 +206,66 @@ async function dispatchMessage(messageId) {
     full_name: message.full_name,
     name: message.full_name,
     barcode: message.barcode,
-    grade_name: message.grade_name,
-    group_name: message.group_name,
-    phone: message.phone,
-    parent_phone: message.parent_phone,
     parent_token: message.parent_token,
+    phone: message.student_phone,
+    parent_phone: message.parent_phone,
   };
 
-  let params = {};
-  try {
-    params = typeof message.params === "string" 
-      ? JSON.parse(message.params) 
-      : message.params || {};
-  } catch {
-    params = {};
-  }
-
   let sendResult;
+
   switch (message.type) {
     case "welcome":
-      sendResult = await whatsappClient.sendWelcomeMsg(student);
+      sendResult = await whatsappClient.sendWelcomeMsg(student, message.phone);
       break;
     case "absence":
-      sendResult = await whatsappClient.sendAbsentMsg(student, params.date);
+      let date;
+      try {
+        date = message.params
+          ? JSON.parse(message.params).date
+          : new Date().toISOString().split("T")[0];
+      } catch {
+        date = new Date().toISOString().split("T")[0];
+      }
+      sendResult = await whatsappClient.sendAbsentMsg(
+        student,
+        message.phone,
+        date,
+      );
       break;
     case "payment":
-      sendResult = await whatsappClient.sendPaymentMsg(student, params);
+      let paymentData = {};
+      try {
+        paymentData = message.params ? JSON.parse(message.params) : {};
+      } catch {}
+      sendResult = await whatsappClient.sendPaymentMsg(
+        student,
+        message.phone,
+        paymentData,
+      );
       break;
     case "exam":
-      sendResult = await whatsappClient.sendExamMsg(student, params);
+      let examData = {};
+      try {
+        examData = message.params ? JSON.parse(message.params) : {};
+      } catch {}
+      sendResult = await whatsappClient.sendExamMsg(
+        student,
+        message.phone,
+        examData,
+      );
       break;
     default:
-      sendResult = await whatsappClient.sendTemplate({
-        phone,
-        templateName: message.template_name || "custom",
-        parameters: params.parameters || [],
-      });
+      sendResult = { success: false, error: "Unknown message type" };
   }
 
   if (sendResult?.success) {
     await markSent(message.id, sendResult.id);
-    console.log(`Message ${messageId} sent successfully`);
+    return sendResult;
   } else {
     await markFailed(message.id, sendResult?.error || "Send failed");
-    console.log(`Message ${messageId} failed: ${sendResult?.error}`);
+    return sendResult;
   }
-
-  return sendResult;
 }
-
-// ============ Mark as Sent ============
 
 async function markSent(id, messageId) {
   await query(
@@ -134,15 +273,14 @@ async function markSent(id, messageId) {
     UPDATE messages 
     SET status = 'sent', 
         sent_at = NOW(),
+        message_id = $2,
         attempts = attempts + 1,
         updated_at = NOW()
     WHERE id = $1
   `,
-    [id],
+    [id, messageId],
   );
 }
-
-// ============ Mark as Failed ============
 
 async function markFailed(id, error) {
   await query(
@@ -158,132 +296,95 @@ async function markFailed(id, error) {
   );
 }
 
-// ============ Send Queue ============
+async function sendQueue({ limit = 5 } = {}) {
+  const settings = await getWhatsappSettings();
+  const sentToday = await getTodaySentCount();
+  const dailyLimit = settings.whatsapp_daily_limit || 250;
 
-async function sendQueue({ statuses = ["pending"], delaySeconds = 5, limit = 100 } = {}) {
-  console.log("Starting queue processing...");
+  if (sentToday >= dailyLimit) {
+    return {
+      success: true,
+      sent: 0,
+      failed: 0,
+      total: 0,
+      dailyLimitReached: true,
+    };
+  }
 
-  const placeholders = statuses.map((_, i) => `$${i + 1}`).join(",");
+  const availableSlots = dailyLimit - sentToday;
+  const maxToSend = Math.min(limit, availableSlots);
+
   const result = await query(
     `
     SELECT id FROM messages 
-    WHERE status IN (${placeholders})
+    WHERE status = 'pending'
     ORDER BY created_at ASC
-    LIMIT ${limit}
+    LIMIT $1
   `,
-    statuses,
+    [maxToSend],
   );
 
-  const messages = result.rows;
-  if (messages.length === 0) {
-    console.log("No messages in queue");
+  const pendingMessages = result.rows;
+  if (pendingMessages.length === 0) {
     return { success: true, sent: 0, failed: 0, total: 0 };
   }
 
-  console.log(`Messages in queue: ${messages.length}`);
-
   let sent = 0;
   let failed = 0;
+  const delaySeconds = settings.whatsapp_delay_seconds || 45;
 
-  for (let i = 0; i < messages.length; i++) {
-    console.log(`Sending ${i + 1}/${messages.length}`);
-    const dispatchResult = await dispatchMessage(messages[i].id);
+  for (let i = 0; i < pendingMessages.length; i++) {
+    const dispatchResult = await dispatchMessage(pendingMessages[i].id);
     if (dispatchResult?.success) sent++;
     else failed++;
 
-    if (i < messages.length - 1 && delaySeconds > 0) {
-      console.log(`Waiting ${delaySeconds} seconds...`);
+    if (i < pendingMessages.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
     }
   }
 
-  console.log(`Queue complete: ${sent} sent, ${failed} failed`);
-  return { success: true, sent, failed, total: messages.length };
+  return { success: true, sent, failed, total: pendingMessages.length };
 }
-
-// ============ Enqueue Message ============
-// ✅ اختياري بس مفيد: ما نضيفش رسالة في الطابور أصلاً لو القالب موقوف
-async function enqueueMessage(messageData) {
-  const {
-    student_id,
-    type,
-    recipient = "parent",
-    phone,
-    params,
-    ref_key,
-    template_id,
-    scheduled_at = null,
-  } = messageData;
-
-  const templateActive = await isTemplateActive(type);
-  if (!templateActive) {
-    console.log(`Enqueue skipped: template for type "${type}" is inactive`);
-    return { inserted: false, error: "Template inactive", skipped: true };
-  }
-
-  if (ref_key) {
-    const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [ref_key]);
-    if (existing.rows.length > 0) {
-      console.log(`Duplicate message: ${ref_key}`);
-      return { inserted: false, id: existing.rows[0].id, message: "Duplicate" };
-    }
-  }
-
-  let targetPhone = phone;
-  if (!targetPhone && student_id) {
-    const studentResult = await query(
-      "SELECT phone, parent_phone FROM students WHERE id = $1 AND deleted = 0",
-      [student_id],
-    );
-    if (studentResult.rows[0]) {
-      targetPhone = recipient === "student" 
-        ? studentResult.rows[0].phone 
-        : studentResult.rows[0].parent_phone;
-    }
-  }
-
-  if (!targetPhone) {
-    return { inserted: false, error: "Phone number required" };
-  }
-
-  const result = await query(
-    `
-    INSERT INTO messages 
-      (student_id, phone, type, recipient, params, ref_key, template_id, scheduled_at, status, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', NOW())
-    RETURNING id
-  `,
-    [
-      student_id,
-      targetPhone,
-      type,
-      recipient,
-      JSON.stringify(params || {}),
-      ref_key,
-      template_id,
-      scheduled_at,
-    ],
-  );
-
-  console.log(`Message added to queue (ID: ${result.rows[0].id}, type: ${type})`);
-  return { inserted: true, id: result.rows[0].id };
-}
-
-// ============ Get Statistics ============
 
 async function getStats() {
-  const result = await query(`
+  const settings = await getWhatsappSettings();
+  const sentToday = await getTodaySentCount();
+
+  const statsResult = await query(`
     SELECT 
       COUNT(*) AS total,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
       SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
-      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+      SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
+      SUM(CASE WHEN status = 'read' THEN 1 ELSE 0 END) AS read
     FROM messages
   `);
-  return result.rows[0];
+
+  return {
+    ...statsResult.rows[0],
+    sent_today: sentToday,
+    daily_limit: settings.whatsapp_daily_limit,
+    remaining_today: Math.max(0, settings.whatsapp_daily_limit - sentToday),
+    delay_seconds: settings.whatsapp_delay_seconds,
+  };
 }
 
-// ============ Reset Failed Messages ============
+async function getMessageById(id) {
+  const result = await query(
+    `
+    SELECT 
+      m.*,
+      s.full_name,
+      s.barcode
+    FROM messages m
+    LEFT JOIN students s ON m.student_id = s.id
+    WHERE m.id = $1
+  `,
+    [id],
+  );
+  return result.rows[0];
+}
 
 async function resetFailed() {
   const result = await query(`
@@ -294,38 +395,23 @@ async function resetFailed() {
     WHERE status = 'failed' AND attempts < 3
     RETURNING id
   `);
-  console.log(`Reset ${result.rowCount} failed messages`);
   return result.rows;
 }
 
-// ============ Get Message by ID ============
-
-async function getMessageById(id) {
-  const result = await query(
-    `
-    SELECT 
-      m.*,
-      s.full_name,
-      s.barcode,
-      s.parent_phone,
-      s.parent_token
-    FROM messages m
-    LEFT JOIN students s ON m.student_id = s.id
-    WHERE m.id = $1
-  `,
-    [id],
-  );
-  return result.rows[0];
-}
-
 module.exports = {
+  enqueueMessage,
+  enqueueForStudentAndParent,
   dispatchMessage,
   sendQueue,
-  enqueueMessage,
   getStats,
   resetFailed,
   markSent,
   markFailed,
   getMessageById,
-  isTemplateActive,
+  getTemplateByType,
+  getAllTemplates,
+  generateWelcomeMessage,
+  generateAbsenceMessage,
+  generatePaymentMessage,
+  generateExamMessage,
 };

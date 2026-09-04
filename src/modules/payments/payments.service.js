@@ -1,30 +1,24 @@
 const { query } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
-
+const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 // Create payment - auto set amount from subscription required_amount
 const createPayment = async (paymentData) => {
-  const { subscription_id, student_id, amount,payment_date, notes } = paymentData;
+  const { subscription_id, student_id, amount, payment_date, notes } = paymentData;
 
-  // Get subscription required amount
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
     subscription_id,
   ]);
 
   if (!subscriptionResult.rows[0]) {
-    throw new Error("الاشتراك غير موجود!");
+    throw new Error("Subscription not found");
   }
 
   const { required_amount, status } = subscriptionResult.rows[0];
 
-  // Check if already paid
   if (status === "paid") {
-    throw new Error("هذا الاشتراك مدفوع بالفعل!");
+    throw new Error("Subscription already paid");
   }
 
-  // Amount equals required amount (no partial payment)
- // const amount = required_amount;
-
-  // Create payment
   const paymentResult = await query(paymentQueries.createPayment, [
     subscription_id,
     student_id,
@@ -33,10 +27,39 @@ const createPayment = async (paymentData) => {
     notes,
   ]);
 
-  // Auto mark subscription as paid
   await query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
 
-  return paymentResult.rows[0];
+  const payment = paymentResult.rows[0];
+
+  if (payment) {
+    const studentResult = await query(
+      "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
+      [student_id]
+    );
+    const student = studentResult.rows[0];
+
+    if (student) {
+      const month = subscriptionResult.rows[0].month || new Date().toISOString().slice(0, 7);
+      const paymentInfo = {
+        month,
+        year: new Date().getFullYear(),
+        amount,
+      };
+
+      const paymentMessage = whatsappDispatcher.generatePaymentMessage(
+        student,
+        paymentInfo
+      );
+
+      await whatsappDispatcher.enqueueForStudentAndParent(
+        student,
+        "payment",
+        { message: paymentMessage, paymentData: paymentInfo }
+      );
+    }
+  }
+
+  return payment;
 };
 
 // Get all payments with filters
