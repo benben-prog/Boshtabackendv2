@@ -195,17 +195,38 @@ const CACHE_TTL = 60000;
 const checkPlatformStatus = async (req, res, next) => {
   try {
     const now = Date.now();
-    if (
-      req.path.includes("/super-admin") ||
-      req.path.includes("/auth") ||
-      req.path.includes("/health") ||
-      req.path.includes("/uploads") ||
-      req.path.includes("/api-docs") ||
-      req.path.includes("/webhook")
-    ) {
+
+    // ✅ API Docs always accessible
+    if (req.path.includes("/api-docs") || req.path.includes("/api-docs-json")) {
       return next();
     }
 
+    // ✅ Webhook always accessible (WhatsApp needs it)
+    if (req.path.includes("/webhook")) {
+      return next();
+    }
+
+    // ✅ Uploads always accessible (images for frontend)
+    if (req.path.includes("/uploads")) {
+      return next();
+    }
+
+    // ✅ Health check always accessible
+    if (req.path.includes("/health")) {
+      return next();
+    }
+
+    // ✅ Auth routes always accessible (login should work)
+    if (req.path.includes("/auth")) {
+      return next();
+    }
+
+    // ✅ Super admin routes always accessible (admin needs to manage)
+    if (req.path.includes("/super-admin")) {
+      return next();
+    }
+
+    // Check platform status
     if (
       platformStatusCache.lastChecked &&
       now - platformStatusCache.lastChecked < CACHE_TTL
@@ -213,7 +234,8 @@ const checkPlatformStatus = async (req, res, next) => {
       if (platformStatusCache.status === "paused") {
         return res.status(403).json({
           success: false,
-          message: "Platform is temporarily closed for maintenance",
+          message: "المنصة متوقفة حالياً، تواصل مع المسئول",
+          platform_status: "paused",
         });
       }
       return next();
@@ -230,7 +252,8 @@ const checkPlatformStatus = async (req, res, next) => {
     if (platformStatus === "paused") {
       return res.status(403).json({
         success: false,
-        message: "Platform is temporarily closed for maintenance",
+        message: "المنصة متوقفة حالياً، تواصل مع المسئول",
+        platform_status: "paused",
       });
     }
 
