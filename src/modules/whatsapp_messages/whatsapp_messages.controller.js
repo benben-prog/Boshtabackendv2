@@ -710,13 +710,39 @@ const getDashboard = async (req, res, next) => {
     next(error);
   }
 };
+const updateSettings = async (req, res, next) => {
+  try {
+    const { whatsapp_daily_limit, whatsapp_delay_seconds } = req.body;
 
+    const result = await query(
+      `
+      UPDATE settings 
+      SET 
+        whatsapp_daily_limit = COALESCE($1, whatsapp_daily_limit),
+        whatsapp_delay_seconds = COALESCE($2, whatsapp_delay_seconds),
+        updated_at = NOW()
+      WHERE id = 1
+      RETURNING whatsapp_daily_limit, whatsapp_delay_seconds
+      `,
+      [whatsapp_daily_limit, whatsapp_delay_seconds]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحديث الإعدادات بنجاح",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   sendWelcome,
   sendAbsence,
   sendPayment,
   sendExam,
   sendQueue,
+  updateSettings,
   getQueueStats,
   resetFailed,
   getMessages,

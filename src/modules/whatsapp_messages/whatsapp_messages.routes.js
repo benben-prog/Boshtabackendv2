@@ -7,7 +7,7 @@ routes.post("/send/welcome/:studentId", whatsappController.sendWelcome);
 routes.post("/send/absence/:studentId", whatsappController.sendAbsence);
 routes.post("/send/payment/:paymentId", whatsappController.sendPayment);
 routes.post("/send/exam/:resultId", whatsappController.sendExam);
-
+routes.put("/settings", whatsappController.updateSettings);
 routes.post("/queue/send", whatsappController.sendQueue);
 routes.get("/queue/stats", whatsappController.getQueueStats);
 routes.post("/queue/reset-failed", whatsappController.resetFailed);
