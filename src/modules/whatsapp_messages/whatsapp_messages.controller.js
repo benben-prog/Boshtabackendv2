@@ -575,6 +575,7 @@ const deleteMessage = async (req, res, next) => {
 // WHATSAPP TEMPLATES CRUD
 // ============================================
 
+// getAllTemplates
 const getAllTemplates = async (req, res, next) => {
   try {
     const result = await query(`
@@ -714,6 +715,8 @@ const updateTemplate = async (req, res, next) => {
     next(error);
   }
 };
+
+// toggleTemplateActive تفضل زي ما هي بالظبط، مش محتاجة تعديل
 
 // ============ Toggle Template Active Status ============
 
