@@ -565,7 +565,43 @@
  *       200:
  *         description: Students retrieved successfully
  */
-
+/**
+ * @swagger
+ * /api/super-admin/students/generate-passwords/grade/{gradeId}:
+ *   post:
+ *     summary: Generate passwords for students in a specific grade
+ *     tags: [Super Admin - Students]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: gradeId
+ *         required: true
+ *         schema: { type: integer }
+ *         description: Grade ID
+ *     responses:
+ *       200:
+ *         description: Passwords generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     generated_count: { type: integer }
+ *                     passwords:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           student_id: { type: integer }
+ *                           barcode: { type: string }
+ *                           full_name: { type: string }
+ *                           password: { type: string }
+ */
 /**
  * @swagger
  * /api/super-admin/students/generate-passwords:
@@ -2335,4 +2371,242 @@
  *     responses:
  *       200:
  *         description: Status toggled
+ */
+/* ============================================
+   WHATSAPP SETTINGS & DASHBOARD & QUEUE & MESSAGES
+   ============================================ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/settings:
+ *   put:
+ *     summary: Update WhatsApp settings
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               whatsapp_daily_limit: { type: integer, example: 250 }
+ *               whatsapp_delay_seconds: { type: integer, example: 45 }
+ *     responses:
+ *       200:
+ *         description: Settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     whatsapp_daily_limit: { type: integer }
+ *                     whatsapp_delay_seconds: { type: integer }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/dashboard:
+ *   get:
+ *     summary: Get WhatsApp dashboard
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     responses:
+ *       200:
+ *         description: Dashboard retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total: { type: integer }
+ *                         pending: { type: integer }
+ *                         sent: { type: integer }
+ *                         failed: { type: integer }
+ *                         delivered: { type: integer }
+ *                         sent_today: { type: integer }
+ *                         daily_limit: { type: integer }
+ *                         delay_seconds: { type: integer }
+ *                     templates:
+ *                       type: array
+ *                       items: { type: object }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/queue/stats:
+ *   get:
+ *     summary: Get WhatsApp queue statistics
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     responses:
+ *       200:
+ *         description: Queue statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total: { type: integer }
+ *                     pending: { type: integer }
+ *                     sent: { type: integer }
+ *                     failed: { type: integer }
+ *                     delivered: { type: integer }
+ *                     sent_today: { type: integer }
+ *                     daily_limit: { type: integer }
+ *                     remaining_today: { type: integer }
+ *                     delay_seconds: { type: integer }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/queue/send:
+ *   post:
+ *     summary: Send WhatsApp queue
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     responses:
+ *       200:
+ *         description: Queue processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sent: { type: integer }
+ *                     failed: { type: integer }
+ *                     total: { type: integer }
+ *                     dailyLimitReached: { type: boolean }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/queue/reset-failed:
+ *   post:
+ *     summary: Reset failed WhatsApp messages
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     responses:
+ *       200:
+ *         description: Failed messages reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: array
+ *                   items: { type: object }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/messages:
+ *   get:
+ *     summary: Get all WhatsApp messages
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [pending, sent, failed, delivered] }
+ *         description: Filter by status
+ *       - in: query
+ *         name: type
+ *         schema: { type: string, enum: [welcome, absence, payment, exam] }
+ *         description: Filter by message type
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: array
+ *                   items: { type: object }
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page: { type: integer }
+ *                     limit: { type: integer }
+ *                     total: { type: integer }
+ *                     totalPages: { type: integer }
+ */
+
+/**
+ * @swagger
+ * /api/super-admin/whatsapp/messages/{messageId}:
+ *   get:
+ *     summary: Get WhatsApp message by ID
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Message retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *   delete:
+ *     summary: Delete WhatsApp message
+ *     tags: [Super Admin - WhatsApp]
+ *     security: [{ ApiAuth: [], ClientToken: [], SuperAdminKey: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Message deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
  */

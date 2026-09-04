@@ -672,4 +672,22 @@ routes.put(
   whatsappController.toggleTemplateActive,
 );
 
+// WhatsApp Settings
+routes.put("/whatsapp/settings", whatsappController.updateSettings);
+
+// WhatsApp Dashboard
+routes.get("/whatsapp/dashboard", whatsappController.getDashboard);
+
+// WhatsApp Queue
+routes.get("/whatsapp/queue/stats", whatsappController.getQueueStats);
+routes.post("/whatsapp/queue/send", whatsappController.sendQueue);
+routes.post("/whatsapp/queue/reset-failed", whatsappController.resetFailed);
+
+// WhatsApp Messages
+routes.get("/whatsapp/messages", whatsappController.getMessages);
+routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
+routes.delete(
+  "/whatsapp/messages/:messageId",
+  whatsappController.deleteMessage,
+);
 module.exports = routes;
