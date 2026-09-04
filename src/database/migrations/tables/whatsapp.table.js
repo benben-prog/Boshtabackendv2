@@ -8,7 +8,8 @@ async function createWhatsappMessagesTable() {
       is_active INTEGER DEFAULT 1,
       sent_to TEXT NOT NULL CHECK (sent_to IN ('students', 'parents', 'both')),
       delay INTEGER DEFAULT 60,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  
     )
   `);
 
@@ -20,6 +21,9 @@ async function createWhatsappMessagesTable() {
   );
   await query(
     `CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_created_at ON whatsapp_messages(created_at)`,
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_updated_at ON whatsapp_messages(updated_at)`,
   );
 
   console.log("whatsapp_messages table created successfully");
