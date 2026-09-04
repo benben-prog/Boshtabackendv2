@@ -18,6 +18,26 @@ const generateParentToken = () => {
 };
 
 const processStudentsBulk = async (data) => {
+  // Column mapping from Arabic to English (double protection)
+  const columnMapping = {
+    "الاسم الكامل": "full_name",
+    الباركود: "barcode",
+    "المرحلة الدراسية": "grade_name",
+    المجموعة: "group_name",
+    "رقم الجوال": "phone",
+    "رقم ولي الامر": "parent_phone",
+    ملاحظات: "notes",
+  };
+
+  const mappedData = data.map((row) => {
+    const newRow = {};
+    Object.keys(row).forEach((key) => {
+      const englishKey = columnMapping[key] || key;
+      newRow[englishKey] = row[key];
+    });
+    return newRow;
+  });
+
   const results = [];
   const errors = [];
   let successCount = 0;
@@ -32,8 +52,8 @@ const processStudentsBulk = async (data) => {
   const groupIds = [];
   const notesList = [];
 
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
+  for (let i = 0; i < mappedData.length; i++) {
+    const row = mappedData[i];
     const rowNumber = i + 2;
 
     try {
@@ -142,17 +162,21 @@ const processStudentsBulk = async (data) => {
       const insertedStudents = insertResult.rows;
 
       for (const student of insertedStudents) {
-        const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
-          full_name: student.full_name,
-          barcode: student.barcode,
-          parent_token: student.parent_token,
-        });
+        try {
+          const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
+            full_name: student.full_name,
+            barcode: student.barcode,
+            parent_token: student.parent_token,
+          });
 
-        await whatsappDispatcher.enqueueForStudentAndParent(
-          student,
-          "welcome",
-          { message: welcomeMessage },
-        );
+          await whatsappDispatcher.enqueueForStudentAndParent(
+            student,
+            "welcome",
+            { message: welcomeMessage },
+          );
+        } catch (error) {
+          console.error("Error enqueueing welcome message:", error);
+        }
       }
 
       results.forEach((result) => {
@@ -170,7 +194,7 @@ const processStudentsBulk = async (data) => {
   }
 
   return {
-    total_rows: data.length,
+    total_rows: mappedData.length,
     success_count: successCount,
     error_count: errorCount,
     success_records: results,

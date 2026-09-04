@@ -1,3 +1,4 @@
+// src/modules/students/students.bulk.controller.js
 const studentsBulkService = require("./students.bulk.service");
 const { logActivity } = require("../../utils/activityLogger");
 const {
@@ -11,40 +12,41 @@ const {
   cleanPhone,
 } = require("../../utils/excelValidator");
 
-/**
- * رفع ملف Excel لإضافة طلاب
- */
 const bulkUploadStudents = async (req, res, next) => {
   try {
-    // التحقق من وجود الملف
     if (!req.file) {
       throw new Error("يجب رفع ملف Excel!");
     }
 
     const filePath = req.file.path;
 
-    // قراءة الملف
     const rawData = readExcelFile(filePath);
     const data = cleanExcelData(rawData);
 
-    // الأعمدة المطلوبة
-    const requiredColumns = [
-      "barcode",
-      "full_name",
-      "grade_name",
-      "group_name",
-    ];
+    // Column mapping from Arabic to English
+    const columnMapping = {
+      "الاسم الكامل": "full_name",
+      الباركود: "barcode",
+      "المرحلة الدراسية": "grade_name",
+      المجموعة: "group_name",
+      "رقم الجوال": "phone",
+      "رقم ولي الامر": "parent_phone",
+      ملاحظات: "notes",
+    };
 
-    // التحقق من الأعمدة
-    validateColumns(data, requiredColumns);
+    const mappedData = data.map((row) => {
+      const newRow = {};
+      Object.keys(row).forEach((key) => {
+        const englishKey = columnMapping[key] || key;
+        newRow[englishKey] = row[key];
+      });
+      return newRow;
+    });
 
-    // معالجة البيانات
-    const result = await studentsBulkService.processStudentsBulk(data);
+    const result = await studentsBulkService.processStudentsBulk(mappedData);
 
-    // حذف الملف بعد المعالجة
     deleteExcelFile(filePath);
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -61,7 +63,6 @@ const bulkUploadStudents = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
-    // حذف الملف في حالة الخطأ
     if (req.file && req.file.path) {
       deleteExcelFile(req.file.path);
     }
@@ -69,9 +70,6 @@ const bulkUploadStudents = async (req, res, next) => {
   }
 };
 
-/**
- * تحميل Template للطلاب
- */
 const downloadStudentsTemplate = async (req, res, next) => {
   try {
     const { downloadTemplate } = require("../../utils/excelTemplates");

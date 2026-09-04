@@ -2,28 +2,26 @@ const XLSX = require("xlsx");
 const path = require("path");
 const fs = require("fs");
 
-/**
- * إنشاء Template للطلاب
- */
+
 const createStudentsTemplate = () => {
   const data = [
     {
-      barcode: "1001",
-      full_name: "أحمد محمد",
-      phone: "01012345678",
-      parent_phone: "01098765432",
-      grade_name: "الصف الأول",
-      group_name: "مجموعة أ",
-      notes: "مثال",
+      "الاسم الكامل": "أحمد محمد",
+      "الباركود": "1001",
+      "المرحلة الدراسية": "الصف الأول",
+      "المجموعة": "مجموعة أ",
+      "رقم الجوال": "01012345678",
+      "رقم ولي الامر": "01098765432",
+      "ملاحظات": "مثال",
     },
     {
-      barcode: "1002",
-      full_name: "سارة علي",
-      phone: "01112345678",
-      parent_phone: "01198765432",
-      grade_name: "الصف الأول",
-      group_name: "مجموعة أ",
-      notes: "",
+      "الاسم الكامل": "سارة علي",
+      "الباركود": "1002",
+      "المرحلة الدراسية": "الصف الأول",
+      "المجموعة": "مجموعة أ",
+      "رقم الجوال": "01112345678",
+      "رقم ولي الامر": "01198765432",
+      "ملاحظات": "",
     },
   ];
 
@@ -34,6 +32,8 @@ const createStudentsTemplate = () => {
   return workbook;
 };
 
+// باقي الملف زي ما هو بدون تغيير
+// createExamResultsTemplate, createGradesTemplate, createGroupsTemplate, downloadTemplate
 /**
  * إنشاء Template للدرجات
  */
