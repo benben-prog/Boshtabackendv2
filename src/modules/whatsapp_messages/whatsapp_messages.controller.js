@@ -575,12 +575,10 @@ const deleteMessage = async (req, res, next) => {
 // WHATSAPP TEMPLATES CRUD
 // ============================================
 
-// ============ Get All Templates ============
-
 const getAllTemplates = async (req, res, next) => {
   try {
     const result = await query(`
-      SELECT id, template, is_active, sent_to, delay, created_at
+      SELECT id, type, template, is_active, sent_to, delay, created_at
       FROM whatsapp_messages
       ORDER BY created_at DESC
     `);
@@ -596,15 +594,14 @@ const getAllTemplates = async (req, res, next) => {
   }
 };
 
-// ============ Get Template By ID ============
-
+// getTemplateById
 const getTemplateById = async (req, res, next) => {
   try {
     const { templateId } = req.params;
 
     const result = await query(
       `
-      SELECT id, template, is_active, sent_to, delay, created_at
+      SELECT id, type, template, is_active, sent_to, delay, created_at
       FROM whatsapp_messages
       WHERE id = $1
     `,
@@ -626,11 +623,10 @@ const getTemplateById = async (req, res, next) => {
   }
 };
 
-// ============ Create Template ============
-
+// createTemplate
 const createTemplate = async (req, res, next) => {
   try {
-    const { template, sent_to, delay = 60 } = req.body;
+    const { type = "custom", template, sent_to, delay = 60 } = req.body;
 
     if (!template || !sent_to) {
       throw new Error("Template and sent_to are required");
@@ -638,11 +634,11 @@ const createTemplate = async (req, res, next) => {
 
     const result = await query(
       `
-      INSERT INTO whatsapp_messages (template, sent_to, delay)
-      VALUES ($1, $2, $3)
-      RETURNING id, template, is_active, sent_to, delay, created_at
+      INSERT INTO whatsapp_messages (type, template, sent_to, delay)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, type, template, is_active, sent_to, delay, created_at
     `,
-      [template, sent_to, delay],
+      [type, template, sent_to, delay],
     );
 
     await logActivity({
@@ -667,12 +663,11 @@ const createTemplate = async (req, res, next) => {
   }
 };
 
-// ============ Update Template ============
-
+// updateTemplate
 const updateTemplate = async (req, res, next) => {
   try {
     const { templateId } = req.params;
-    const { template, sent_to, delay } = req.body;
+    const { type, template, sent_to, delay } = req.body;
 
     const existing = await query(
       "SELECT id FROM whatsapp_messages WHERE id = $1",
@@ -687,14 +682,15 @@ const updateTemplate = async (req, res, next) => {
       `
       UPDATE whatsapp_messages
       SET 
-        template = COALESCE($1, template),
-        sent_to = COALESCE($2, sent_to),
-        delay = COALESCE($3, delay),
+        type = COALESCE($1, type),
+        template = COALESCE($2, template),
+        sent_to = COALESCE($3, sent_to),
+        delay = COALESCE($4, delay),
         updated_at = NOW()
-      WHERE id = $4
-      RETURNING id, template, is_active, sent_to, delay, created_at
+      WHERE id = $5
+      RETURNING id, type, template, is_active, sent_to, delay, created_at
     `,
-      [template, sent_to, delay, templateId],
+      [type, template, sent_to, delay, templateId],
     );
 
     await logActivity({
