@@ -14,7 +14,6 @@ const generateParentToken = () => {
   return token;
 };
 
-
 const createStudent = async (stdInfo) => {
   const { barcode, full_name, phone, parent_phone, grade_id, group_id, notes } = stdInfo;
 
@@ -35,19 +34,23 @@ const createStudent = async (stdInfo) => {
 
   if (student) {
     try {
-      const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
+      const studentForWhatsapp = {
+        id: student.id,
         full_name: student.full_name,
         barcode: student.barcode,
+        phone: student.phone,
+        parent_phone: student.parent_phone,
         parent_token: parent_token,
-      });
+      };
+
+      const welcomeMessage = whatsappDispatcher.generateWelcomeMessage(studentForWhatsapp);
 
       await whatsappDispatcher.enqueueForStudentAndParent(
-        student,
+        studentForWhatsapp,
         "welcome",
         { message: welcomeMessage }
       );
     } catch (error) {
-      // Log error but don't fail the student creation
       console.error("Error enqueueing welcome message:", error);
     }
   }
@@ -185,12 +188,15 @@ const hardDeleteStudent = async (id) => {
 
 // Restore a soft-deleted student
 const restoreStudent = async (id) => {
-  // Check if student exists first
   const studentCheck = await query("SELECT id FROM students WHERE id = $1", [id]);
   if (!studentCheck.rows[0]) return null;
   
-  // Restore the student
-  const result = await query(stdQr.restoreStudent, [id]);
+  const result = await query(`
+    UPDATE students 
+    SET deleted = 0, updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, deleted
+  `, [id]);
   return result.rows[0];
 };
 

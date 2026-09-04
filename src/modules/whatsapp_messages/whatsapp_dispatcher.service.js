@@ -96,6 +96,17 @@ async function enqueueMessage(messageData) {
     return { inserted: false, error: "Phone number required" };
   }
 
+  const template = await getTemplateByType(type);
+  if (!template || Number(template.is_active) !== 1) {
+    return { inserted: false, error: "Template inactive", skipped: true };
+  }
+
+  const dailyLimit = await getWhatsappSettings();
+  const sentToday = await getTodaySentCount();
+  if (sentToday >= dailyLimit.whatsapp_daily_limit) {
+    return { inserted: false, error: "Daily limit reached", skipped: true };
+  }
+
   if (ref_key) {
     const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [
       ref_key,
