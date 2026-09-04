@@ -142,9 +142,7 @@ async function enqueueForStudentAndParent(student, type, messageData) {
   }
 
   const results = [];
-  const baseRefKey = `${type}_${student.id}_${
-    new Date().toISOString().split("T")[0]
-  }`;
+  const baseRefKey = `${type}_${student.id}_${new Date().toLocaleDateString("en-CA")}`;
 
   const sendTo = template.sent_to || "parents";
   const phones = [];
@@ -237,11 +235,9 @@ async function dispatchMessage(messageId) {
     case "absence":
       let date;
       try {
-        date = message.params
-          ? JSON.parse(message.params).date
-          : new Date().toISOString().split("T")[0];
+        date = message.params ? JSON.parse(message.params).date : "";
       } catch {
-        date = new Date().toISOString().split("T")[0];
+        date = "";
       }
       sendResult = await whatsappClient.sendAbsentMsg(
         student,
@@ -330,7 +326,6 @@ async function sendQueue({ limit = 5 } = {}) {
 
   const availableSlots = dailyLimit - sentToday;
 
-  // ✅ تحويل scheduled لـ pending لو فيه slots
   await query(
     `
     UPDATE messages 

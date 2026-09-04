@@ -92,6 +92,62 @@ async function sendTemplate({
   }
 }
 
+function getEgyptDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return String(dateStr || "");
+    // UTC+3
+    const cairoTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    const year = cairoTime.getUTCFullYear();
+    const month = String(cairoTime.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(cairoTime.getUTCDate()).padStart(2, "0");
+    return `${day}/${month}/${year}`;
+  } catch {
+    return String(dateStr || "");
+  }
+}
+
+function getEgyptDay(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    const cairoTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    const days = [
+      "الأحد",
+      "الاثنين",
+      "الثلاثاء",
+      "الأربعاء",
+      "الخميس",
+      "الجمعة",
+      "السبت",
+    ];
+    return days[cairoTime.getUTCDay()];
+  } catch {
+    return "";
+  }
+}
+
+function getEgyptMonth(monthStr) {
+  if (!monthStr) return "";
+  const months = {
+    "01": "يناير",
+    "02": "فبراير",
+    "03": "مارس",
+    "04": "أبريل",
+    "05": "مايو",
+    "06": "يونيو",
+    "07": "يوليو",
+    "08": "أغسطس",
+    "09": "سبتمبر",
+    10: "أكتوبر",
+    11: "نوفمبر",
+    12: "ديسمبر",
+  };
+  return months[monthStr] || monthStr;
+}
+
 async function sendWelcomeMsg(student, phone) {
   return sendTemplate({
     phone,
@@ -112,7 +168,7 @@ async function sendAbsentMsg(student, phone, date) {
     parameters: [
       student.full_name || student.name || "Student",
       student.barcode || "N/A",
-      date,
+      getEgyptDate(date),
     ],
     buttonParams: student.parent_token,
     lang_code: "ar",
@@ -120,14 +176,18 @@ async function sendAbsentMsg(student, phone, date) {
 }
 
 async function sendPaymentMsg(student, phone, paymentData) {
+  const monthStr = String(paymentData.month || "").slice(5, 7);
+  const monthArabic = getEgyptMonth(monthStr);
+  const year = paymentData.year || new Date().getFullYear();
+  const amount = Number(paymentData.amount) || 0;
+
   return sendTemplate({
     phone,
     templateName: "payment",
     parameters: [
       student.full_name || student.name || "Student",
-      paymentData.month || "N/A",
-      paymentData.year || new Date().getFullYear(),
-      paymentData.amount || 0,
+      `${monthArabic} ${year}`,
+      amount,
     ],
     lang_code: "ar",
   });
@@ -139,10 +199,10 @@ async function sendExamMsg(student, phone, examData) {
     templateName: "exam",
     parameters: [
       student.full_name || student.name || "Student",
-      examData.score || 0,
-      examData.fullMark || 100,
-      examData.date,
-      examData.day || "",
+      Number(examData.score) || 0,
+      Number(examData.fullMark) || 100,
+      getEgyptDate(examData.date),
+      getEgyptDay(examData.date),
       student.barcode || "N/A",
     ],
     lang_code: "ar",

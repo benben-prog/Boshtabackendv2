@@ -17,17 +17,15 @@ const messages = {
     `,
   payment: (name, date, amount) => `
   تم سداد المصروفات للطالب : ${name} بنجاح
-  عن شهر ${date}بالمبلغ المدفوع وهو ${amount} جنيه
+  عن شهر ${date} بالمبلغ المدفوع وهو ${amount} جنيه
   مع تحيات الأستاذ محمد بشته
     `,
   exams: (name, score, finalDegree, date, day, barcode) => `
-  نود إبلاغكم بأن الطالب ${name} حصل علي درجة :(${score}من${finalDegree})
+  نود إبلاغكم بأن الطالب ${name} حصل علي درجة : (${score} من ${finalDegree})
   في امتحان بتاريخ: ${date} الموافق ${day}
   باركود الطالب : ${barcode}
   مع تحيات الأستاذ محمد بشته.
     `,
 };
 
-module.exports = {messages};
-
- 
+module.exports = { messages };

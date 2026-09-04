@@ -44,7 +44,7 @@ const createPayment = async (paymentData) => {
         const paymentInfo = {
           month: month || new Date().toISOString().slice(0, 7),
           year: new Date().getFullYear(),
-          amount: amount,
+          amount: Number(amount) || 0,
         };
 
         const paymentMessage = whatsappDispatcher.generatePaymentMessage(

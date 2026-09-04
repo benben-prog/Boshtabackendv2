@@ -2,6 +2,28 @@ const { query } = require("../../config/database");
 const examResultQueries = require("./exam_results.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
+function formatExamDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return String(dateStr || "");
+    return date.toLocaleDateString("en-CA");
+  } catch {
+    return String(dateStr || "");
+  }
+}
+
+function formatExamDay(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("ar-EG", { weekday: "long" });
+  } catch {
+    return "";
+  }
+}
+
 const createExamResult = async (examResultData) => {
   const { exam_id, student_id, degree, notes } = examResultData;
   const result = await query(examResultQueries.createExamResult, [
@@ -29,20 +51,11 @@ const createExamResult = async (examResultData) => {
         const exam = examInfoResult.rows[0];
 
         if (exam) {
-          const examDate = exam.exam_date
-            ? new Date(exam.exam_date).toISOString().split("T")[0]
-            : "";
-          const dayName = exam.exam_date
-            ? new Date(exam.exam_date).toLocaleString("en-US", {
-                weekday: "long",
-              })
-            : "";
-
           const examData = {
-            score: degree,
-            fullMark: exam.total_degree,
-            date: examDate,
-            day: dayName,
+            score: Number(degree) || 0,
+            fullMark: Number(exam.total_degree) || 100,
+            date: formatExamDate(exam.exam_date),
+            day: formatExamDay(exam.exam_date),
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
@@ -91,20 +104,11 @@ const upsertExamResult = async (examResultData) => {
         const exam = examInfoResult.rows[0];
 
         if (exam) {
-          const examDate = exam.exam_date
-            ? new Date(exam.exam_date).toISOString().split("T")[0]
-            : "";
-          const dayName = exam.exam_date
-            ? new Date(exam.exam_date).toLocaleString("en-US", {
-                weekday: "long",
-              })
-            : "";
-
           const examData = {
-            score: degree,
-            fullMark: exam.total_degree,
-            date: examDate,
-            day: dayName,
+            score: Number(degree) || 0,
+            fullMark: Number(exam.total_degree) || 100,
+            date: formatExamDate(exam.exam_date),
+            day: formatExamDay(exam.exam_date),
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
@@ -142,12 +146,8 @@ const upsertBatchExamResults = async (examId, records) => {
     throw new Error("الامتحان غير موجود");
   }
 
-  const examDate = exam.exam_date
-    ? new Date(exam.exam_date).toISOString().split("T")[0]
-    : "";
-  const dayName = exam.exam_date
-    ? new Date(exam.exam_date).toLocaleString("en-US", { weekday: "long" })
-    : "";
+  const examDateFormatted = formatExamDate(exam.exam_date);
+  const examDayFormatted = formatExamDay(exam.exam_date);
 
   for (const record of records) {
     const { barcode, degree, notes = null } = record;
@@ -190,10 +190,10 @@ const upsertBatchExamResults = async (examId, records) => {
 
         try {
           const examData = {
-            score: degree,
-            fullMark: exam.total_degree,
-            date: examDate,
-            day: dayName,
+            score: Number(degree) || 0,
+            fullMark: Number(exam.total_degree) || 100,
+            date: examDateFormatted,
+            day: examDayFormatted,
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
