@@ -24,7 +24,6 @@ const clientAuth = require("./middlewares/clientAuth.middleware");
 const assistantAuth = require("./middlewares/assistantAuth.middleware");
 const teacherAuth = require("./middlewares/teacherAuth.middleware");
 const superAdminAuth = require("./middlewares/superAdminAuth.middleware");
-const rateLimit = require("express-rate-limit");
 
 // Database
 const { query } = require("./config/database");
@@ -34,61 +33,6 @@ const env = require("./config/env");
 const swaggerSpec = require("./docs/swagger");
 
 const app = express();
-
-// ============================================
-// RATE LIMITING
-// ============================================
-
-const globalLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-  max: env.RATE_LIMIT_MAX || 100,
-  message: {
-    success: false,
-    message: "Too many requests from this IP",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-  max: env.RATE_LIMIT_AUTH_MAX || 5,
-  message: {
-    success: false,
-    message: "Too many login attempts from this IP",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// ============================================
-// CORS HEADERS
-// ============================================
-
-const allowedOrigins = env.CORS_ORIGINS || ["*"];
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-  }
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-client-key, x-super-admin-key",
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
 
 // ============================================
 // STATIC FILES - Public access for uploads
@@ -266,7 +210,7 @@ app.use(checkPlatformStatus);
 // API ROUTES
 // ============================================
 
-app.use("/api/auth", authLimiter, authRouts);
+app.use("/api/auth", authRouts);
 app.use("/api/student", apiMiddelware, clientAuth, studentModuleRoutes);
 app.use("/api/parent", apiMiddelware, parentRoutes);
 app.use(
