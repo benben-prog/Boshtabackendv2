@@ -1,6 +1,23 @@
 const { query } = require("../../config/database");
 const whatsappClient = require("../../utils/whatsappClient");
 
+// ============ Check Template Active ============
+// ✅ جديد: بيتأكد إن قالب الـ type ده مفعل قبل أي إرسال
+async function isTemplateActive(type) {
+  if (!type) return true;
+
+  const result = await query(
+    `SELECT is_active FROM whatsapp_messages WHERE type = $1 LIMIT 1`,
+    [type],
+  );
+
+  // لو مفيش قالب مسجل لنوع الرسالة ده أصلاً، سيبها تتبعت عادي
+  // (عشان الرسائل الـ custom اللي مالهاش قالب مرتبط بالتحكم)
+  if (result.rows.length === 0) return true;
+
+  return Number(result.rows[0].is_active) === 1;
+}
+
 // ============ Dispatch Single Message ============
 
 async function dispatchMessage(messageId) {
@@ -26,7 +43,7 @@ async function dispatchMessage(messageId) {
     LEFT JOIN groups gr ON s.group_id = gr.id
     WHERE m.id = $1
   `,
-    [messageId]
+    [messageId],
   );
 
   const message = result.rows[0];
@@ -36,6 +53,14 @@ async function dispatchMessage(messageId) {
 
   if (message.status !== "pending") {
     return { success: false, error: `Message status is ${message.status}` };
+  }
+
+  // ✅ فحص جديد: لو القالب موقوف، ما ترسلش خالص وسجلها فاشلة بسبب واضح
+  const templateActive = await isTemplateActive(message.type);
+  if (!templateActive) {
+    await markFailed(message.id, "القالب موقوف من لوحة التحكم - تم إلغاء الإرسال");
+    console.log(`Message ${messageId} skipped: template for type "${message.type}" is inactive`);
+    return { success: false, skipped: true, error: "Template inactive" };
   }
 
   const phone = message.recipient === "student" 
@@ -113,7 +138,7 @@ async function markSent(id, messageId) {
         updated_at = NOW()
     WHERE id = $1
   `,
-    [id]
+    [id],
   );
 }
 
@@ -129,7 +154,7 @@ async function markFailed(id, error) {
         updated_at = NOW()
     WHERE id = $1
   `,
-    [id, error?.slice(0, 500) || "Unknown error"]
+    [id, error?.slice(0, 500) || "Unknown error"],
   );
 }
 
@@ -146,7 +171,7 @@ async function sendQueue({ statuses = ["pending"], delaySeconds = 5, limit = 100
     ORDER BY created_at ASC
     LIMIT ${limit}
   `,
-    statuses
+    statuses,
   );
 
   const messages = result.rows;
@@ -177,7 +202,7 @@ async function sendQueue({ statuses = ["pending"], delaySeconds = 5, limit = 100
 }
 
 // ============ Enqueue Message ============
-
+// ✅ اختياري بس مفيد: ما نضيفش رسالة في الطابور أصلاً لو القالب موقوف
 async function enqueueMessage(messageData) {
   const {
     student_id,
@@ -189,6 +214,12 @@ async function enqueueMessage(messageData) {
     template_id,
     scheduled_at = null,
   } = messageData;
+
+  const templateActive = await isTemplateActive(type);
+  if (!templateActive) {
+    console.log(`Enqueue skipped: template for type "${type}" is inactive`);
+    return { inserted: false, error: "Template inactive", skipped: true };
+  }
 
   if (ref_key) {
     const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [ref_key]);
@@ -202,7 +233,7 @@ async function enqueueMessage(messageData) {
   if (!targetPhone && student_id) {
     const studentResult = await query(
       "SELECT phone, parent_phone FROM students WHERE id = $1 AND deleted = 0",
-      [student_id]
+      [student_id],
     );
     if (studentResult.rows[0]) {
       targetPhone = recipient === "student" 
@@ -231,7 +262,7 @@ async function enqueueMessage(messageData) {
       ref_key,
       template_id,
       scheduled_at,
-    ]
+    ],
   );
 
   console.log(`Message added to queue (ID: ${result.rows[0].id}, type: ${type})`);
@@ -282,7 +313,7 @@ async function getMessageById(id) {
     LEFT JOIN students s ON m.student_id = s.id
     WHERE m.id = $1
   `,
-    [id]
+    [id],
   );
   return result.rows[0];
 }
@@ -296,4 +327,5 @@ module.exports = {
   markSent,
   markFailed,
   getMessageById,
+  isTemplateActive,
 };
