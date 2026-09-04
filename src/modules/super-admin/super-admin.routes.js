@@ -109,6 +109,10 @@ routes.get(
   studentsController.getStudentsWithoutPassword,
 );
 routes.post(
+  "/students/generate-passwords/grade/:gradeId",
+  studentsController.generatePasswordsForGrade,
+);
+routes.post(
   "/students/generate-passwords",
   studentsController.generatePasswordsForAllStudents,
 );

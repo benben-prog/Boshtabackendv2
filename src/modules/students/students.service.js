@@ -15,7 +15,8 @@ const generateParentToken = () => {
 };
 
 const createStudent = async (stdInfo) => {
-  const { barcode, full_name, phone, parent_phone, grade_id, group_id, notes } = stdInfo;
+  const { barcode, full_name, phone, parent_phone, grade_id, group_id, notes } =
+    stdInfo;
 
   const parent_token = generateParentToken();
 
@@ -43,12 +44,13 @@ const createStudent = async (stdInfo) => {
         parent_token: parent_token,
       };
 
-      const welcomeMessage = whatsappDispatcher.generateWelcomeMessage(studentForWhatsapp);
+      const welcomeMessage =
+        whatsappDispatcher.generateWelcomeMessage(studentForWhatsapp);
 
       await whatsappDispatcher.enqueueForStudentAndParent(
         studentForWhatsapp,
         "welcome",
-        { message: welcomeMessage }
+        { message: welcomeMessage },
       );
     } catch (error) {
       console.error("Error enqueueing welcome message:", error);
@@ -188,15 +190,20 @@ const hardDeleteStudent = async (id) => {
 
 // Restore a soft-deleted student
 const restoreStudent = async (id) => {
-  const studentCheck = await query("SELECT id FROM students WHERE id = $1", [id]);
+  const studentCheck = await query("SELECT id FROM students WHERE id = $1", [
+    id,
+  ]);
   if (!studentCheck.rows[0]) return null;
-  
-  const result = await query(`
+
+  const result = await query(
+    `
     UPDATE students 
     SET deleted = 0, updated_at = NOW()
     WHERE id = $1
     RETURNING id, deleted
-  `, [id]);
+  `,
+    [id],
+  );
   return result.rows[0];
 };
 
@@ -413,10 +420,43 @@ const generatePasswordsForAllStudents = async () => {
     passwords: generatedPasswords,
   };
 };
+const generatePasswordsForGrade = async (gradeId) => {
+  const studentsWithoutPassword = await query(
+    stdQr.getStudentsWithoutPasswordByGrade,
+    [gradeId],
+  );
+
+  if (studentsWithoutPassword.rows.length === 0) {
+    return { generated_count: 0, passwords: [] };
+  }
+
+  const generatedPasswords = [];
+
+  for (const student of studentsWithoutPassword.rows) {
+    const password = `${student.barcode}${student.grade_id}${student.group_id}@boshta.benb3n`;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await query(stdQr.resetStudentPassword, [hashedPassword, student.id]);
+
+    generatedPasswords.push({
+      student_id: student.id,
+      barcode: student.barcode,
+      full_name: student.full_name,
+      password: password,
+    });
+  }
+
+  return {
+    generated_count: generatedPasswords.length,
+    passwords: generatedPasswords,
+  };
+};
 
 module.exports = {
   // Part 1: CRUD & Search
   createStudent,
+  generatePasswordsForGrade,
   getAllStudents,
   getStudentById,
   getStudentByBarcode,

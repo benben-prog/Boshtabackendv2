@@ -872,11 +872,43 @@ const generatePasswordsForAllStudents = async (req, res, next) => {
   }
 };
 
+const generatePasswordsForGrade = async (req, res, next) => {
+  try {
+    const { gradeId } = req.params;
+
+    if (!gradeId) {
+      throw new Error("معرف الصف مطلوب!");
+    }
+
+    const result = await studentService.generatePasswordsForGrade(gradeId);
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "generate_passwords_for_grade",
+      entity_type: "student",
+      entity_id: gradeId,
+      description: `توليد باسوردات لطلاب الصف (ID: ${gradeId}) - ${result.generated_count} طالب`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `تم توليد ${result.generated_count} باسورد بنجاح!`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
   getStudentById,
+  generatePasswordsForGrade,
+
   getStudentByBarcode,
   findStudentByPhone,
   findStudentByParentPhone,
