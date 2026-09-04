@@ -93,9 +93,6 @@ async function sendTemplate({
 }
 
 async function sendWelcomeMsg(student, phone) {
-  const parentToken = student.parent_token || "";
-  const parentLink = `https://boshta.benb3n.cloud/parent/${parentToken}`;
-
   return sendTemplate({
     phone,
     templateName: "welcome",
@@ -103,15 +100,12 @@ async function sendWelcomeMsg(student, phone) {
       student.full_name || student.name || "Student",
       student.barcode || "N/A",
     ],
-    buttonParams: parentLink,
+    buttonParams: student.parent_token,
     lang_code: "en",
   });
 }
 
 async function sendAbsentMsg(student, phone, date) {
-  const parentToken = student.parent_token || "";
-  const parentLink = `https://boshta.benb3n.cloud/parent/${parentToken}`;
-
   return sendTemplate({
     phone,
     templateName: "absent",
@@ -120,7 +114,7 @@ async function sendAbsentMsg(student, phone, date) {
       student.barcode || "N/A",
       date,
     ],
-    buttonParams: parentLink,
+    buttonParams: student.parent_token,
     lang_code: "ar",
   });
 }

@@ -1,9 +1,10 @@
 const { query } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
-// Create payment - auto set amount from subscription required_amount
+
 const createPayment = async (paymentData) => {
-  const { subscription_id, student_id, amount, payment_date, notes } = paymentData;
+  const { subscription_id, student_id, amount, payment_date, notes } =
+    paymentData;
 
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
     subscription_id,
@@ -13,7 +14,7 @@ const createPayment = async (paymentData) => {
     throw new Error("Subscription not found");
   }
 
-  const { required_amount, status } = subscriptionResult.rows[0];
+  const { required_amount, status, month } = subscriptionResult.rows[0];
 
   if (status === "paid") {
     throw new Error("Subscription already paid");
@@ -32,37 +33,42 @@ const createPayment = async (paymentData) => {
   const payment = paymentResult.rows[0];
 
   if (payment) {
-    const studentResult = await query(
-      "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
-      [student_id]
-    );
-    const student = studentResult.rows[0];
-
-    if (student) {
-      const month = subscriptionResult.rows[0].month || new Date().toISOString().slice(0, 7);
-      const paymentInfo = {
-        month,
-        year: new Date().getFullYear(),
-        amount,
-      };
-
-      const paymentMessage = whatsappDispatcher.generatePaymentMessage(
-        student,
-        paymentInfo
+    try {
+      const studentResult = await query(
+        "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
+        [student_id],
       );
+      const student = studentResult.rows[0];
 
-      await whatsappDispatcher.enqueueForStudentAndParent(
-        student,
-        "payment",
-        { message: paymentMessage, paymentData: paymentInfo }
-      );
+      if (student) {
+        const paymentInfo = {
+          month: month || new Date().toISOString().slice(0, 7),
+          year: new Date().getFullYear(),
+          amount: amount,
+        };
+
+        const paymentMessage = whatsappDispatcher.generatePaymentMessage(
+          student,
+          paymentInfo,
+        );
+
+        await whatsappDispatcher.enqueueForStudentAndParent(
+          student,
+          "payment",
+          {
+            message: paymentMessage,
+            paymentData: paymentInfo,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Error enqueueing payment message:", error);
     }
   }
 
   return payment;
 };
 
-// Get all payments with filters
 const getAllPayments = async (filters) => {
   const { search = "", grade_id = null, group_id = null, page = 1 } = filters;
   const result = await query(paymentQueries.getAllPayments, [
@@ -74,13 +80,11 @@ const getAllPayments = async (filters) => {
   return result.rows;
 };
 
-// Get payment by ID
 const getPaymentById = async (id) => {
   const result = await query(paymentQueries.getPaymentById, [id]);
   return result.rows[0];
 };
 
-// Update payment
 const updatePayment = async (id, paymentData) => {
   const { amount, payment_date, notes } = paymentData;
   const result = await query(paymentQueries.updatePayment, [
@@ -92,9 +96,7 @@ const updatePayment = async (id, paymentData) => {
   return result.rows[0];
 };
 
-// Delete payment - and revert subscription to unpaid
 const deletePayment = async (id) => {
-  // Get subscription_id before delete
   const paymentInfo = await query(paymentQueries.getPaymentSubscriptionId, [
     id,
   ]);
@@ -105,16 +107,13 @@ const deletePayment = async (id) => {
 
   const subscription_id = paymentInfo.rows[0].subscription_id;
 
-  // Delete payment
   const result = await query(paymentQueries.deletePayment, [id]);
 
-  // Check if subscription has other payments
   const otherPayments = await query(paymentQueries.checkOtherPayments, [
     subscription_id,
     id,
   ]);
 
-  // If no other payments, revert subscription to unpaid
   if (parseInt(otherPayments.rows[0].count) === 0) {
     await query(paymentQueries.revertSubscriptionToUnpaid, [subscription_id]);
   }
@@ -122,7 +121,6 @@ const deletePayment = async (id) => {
   return result.rows[0];
 };
 
-// Get payments by grade and month
 const getPaymentsByGradeAndMonth = async (gradeId, month) => {
   const result = await query(paymentQueries.getPaymentsByGradeAndMonth, [
     gradeId,
@@ -131,7 +129,6 @@ const getPaymentsByGradeAndMonth = async (gradeId, month) => {
   return result.rows;
 };
 
-// Get payments by group and month
 const getPaymentsByGroupAndMonth = async (groupId, month) => {
   const result = await query(paymentQueries.getPaymentsByGroupAndMonth, [
     groupId,
@@ -140,43 +137,36 @@ const getPaymentsByGroupAndMonth = async (groupId, month) => {
   return result.rows;
 };
 
-// Get monthly collections
 const getMonthlyCollections = async () => {
   const result = await query(paymentQueries.getMonthlyCollections);
   return result.rows;
 };
 
-// Get unpaid students current month
 const getUnpaidStudentsCurrentMonth = async () => {
   const result = await query(paymentQueries.getUnpaidStudentsCurrentMonth);
   return result.rows;
 };
 
-// Get grade payment stats
 const getGradePaymentStats = async (gradeId) => {
   const result = await query(paymentQueries.getGradePaymentStats, [gradeId]);
   return result.rows[0];
 };
 
-// Get group payment stats
 const getGroupPaymentStats = async (groupId) => {
   const result = await query(paymentQueries.getGroupPaymentStats, [groupId]);
   return result.rows[0];
 };
 
-// Get overall payment stats
 const getOverallPaymentStats = async () => {
   const result = await query(paymentQueries.getOverallPaymentStats);
   return result.rows[0];
 };
 
-// Get all students payment status
 const getAllStudentsPaymentStatus = async () => {
   const result = await query(paymentQueries.getAllStudentsPaymentStatus);
   return result.rows;
 };
 
-// Get payments count
 const getPaymentsCount = async (filters) => {
   const { search = "", grade_id = null, group_id = null } = filters;
   const result = await query(paymentQueries.getPaymentsCount, [

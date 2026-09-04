@@ -4,7 +4,7 @@
 
 // Get subscription required amount
 const getSubscriptionAmount = `
-SELECT required_amount, status
+SELECT required_amount, status, month
 FROM subscriptions
 WHERE id = $1 AND deleted = 0
 `;
