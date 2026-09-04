@@ -103,9 +103,6 @@ async function enqueueMessage(messageData) {
 
   const dailyLimit = await getWhatsappSettings();
   const sentToday = await getTodaySentCount();
-  if (sentToday >= dailyLimit.whatsapp_daily_limit) {
-    return { inserted: false, error: "Daily limit reached", skipped: true };
-  }
 
   if (ref_key) {
     const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [
@@ -116,16 +113,25 @@ async function enqueueMessage(messageData) {
     }
   }
 
+  let status = "pending";
+  if (sentToday >= dailyLimit.whatsapp_daily_limit) {
+    status = "scheduled";
+  }
+
   const result = await query(
     `
     INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW(), NOW())
-    RETURNING id
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+    RETURNING id, status
   `,
-    [student_id, phone, message, type, recipient, ref_key],
+    [student_id, phone, message, type, recipient, ref_key, status],
   );
 
-  return { inserted: true, id: result.rows[0].id };
+  return {
+    inserted: true,
+    id: result.rows[0].id,
+    scheduled: status === "scheduled",
+  };
 }
 
 async function enqueueForStudentAndParent(student, type, messageData) {
@@ -323,6 +329,22 @@ async function sendQueue({ limit = 5 } = {}) {
   }
 
   const availableSlots = dailyLimit - sentToday;
+
+  // ✅ تحويل scheduled لـ pending لو فيه slots
+  await query(
+    `
+    UPDATE messages 
+    SET status = 'pending', updated_at = NOW()
+    WHERE id IN (
+      SELECT id FROM messages 
+      WHERE status = 'scheduled'
+      ORDER BY created_at ASC
+      LIMIT $1
+    )
+    `,
+    [availableSlots],
+  );
+
   const maxToSend = Math.min(limit, availableSlots);
 
   const result = await query(
@@ -365,6 +387,7 @@ async function getStats() {
     SELECT 
       COUNT(*) AS total,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+      SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled,
       SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,

@@ -5,6 +5,7 @@ const { logActivity } = require("../utils/activityLogger");
 const { query } = require("../config/database");
 
 let isProcessing = false;
+let currentCronTask = null;
 
 async function getDelaySeconds() {
   try {
@@ -59,15 +60,18 @@ async function scheduleDynamicCron() {
   const batchSize = 5;
   const restTime = 60;
   const totalSeconds = batchSize * delaySeconds + restTime;
-
   const cronMinutes = Math.ceil(totalSeconds / 60);
 
-  console.log(
-    `WhatsApp queue: delay=${delaySeconds}s, batch=${batchSize}, total=${totalSeconds}s, cron=every ${cronMinutes} minutes`,
-  );
+  if (currentCronTask) {
+    currentCronTask.stop();
+    console.log("Old cron stopped");
+  }
 
-  // Schedule cron with dynamic interval
-  cron.schedule(`*/${cronMinutes} * * * *`, processQueue);
+  currentCronTask = cron.schedule(`*/${cronMinutes} * * * *`, processQueue);
+
+  console.log(
+    `WhatsApp queue: delay=${delaySeconds}s, batch=${batchSize}, cron=every ${cronMinutes} minutes`,
+  );
 }
 
 // Start with initial schedule
@@ -77,9 +81,17 @@ setInterval(
   async () => {
     const delaySeconds = await getDelaySeconds();
     const cronMinutes = Math.ceil((5 * delaySeconds + 60) / 60);
-    console.log(
-      `WhatsApp queue refresh: delay=${delaySeconds}s, cron=every ${cronMinutes} minutes`,
-    );
+
+    if (
+      currentCronTask &&
+      currentCronTask.options &&
+      currentCronTask.options.expression !== `*/${cronMinutes} * * * *`
+    ) {
+      console.log(
+        `Delay changed to ${delaySeconds}s, rescheduling cron to every ${cronMinutes} minutes`,
+      );
+      await scheduleDynamicCron();
+    }
   },
   10 * 60 * 1000,
 );
