@@ -35,6 +35,35 @@ const swaggerSpec = require("./docs/swagger");
 const app = express();
 
 // ============================================
+// CORS HEADERS
+// ============================================
+
+const allowedOrigins = env.CORS_ORIGINS || ["*"];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-client-key, x-super-admin-key",
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// ============================================
 // STATIC FILES - Public access for uploads
 // ============================================
 
