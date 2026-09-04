@@ -196,29 +196,27 @@ const checkPlatformStatus = async (req, res, next) => {
   try {
     const now = Date.now();
 
-    // ✅ API Docs always accessible
+    // API Docs always accessible
     if (req.path.includes("/api-docs") || req.path.includes("/api-docs-json")) {
       return next();
     }
 
-    // ✅ Webhook always accessible (WhatsApp needs it)
+    // Webhook always accessible
     if (req.path.includes("/webhook")) {
       return next();
     }
 
-    // ✅ Uploads always accessible (images for frontend)
+    // Uploads always accessible
     if (req.path.includes("/uploads")) {
       return next();
     }
 
-    // ✅ Health check always accessible
+    // Health check always accessible
     if (req.path.includes("/health")) {
       return next();
     }
 
-
-
-    // ✅ Super admin routes always accessible (admin needs to manage)
+    // Super admin routes always accessible
     if (req.path.includes("/super-admin")) {
       return next();
     }
@@ -233,6 +231,7 @@ const checkPlatformStatus = async (req, res, next) => {
           success: false,
           message: "المنصة متوقفة حالياً، تواصل مع المسئول",
           platform_status: "paused",
+          force_logout: true,
         });
       }
       return next();
@@ -251,6 +250,7 @@ const checkPlatformStatus = async (req, res, next) => {
         success: false,
         message: "المنصة متوقفة حالياً، تواصل مع المسئول",
         platform_status: "paused",
+        force_logout: true,
       });
     }
 
