@@ -22,6 +22,7 @@ async function sendTemplate({
   phone,
   templateName,
   parameters,
+  buttonParams = null,
   lang_code = "ar",
 }) {
   const to = normalizePhone(phone);
@@ -38,6 +39,20 @@ async function sendTemplate({
       })),
     },
   ];
+
+  if (buttonParams) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [
+        {
+          type: "text",
+          text: String(buttonParams ?? "").trim(),
+        },
+      ],
+    });
+  }
 
   const payload = {
     messaging_product: "whatsapp",
@@ -78,6 +93,9 @@ async function sendTemplate({
 }
 
 async function sendWelcomeMsg(student, phone) {
+  const parentToken = student.parent_token || "";
+  const parentLink = `https://boshta.benb3n.cloud/parent/${parentToken}`;
+
   return sendTemplate({
     phone,
     templateName: "welcome",
@@ -85,11 +103,15 @@ async function sendWelcomeMsg(student, phone) {
       student.full_name || student.name || "Student",
       student.barcode || "N/A",
     ],
+    buttonParams: parentLink,
     lang_code: "en",
   });
 }
 
 async function sendAbsentMsg(student, phone, date) {
+  const parentToken = student.parent_token || "";
+  const parentLink = `https://boshta.benb3n.cloud/parent/${parentToken}`;
+
   return sendTemplate({
     phone,
     templateName: "absent",
@@ -98,6 +120,7 @@ async function sendAbsentMsg(student, phone, date) {
       student.barcode || "N/A",
       date,
     ],
+    buttonParams: parentLink,
     lang_code: "ar",
   });
 }
