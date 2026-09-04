@@ -81,6 +81,7 @@ app.use((req, res, next) => {
     "Content-Type, Authorization, x-client-key, x-super-admin-key",
   );
   res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -90,24 +91,18 @@ app.use((req, res, next) => {
 });
 
 // ============================================
-// STATIC FILES
+// STATIC FILES - Public access for uploads
 // ============================================
-
-const staticFileAuth = (req, res, next) => {
-  const token = req.headers.authorization;
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: "Authorization required",
-    });
-  }
-  next();
-};
 
 app.use(
   "/uploads",
-  staticFileAuth,
-  express.static(path.join(process.cwd(), "uploads")),
+  express.static(path.join(process.cwd(), "uploads"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+    },
+  }),
 );
 
 // ============================================
