@@ -36,34 +36,19 @@ function hasPhone(phone) {
   return normalizePhone(phone).length >= 11;
 }
 
-// ✅ دالة لجلب التاريخ بتوقيت مصر (YYYY-MM-DD)
-function getEgyptDate() {
+function getEgyptTime() {
   const now = new Date();
-  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-  return cairoTime.toISOString().split("T")[0];
+  return new Date(now.toLocaleString("en-US", { timeZone: "Africa/Cairo" }));
 }
 
-// ✅ دالة لجلب اليوم بالعربي بتوقيت مصر
-function getEgyptDayName() {
-  const now = new Date();
-  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-  return cairoTime.toLocaleString("ar-EG", { weekday: "long" });
-}
-
-// ✅ دالة لجلب التاريخ والوقت بتوقيت مصر
-function getEgyptDateTime() {
-  const now = new Date();
-  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-  return cairoTime.toISOString();
-}
-
-// ⚠️ دلوقتي استخدم getEgyptDate بدل getToday
 function getToday() {
-  return getEgyptDate();
+  const egyptTime = getEgyptTime();
+  return egyptTime.toLocaleDateString("en-GB");
 }
 
 function getDayName() {
-  return getEgyptDayName();
+  const egyptTime = getEgyptTime();
+  return egyptTime.toLocaleString("ar-EG", { weekday: "long" });
 }
 
 // ============ Send Template Message ============
@@ -73,7 +58,7 @@ async function sendTemplate({
   templateName,
   parameters,
   buttonParams = null,
-  lang_code
+  lang_code = "ar",
 }) {
   const to = normalizePhone(phone);
   if (!hasPhone(to)) {
@@ -168,7 +153,7 @@ async function sendWelcomeMsg(student) {
       student.barcode || "N/A",
     ],
     buttonParams: parentToken,
-    lang_code:"en"
+    lang_code: "en",
   });
 }
 
@@ -178,8 +163,7 @@ async function sendAbsentMsg(student, date) {
   const phone = student.parent_phone || student.phone;
   const parentToken = student.parent_token || student.parentToken;
 
-  // ✅ استخدم getEgyptDate بدل getToday
-  const absenceDate = date || getEgyptDate();
+  const absenceDate = date || getToday();
 
   return sendTemplate({
     phone,
@@ -190,7 +174,7 @@ async function sendAbsentMsg(student, date) {
       absenceDate,
     ],
     buttonParams: parentToken,
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -215,7 +199,7 @@ Amount: ${paymentData.amount || 0}
       paymentData.year || new Date().getFullYear(),
       paymentData.amount || 0,
     ],
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -224,10 +208,6 @@ Amount: ${paymentData.amount || 0}
 async function sendExamMsg(student, examData) {
   const phone = student.parent_phone || student.phone;
 
-  // ✅ استخدم getEgyptDate و getEgyptDayName بدل getToday و getDayName
-  const examDate = examData.date || getEgyptDate();
-  const dayName = getEgyptDayName();
-
   return sendTemplate({
     phone,
     templateName: TEMPLATES.EXAM,
@@ -235,11 +215,11 @@ async function sendExamMsg(student, examData) {
       student.full_name || student.name || "Student",
       examData.score || 0,
       examData.fullMark || 100,
-      examDate,
-      dayName,
+      examData.date || getToday(),
+      getDayName(),
       student.barcode || "N/A",
     ],
-    lang_code:"ar"
+    lang_code: "ar",
   });
 }
 
@@ -273,7 +253,5 @@ module.exports = {
   hasPhone,
   getToday,
   getDayName,
-  getEgyptDate,
-  getEgyptDayName,
-  getEgyptDateTime,
+  getEgyptTime,
 };
