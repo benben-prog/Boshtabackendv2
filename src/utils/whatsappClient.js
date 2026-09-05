@@ -235,6 +235,11 @@ async function sendPaymentMsg(student, phone, paymentData) {
   const year = safeText(String(paymentData?.year || new Date().getFullYear()));
   const amount = safeText(String(paymentData?.amount ?? 0));
 
+  console.log("[WhatsApp] sendPaymentMsg - name:", name);
+  console.log("[WhatsApp] sendPaymentMsg - month:", month);
+  console.log("[WhatsApp] sendPaymentMsg - year:", year);
+  console.log("[WhatsApp] sendPaymentMsg - amount:", amount);
+
   const template = {
     messaging_product: "whatsapp",
     to: to,

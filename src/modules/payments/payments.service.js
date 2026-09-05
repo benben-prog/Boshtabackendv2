@@ -5,11 +5,21 @@ const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.ser
 // Helper function to format month and year separately for WhatsApp template
 // WhatsApp payment template expects: {{1}} = name, {{2}} = month, {{3}} = year, {{4}} = amount
 function formatPaymentData(monthStr) {
-  if (!monthStr) return { month: "غير محدد", year: new Date().getFullYear() };
+  console.log("[WhatsApp] formatPaymentData input:", monthStr);
 
-  const parts = monthStr.split("-");
-  if (parts.length !== 2)
+  if (!monthStr) {
+    console.log("[WhatsApp] monthStr is empty, using defaults");
+    return { month: "غير محدد", year: new Date().getFullYear() };
+  }
+
+  // monthStr format: "2026-09"
+  const parts = String(monthStr).split("-");
+  console.log("[WhatsApp] monthStr parts:", parts);
+
+  if (parts.length !== 2) {
+    console.log("[WhatsApp] monthStr invalid format, using as is");
     return { month: monthStr, year: new Date().getFullYear() };
+  }
 
   const year = parts[0];
   const month = parts[1];
@@ -29,15 +39,25 @@ function formatPaymentData(monthStr) {
     12: "ديسمبر",
   };
 
-  return {
+  const result = {
     month: monthNames[month] || month,
     year: year,
   };
+
+  console.log("[WhatsApp] formatPaymentData result:", result);
+  return result;
 }
 
 const createPayment = async (paymentData) => {
   const { subscription_id, student_id, amount, payment_date, notes } =
     paymentData;
+
+  console.log("[WhatsApp] createPayment called with:", {
+    subscription_id,
+    student_id,
+    amount,
+    payment_date,
+  });
 
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
     subscription_id,
@@ -48,6 +68,11 @@ const createPayment = async (paymentData) => {
   }
 
   const { required_amount, status, month } = subscriptionResult.rows[0];
+  console.log("[WhatsApp] Subscription data:", {
+    required_amount,
+    status,
+    month,
+  });
 
   if (status === "paid") {
     throw new Error("Subscription already paid");
@@ -64,6 +89,7 @@ const createPayment = async (paymentData) => {
   await query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
 
   const payment = paymentResult.rows[0];
+  console.log("[WhatsApp] Payment created:", payment);
 
   if (payment) {
     try {
@@ -72,23 +98,29 @@ const createPayment = async (paymentData) => {
         [student_id],
       );
       const student = studentResult.rows[0];
+      console.log("[WhatsApp] Student data:", student);
 
       if (student) {
         // Format month and year separately for WhatsApp template
         const { month: monthName, year } = formatPaymentData(month);
+        const paymentAmount = Number(amount) || 0;
 
         const paymentInfo = {
           month: monthName,
           year: year,
-          amount: Number(amount) || 0,
+          amount: paymentAmount,
         };
+
+        console.log("[WhatsApp] Payment info being sent:", paymentInfo);
 
         const paymentMessage = whatsappDispatcher.generatePaymentMessage(
           student,
           paymentInfo,
         );
 
-        await whatsappDispatcher.enqueueForStudentAndParent(
+        console.log("[WhatsApp] Payment message:", paymentMessage);
+
+        const result = await whatsappDispatcher.enqueueForStudentAndParent(
           student,
           "payment",
           {
@@ -96,9 +128,11 @@ const createPayment = async (paymentData) => {
             paymentData: paymentInfo,
           },
         );
+
+        console.log("[WhatsApp] Enqueue result:", result);
       }
     } catch (error) {
-      console.error("Error enqueueing payment message:", error);
+      console.error("[WhatsApp] Error enqueueing payment message:", error);
     }
   }
 

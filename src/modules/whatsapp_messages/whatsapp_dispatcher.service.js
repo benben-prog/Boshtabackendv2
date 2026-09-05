@@ -72,15 +72,19 @@ function generateAbsenceMessage(student, date) {
 }
 
 function generatePaymentMessage(student, paymentData) {
-  // paymentData.month is already formatted by payments.service.js
+  console.log("[WhatsApp] generatePaymentMessage received:", {
+    studentName: student.full_name,
+    paymentData,
+  });
+
+  // paymentData should have: { month: "سبتمبر", year: "2026", amount: 200 }
   return messages.payment(
     student.full_name,
     paymentData.month || "غير محدد",
-    paymentData.year || "غير محدد",
+    paymentData.year || new Date().getFullYear(),
     paymentData.amount || 0,
   );
 }
-
 function generateExamMessage(student, examData) {
   return messages.exams(
     student.full_name,

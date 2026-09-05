@@ -15,9 +15,9 @@ const messages = {
     ولمزيد من المعلومات عن الطالب من خلال الضغط علي : 
     https://boshta.benb3n.cloud/parent/${parent_token}
     `,
-  payment: (name, date, amount) => `
+  payment: (name, month, year, amount) => `
   تم سداد المصروفات للطالب : ${name} بنجاح
-  عن شهر ${date} بالمبلغ المدفوع وهو ${amount} جنيه
+  عن شهر ${month} سنة ${year} بالمبلغ المدفوع وهو ${amount} جنيه
   مع تحيات الأستاذ محمد بشته
     `,
   exams: (name, score, finalDegree, date, day, barcode) => `
