@@ -34,9 +34,9 @@ function formatPaymentData(monthStr) {
     "07": "يوليو",
     "08": "أغسطس",
     "09": "سبتمبر",
-    10: "أكتوبر",
-    11: "نوفمبر",
-    12: "ديسمبر",
+    "10": "أكتوبر",
+    "11": "نوفمبر",
+    "12": "ديسمبر",
   };
 
   const result = {
@@ -101,7 +101,6 @@ const createPayment = async (paymentData) => {
           paymentInfo,
         );
 
-        // ✅ Pass paymentData as params so it gets stored in the messages table
         await whatsappDispatcher.enqueueForStudentAndParent(
           student,
           "payment",

@@ -140,11 +140,18 @@ async function enqueueMessage(messageData) {
   };
 }
 
+
 async function enqueueForStudentAndParent(student, type, messageData) {
   const template = await getTemplateByType(type);
 
   if (!template || Number(template.is_active) !== 1) {
-    return [{ inserted: false, error: "Template inactive", skipped: true }];
+    return [
+      {
+        inserted: false,
+        error: "Template inactive",
+        skipped: true,
+      },
+    ];
   }
 
   const results = [];
@@ -155,24 +162,50 @@ async function enqueueForStudentAndParent(student, type, messageData) {
 
   if (sendTo === "parents" || sendTo === "both") {
     if (student.parent_phone) {
-      phones.push({ phone: student.parent_phone, recipient: "parent" });
+      phones.push({
+        phone: student.parent_phone,
+        recipient: "parent",
+      });
     }
   }
 
   if (sendTo === "both") {
     if (student.phone) {
-      phones.push({ phone: student.phone, recipient: "student" });
+      phones.push({
+        phone: student.phone,
+        recipient: "student",
+      });
     }
   }
 
   for (const phoneInfo of phones) {
     const message = messageData.message;
+
     const refKey = `${baseRefKey}_${phoneInfo.recipient}`;
-    // ✅ Pass params to enqueueMessage
-    const params =
-      messageData.paymentData || messageData.examData || messageData.date
-        ? { date: messageData.date }
-        : null;
+
+    // Prepare params according to message type
+    let params = null;
+
+    switch (type) {
+      case "payment":
+        params = messageData.paymentData || null;
+        break;
+
+      case "exam":
+        params = messageData.examData || null;
+        break;
+
+      case "absence":
+        params = messageData.date
+          ? {
+              date: messageData.date,
+            }
+          : null;
+        break;
+
+      default:
+        params = null;
+    }
 
     const result = await enqueueMessage({
       student_id: student.id,
@@ -181,7 +214,7 @@ async function enqueueForStudentAndParent(student, type, messageData) {
       recipient: phoneInfo.recipient,
       message,
       ref_key: refKey,
-      params: params,
+      params,
     });
 
     results.push(result);
@@ -189,12 +222,18 @@ async function enqueueForStudentAndParent(student, type, messageData) {
 
   if (results.length === 0) {
     return [
-      { inserted: false, error: "No phone numbers available", skipped: true },
+      {
+        inserted: false,
+        error: "No phone numbers available",
+        skipped: true,
+      },
     ];
   }
 
   return results;
 }
+
+
 
 async function dispatchMessage(messageId) {
   const result = await query(
