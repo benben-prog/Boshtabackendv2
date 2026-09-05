@@ -2,6 +2,34 @@ const { query } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
+// Helper function to format month for display
+function formatMonthForDisplay(monthStr) {
+  if (!monthStr) return "غير محدد";
+  // monthStr format: "2026-09"
+  const parts = monthStr.split("-");
+  if (parts.length !== 2) return monthStr;
+
+  const year = parts[0];
+  const month = parts[1];
+
+  const monthNames = {
+    "01": "يناير",
+    "02": "فبراير",
+    "03": "مارس",
+    "04": "أبريل",
+    "05": "مايو",
+    "06": "يونيو",
+    "07": "يوليو",
+    "08": "أغسطس",
+    "09": "سبتمبر",
+    10: "أكتوبر",
+    11: "نوفمبر",
+    12: "ديسمبر",
+  };
+
+  return `${monthNames[month] || month} ${year}`;
+}
+
 const createPayment = async (paymentData) => {
   const { subscription_id, student_id, amount, payment_date, notes } =
     paymentData;
@@ -41,8 +69,11 @@ const createPayment = async (paymentData) => {
       const student = studentResult.rows[0];
 
       if (student) {
+        // Format month properly for display
+        const monthForDisplay = formatMonthForDisplay(month);
+
         const paymentInfo = {
-          month: month || new Date().toISOString().slice(0, 7),
+          month: monthForDisplay,
           year: new Date().getFullYear(),
           amount: Number(amount) || 0,
         };

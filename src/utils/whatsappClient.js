@@ -176,7 +176,7 @@ async function sendAbsentMsg(student, phone, date) {
     parameters: [
       student.full_name || student.name || "Student", // {{1}}
       student.barcode || "N/A", // {{2}}
-      getEgyptDate(date), // {{3}}
+      date || "غير محدد", // {{3}}
     ],
     buttonParams: student.parent_token,
     lang_code: "ar",
@@ -186,11 +186,10 @@ async function sendAbsentMsg(student, phone, date) {
 // ============================================
 // PAYMENT TEMPLATE
 // Template parameters: {{1}} = student name, {{2}} = month, {{3}} = amount
+// month should be like "سبتمبر 2026" not "2026-09"
 // ============================================
 async function sendPaymentMsg(student, phone, paymentData) {
-  const monthStr = String(paymentData.month || "").slice(5, 7);
-  const monthArabic = getEgyptMonth(monthStr);
-  const year = paymentData.year || new Date().getFullYear();
+  const monthDisplay = paymentData.month || "غير محدد";
   const amount = Number(paymentData.amount) || 0;
 
   return sendTemplate({
@@ -198,7 +197,7 @@ async function sendPaymentMsg(student, phone, paymentData) {
     templateName: "payment",
     parameters: [
       student.full_name || student.name || "Student", // {{1}}
-      `${monthArabic} ${year}`, // {{2}}
+      monthDisplay, // {{2}}
       amount, // {{3}}
     ],
     lang_code: "ar",
@@ -217,8 +216,8 @@ async function sendExamMsg(student, phone, examData) {
       student.full_name || student.name || "Student", // {{1}}
       Number(examData.score) || 0, // {{2}}
       Number(examData.fullMark) || 100, // {{3}}
-      getEgyptDate(examData.date), // {{4}}
-      getEgyptDay(examData.date), // {{5}}
+      examData.date || "غير محدد", // {{4}}
+      examData.day || "غير محدد", // {{5}}
       student.barcode || "N/A", // {{6}}
     ],
     lang_code: "ar",

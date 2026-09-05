@@ -72,20 +72,21 @@ function generateAbsenceMessage(student, date) {
 }
 
 function generatePaymentMessage(student, paymentData) {
+  // paymentData.month is already formatted by payments.service.js
   return messages.payment(
     student.full_name,
-    paymentData.month,
-    paymentData.amount,
+    paymentData.month || "غير محدد",
+    paymentData.amount || 0,
   );
 }
 
 function generateExamMessage(student, examData) {
   return messages.exams(
     student.full_name,
-    examData.score,
-    examData.fullMark,
-    examData.date,
-    examData.day,
+    examData.score || 0,
+    examData.fullMark || 100,
+    examData.date || "غير محدد",
+    examData.day || "غير محدد",
     student.barcode,
   );
 }
@@ -122,7 +123,7 @@ async function enqueueMessage(messageData) {
   const result = await query(
     `
     INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Africa/Cairo', NOW() AT TIME ZONE 'Africa/Cairo')
     RETURNING id, status
   `,
     [student_id, phone, message, type, recipient, ref_key, status],

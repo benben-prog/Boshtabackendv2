@@ -156,14 +156,15 @@ const processExamResultsBulk = async (examId, data) => {
   if (studentIds.length > 0) {
     try {
       const examDate = exam.exam_date
-        ? formatEgyptTime(exam.exam_date, "YYYY-MM-DD")
-        : "";
+        ? formatEgyptTime(exam.exam_date, "DD/MM/YYYY")
+        : "غير محدد";
+
       const dayName = exam.exam_date
         ? new Date(exam.exam_date).toLocaleString("en-US", {
             timeZone: "Africa/Cairo",
             weekday: "long",
           })
-        : "";
+        : "غير محدد";
 
       const insertResult = await query(
         `INSERT INTO exam_results (exam_id, student_id, degree, notes)
@@ -190,25 +191,29 @@ const processExamResultsBulk = async (examId, data) => {
 
       // Send WhatsApp notifications
       for (let i = 0; i < enrolledStudents.length; i++) {
-        const student = enrolledStudents[i];
-        const degree = degrees[i];
+        try {
+          const student = enrolledStudents[i];
+          const degree = degrees[i];
 
-        const examData = {
-          score: degree,
-          fullMark: exam.total_degree,
-          date: examDate,
-          day: dayName,
-        };
+          const examData = {
+            score: Number(degree) || 0,
+            fullMark: Number(exam.total_degree) || 100,
+            date: examDate,
+            day: dayName,
+          };
 
-        const examMessage = whatsappDispatcher.generateExamMessage(
-          student,
-          examData,
-        );
+          const examMessage = whatsappDispatcher.generateExamMessage(
+            student,
+            examData,
+          );
 
-        await whatsappDispatcher.enqueueForStudentAndParent(student, "exam", {
-          message: examMessage,
-          examData,
-        });
+          await whatsappDispatcher.enqueueForStudentAndParent(student, "exam", {
+            message: examMessage,
+            examData,
+          });
+        } catch (error) {
+          console.error("Error enqueueing exam result message:", error);
+        }
       }
     } catch (error) {
       console.error("Bulk insert error:", error);

@@ -7,12 +7,12 @@ const messages = {
     https://boshta.benb3n.cloud/parent/${parent_token}
     `,
   absent: (name, barcode, date, parent_token) => `
-    تنبيه بعدم حضور ابنكم : ${name}
+    تنبية بعدم حضور ابنكم : ${name}
     باركود الطالب : ${barcode}
     بحصة اليوم الموافق : ${date}
     برجاء متابعة ابنكم 
     مع تحيات الأستاذ محمد بشته
-    ولمزيد من المعلومات عن الطالب من خلال الضغط علي 
+    ولمزيد من المعلومات عن الطالب من خلال الضغط علي : 
     https://boshta.benb3n.cloud/parent/${parent_token}
     `,
   payment: (name, date, amount) => `

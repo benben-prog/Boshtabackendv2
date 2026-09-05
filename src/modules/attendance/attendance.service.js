@@ -1,7 +1,7 @@
 const { query } = require("../../config/database");
 const attendanceQueries = require("./attendance.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
-const { getTodayEgypt } = require("../../utils/timezone");
+const { getTodayEgypt, formatEgyptTime } = require("../../utils/timezone");
 
 // Create or update attendance record (Upsert)
 const createAttendance = async (attendanceData) => {
@@ -34,22 +34,34 @@ const createAttendance = async (attendanceData) => {
   const attendance = result.rows[0];
 
   if (attendance && status === "absent") {
-    const studentResult = await query(
-      "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
-      [student_id],
-    );
-    const student = studentResult.rows[0];
-
-    if (student) {
-      const absenceMessage = whatsappDispatcher.generateAbsenceMessage(
-        student,
-        attendance_date,
+    try {
+      const studentResult = await query(
+        "SELECT id, full_name, barcode, phone, parent_phone, parent_token FROM students WHERE id = $1 AND deleted = 0",
+        [student_id],
       );
+      const student = studentResult.rows[0];
 
-      await whatsappDispatcher.enqueueForStudentAndParent(student, "absence", {
-        message: absenceMessage,
-        date: attendance_date,
-      });
+      if (student) {
+        const formattedDate = attendance_date
+          ? formatEgyptTime(attendance_date, "DD/MM/YYYY")
+          : formatEgyptTime(getTodayEgypt(), "DD/MM/YYYY");
+
+        const absenceMessage = whatsappDispatcher.generateAbsenceMessage(
+          student,
+          formattedDate,
+        );
+
+        await whatsappDispatcher.enqueueForStudentAndParent(
+          student,
+          "absence",
+          {
+            message: absenceMessage,
+            date: formattedDate,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Error enqueueing absence message:", error);
     }
   }
 

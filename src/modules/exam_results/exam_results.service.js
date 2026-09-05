@@ -1,24 +1,39 @@
 const { query } = require("../../config/database");
 const examResultQueries = require("./exam_results.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
+const { formatEgyptTime } = require("../../utils/timezone");
 
+// Helper function to format exam date
 function formatExamDate(dateStr) {
   if (!dateStr) return "";
   try {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateStr || "");
-    return date.toLocaleDateString("en-CA");
+    if (isNaN(date.getTime())) return "";
+    return formatEgyptTime(date, "DD/MM/YYYY");
   } catch {
-    return String(dateStr || "");
+    return "";
   }
 }
 
+// Helper function to format exam day
 function formatExamDay(dateStr) {
   if (!dateStr) return "";
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "";
-    return date.toLocaleDateString("ar-EG", { weekday: "long" });
+    const egyptDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+    );
+    const days = [
+      "الأحد",
+      "الاثنين",
+      "الثلاثاء",
+      "الأربعاء",
+      "الخميس",
+      "الجمعة",
+      "السبت",
+    ];
+    return days[egyptDate.getDay()];
   } catch {
     return "";
   }
@@ -51,11 +66,14 @@ const createExamResult = async (examResultData) => {
         const exam = examInfoResult.rows[0];
 
         if (exam) {
+          const formattedDate = formatExamDate(exam.exam_date);
+          const formattedDay = formatExamDay(exam.exam_date);
+
           const examData = {
             score: Number(degree) || 0,
             fullMark: Number(exam.total_degree) || 100,
-            date: formatExamDate(exam.exam_date),
-            day: formatExamDay(exam.exam_date),
+            date: formattedDate || "غير محدد",
+            day: formattedDay || "غير محدد",
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
@@ -104,11 +122,14 @@ const upsertExamResult = async (examResultData) => {
         const exam = examInfoResult.rows[0];
 
         if (exam) {
+          const formattedDate = formatExamDate(exam.exam_date);
+          const formattedDay = formatExamDay(exam.exam_date);
+
           const examData = {
             score: Number(degree) || 0,
             fullMark: Number(exam.total_degree) || 100,
-            date: formatExamDate(exam.exam_date),
-            day: formatExamDay(exam.exam_date),
+            date: formattedDate || "غير محدد",
+            day: formattedDay || "غير محدد",
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
@@ -192,8 +213,8 @@ const upsertBatchExamResults = async (examId, records) => {
           const examData = {
             score: Number(degree) || 0,
             fullMark: Number(exam.total_degree) || 100,
-            date: examDateFormatted,
-            day: examDayFormatted,
+            date: examDateFormatted || "غير محدد",
+            day: examDayFormatted || "غير محدد",
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
