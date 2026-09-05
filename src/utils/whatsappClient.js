@@ -21,6 +21,12 @@ function hasPhone(phone) {
   return normalizePhone(phone).length >= 11;
 }
 
+// Helper: Ensure text is not empty
+function safeText(text) {
+  const result = String(text ?? "").trim();
+  return result || "-";
+}
+
 // Helper: Format date for display
 function getEgyptDate(dateStr) {
   if (!dateStr) return "";
@@ -89,6 +95,10 @@ async function sendWelcomeMsg(student, phone) {
     return { success: false, skipped: true, error: "No valid phone number" };
   }
 
+  const name = safeText(student.full_name || student.name || "Student");
+  const barcode = safeText(student.barcode || "N/A");
+  const token = safeText(student.parent_token || "");
+
   const template = {
     messaging_product: "whatsapp",
     to: to,
@@ -100,18 +110,15 @@ async function sendWelcomeMsg(student, phone) {
         {
           type: "body",
           parameters: [
-            {
-              type: "text",
-              text: student.full_name || student.name || "Student",
-            },
-            { type: "text", text: student.barcode || "N/A" },
+            { type: "text", text: name },
+            { type: "text", text: barcode },
           ],
         },
         {
           type: "button",
           sub_type: "url",
           index: "0",
-          parameters: [{ type: "text", text: student.parent_token || "" }],
+          parameters: [{ type: "text", text: token }],
         },
       ],
     },
@@ -154,7 +161,12 @@ async function sendAbsentMsg(student, phone, date) {
     return { success: false, skipped: true, error: "No valid phone number" };
   }
 
-  const formattedDate = date || getEgyptDate(new Date()) || "غير محدد";
+  const name = safeText(student.full_name || student.name || "Student");
+  const barcode = safeText(student.barcode || "N/A");
+  const formattedDate = safeText(
+    date || getEgyptDate(new Date()) || "غير محدد",
+  );
+  const token = safeText(student.parent_token || "");
 
   const template = {
     messaging_product: "whatsapp",
@@ -167,11 +179,8 @@ async function sendAbsentMsg(student, phone, date) {
         {
           type: "body",
           parameters: [
-            {
-              type: "text",
-              text: student.full_name || student.name || "Student",
-            },
-            { type: "text", text: student.barcode || "N/A" },
+            { type: "text", text: name },
+            { type: "text", text: barcode },
             { type: "text", text: formattedDate },
           ],
         },
@@ -179,7 +188,7 @@ async function sendAbsentMsg(student, phone, date) {
           type: "button",
           sub_type: "url",
           index: "0",
-          parameters: [{ type: "text", text: student.parent_token || "" }],
+          parameters: [{ type: "text", text: token }],
         },
       ],
     },
@@ -221,6 +230,10 @@ async function sendPaymentMsg(student, phone, paymentData) {
     return { success: false, skipped: true, error: "No valid phone number" };
   }
 
+  const name = safeText(student.full_name || student.name || "Student");
+  const monthDisplay = safeText(paymentData?.month || "غير محدد");
+  const amount = safeText(String(paymentData?.amount ?? 0));
+
   const template = {
     messaging_product: "whatsapp",
     to: to,
@@ -232,17 +245,9 @@ async function sendPaymentMsg(student, phone, paymentData) {
         {
           type: "body",
           parameters: [
-            {
-              type: "text",
-              text: student.full_name || student.name || "Student",
-            },
-            { type: "text", text: paymentData.month },
-            { type: "text", text: paymentData.year },
-
-            {
-              type: "text",
-              text: paymentData.amount,
-            },
+            { type: "text", text: name },
+            { type: "text", text: monthDisplay },
+            { type: "text", text: amount },
           ],
         },
       ],
@@ -285,10 +290,12 @@ async function sendExamMsg(student, phone, examData) {
     return { success: false, skipped: true, error: "No valid phone number" };
   }
 
-  const score = Number(examData.score) || 0;
-  const fullMark = Number(examData.fullMark) || 100;
-  const date = examData.date || "غير محدد";
-  const day = examData.day || "غير محدد";
+  const name = safeText(student.full_name || student.name || "Student");
+  const score = safeText(String(examData?.score ?? 0));
+  const fullMark = safeText(String(examData?.fullMark ?? 100));
+  const date = safeText(examData?.date || "غير محدد");
+  const day = safeText(examData?.day || "غير محدد");
+  const barcode = safeText(student.barcode || "N/A");
 
   const template = {
     messaging_product: "whatsapp",
@@ -301,15 +308,12 @@ async function sendExamMsg(student, phone, examData) {
         {
           type: "body",
           parameters: [
-            {
-              type: "text",
-              text: student.full_name || student.name || "Student",
-            },
-            { type: "text", text: String(score) },
-            { type: "text", text: String(fullMark) },
+            { type: "text", text: name },
+            { type: "text", text: score },
+            { type: "text", text: fullMark },
             { type: "text", text: date },
             { type: "text", text: day },
-            { type: "text", text: student.barcode || "N/A" },
+            { type: "text", text: barcode },
           ],
         },
       ],
@@ -361,7 +365,7 @@ async function sendTemplate({
       type: "body",
       parameters: parameters.map((p) => ({
         type: "text",
-        text: String(p ?? "").trim() || "-",
+        text: safeText(p),
       })),
     },
   ];
@@ -374,7 +378,7 @@ async function sendTemplate({
       parameters: [
         {
           type: "text",
-          text: String(buttonParams ?? "").trim(),
+          text: safeText(buttonParams),
         },
       ],
     });
@@ -429,4 +433,5 @@ module.exports = {
   getEgyptDate,
   getEgyptDay,
   getEgyptMonth,
+  safeText,
 };
