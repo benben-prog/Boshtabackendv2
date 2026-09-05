@@ -103,7 +103,19 @@ const processStudentsBulk = async (data) => {
       const group = groupResult.rows[0];
       if (!group) throw new Error(`Group not found: ${group_name}`);
 
-      const parentToken = generateParentToken();
+      // Ensure unique parent token
+      let parentToken = generateParentToken();
+      let exists = await query(
+        "SELECT id FROM students WHERE parent_token = $1",
+        [parentToken],
+      );
+      while (exists.rows[0]) {
+        parentToken = generateParentToken();
+        exists = await query(
+          "SELECT id FROM students WHERE parent_token = $1",
+          [parentToken],
+        );
+      }
 
       barcodes.push(barcode);
       fullNames.push(full_name);
@@ -136,16 +148,7 @@ const processStudentsBulk = async (data) => {
     try {
       const insertResult = await query(
         `INSERT INTO students (barcode, full_name, phone, parent_phone, parent_token, grade_id, group_id, notes)
-         SELECT * FROM UNNEST(
-           $1::text[],
-           $2::text[],
-           $3::text[],
-           $4::text[],
-           $5::text[],
-           $6::int[],
-           $7::int[],
-           $8::text[]
-         )
+         SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), unnest($5::text[]), unnest($6::int[]), unnest($7::int[]), unnest($8::text[])
          RETURNING id, barcode, full_name, phone, parent_phone, parent_token`,
         [
           barcodes,

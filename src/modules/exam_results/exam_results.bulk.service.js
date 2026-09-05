@@ -2,6 +2,7 @@
 const { query } = require("../../config/database");
 const { cleanNumber } = require("../../utils/excelValidator");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
+const { formatEgyptTime } = require("../../utils/timezone");
 
 const processExamResultsBulk = async (examId, data) => {
   const examResult = await query(
@@ -154,19 +155,24 @@ const processExamResultsBulk = async (examId, data) => {
 
   if (studentIds.length > 0) {
     try {
+      const examDate = exam.exam_date
+        ? formatEgyptTime(exam.exam_date, "YYYY-MM-DD")
+        : "";
+      const dayName = exam.exam_date
+        ? new Date(exam.exam_date).toLocaleString("en-US", {
+            timeZone: "Africa/Cairo",
+            weekday: "long",
+          })
+        : "";
+
       const insertResult = await query(
         `INSERT INTO exam_results (exam_id, student_id, degree, notes)
-         SELECT * FROM UNNEST(
-           $1::int[],
-           $2::int[],
-           $3::numeric[],
-           $4::text[]
-         )
+         SELECT unnest($1::int[]), unnest($2::int[]), unnest($3::numeric[]), unnest($4::text[])
          ON CONFLICT (exam_id, student_id)
          DO UPDATE SET
            degree = EXCLUDED.degree,
            notes = EXCLUDED.notes,
-           updated_at = NOW()
+           updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
          RETURNING id, student_id, degree`,
         [examIds, studentIds, degrees, notesList],
       );
@@ -183,13 +189,6 @@ const processExamResultsBulk = async (examId, data) => {
       });
 
       // Send WhatsApp notifications
-      const examDate = exam.exam_date
-        ? new Date(exam.exam_date).toISOString().split("T")[0]
-        : "";
-      const dayName = exam.exam_date
-        ? new Date(exam.exam_date).toLocaleString("en-US", { weekday: "long" })
-        : "";
-
       for (let i = 0; i < enrolledStudents.length; i++) {
         const student = enrolledStudents[i];
         const degree = degrees[i];

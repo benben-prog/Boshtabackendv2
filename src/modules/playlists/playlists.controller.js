@@ -6,8 +6,9 @@ const path = require("path");
 // Create playlist
 const createPlaylist = async (req, res, next) => {
   try {
-    // ✅ الأولوية للملف المرفوع
-    const thumbnail_url = req.file ? req.file.path : req.body.thumbnail_url || null;
+    const thumbnail_url = req.file
+      ? req.file.path
+      : req.body.thumbnail_url || null;
 
     const playlist = await playlistService.createPlaylist({
       ...req.body,
@@ -80,7 +81,10 @@ const getPlaylistsByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const playlists = await playlistService.getPlaylistsByGradeId(gradeId, page);
+    const playlists = await playlistService.getPlaylistsByGradeId(
+      gradeId,
+      page,
+    );
 
     return res.status(200).json({
       success: true,
@@ -97,8 +101,9 @@ const updatePlaylist = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
 
-    // ✅ لو فيه ملف مرفوع → استخدمه، غير كده → استخدم body
-    const thumbnail_url = req.file ? req.file.path : req.body.thumbnail_url || null;
+    const thumbnail_url = req.file
+      ? req.file.path
+      : req.body.thumbnail_url || null;
 
     const playlist = await playlistService.updatePlaylist(playlistId, {
       ...req.body,
@@ -133,18 +138,26 @@ const updatePlaylist = async (req, res, next) => {
 const hardDeletePlaylist = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
+
+    // Store thumbnail before deletion
+    const oldPlaylist = await playlistService.getPlaylistById(playlistId);
+    const thumbnailUrl = oldPlaylist?.thumbnail_url;
+
     const playlist = await playlistService.hardDeletePlaylist(playlistId);
 
     if (!playlist) {
       throw new Error("فشل حذف قائمة التشغيل");
     }
 
-    // حذف ملف الـ thumbnail
-    const oldPlaylist = await playlistService.getPlaylistById(playlistId);
-    if (oldPlaylist?.thumbnail_url) {
-      const filePath = path.join(__dirname, "../../../", oldPlaylist.thumbnail_url);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+    // Delete thumbnail file after deletion
+    if (thumbnailUrl) {
+      const filePath = path.join(process.cwd(), thumbnailUrl);
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (e) {
+        console.error("Failed to delete thumbnail:", e.message);
       }
     }
 

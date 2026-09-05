@@ -1,6 +1,8 @@
 const { query } = require("../../config/database");
 const attendanceQueries = require("./attendance.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
+const { getTodayEgypt } = require("../../utils/timezone");
+
 // Create or update attendance record (Upsert)
 const createAttendance = async (attendanceData) => {
   const {
@@ -53,11 +55,12 @@ const createAttendance = async (attendanceData) => {
 
   return attendance;
 };
+
 // Get attendance by group and date
 const getAttendanceByGroupAndDate = async (groupId, date) => {
   const result = await query(attendanceQueries.getAttendanceByGroupAndDate, [
     groupId,
-    date,
+    date || getTodayEgypt(),
   ]);
   return result.rows;
 };
@@ -76,7 +79,7 @@ const getAttendanceByGroupAndMonth = async (groupId, month, page = 1) => {
 const getAttendanceSummary = async (groupId, date) => {
   const result = await query(attendanceQueries.getAttendanceSummary, [
     groupId,
-    date,
+    date || getTodayEgypt(),
   ]);
   return result.rows[0];
 };
@@ -207,13 +210,11 @@ const scanBarcode = async (barcode, sessionData) => {
   let makeup_group_id = null;
 
   if (studentData.group_id === group_id) {
-    // Same group - normal attendance
     is_makeup = 0;
   } else if (
     session.is_makeup_enabled === 1 &&
     studentData.grade_id === grade_id
   ) {
-    // Same grade but different group - makeup attendance
     is_makeup = 1;
     makeup_group_id = studentData.group_id;
   } else {
@@ -243,12 +244,8 @@ const scanBarcode = async (barcode, sessionData) => {
 
 // Lock session
 const lockSession = async (sessionId, groupId) => {
-  // Lock session
   await query(attendanceQueries.lockSession, [sessionId]);
-
-  // Mark absent students
   const absent = await query(attendanceQueries.markAbsentInSession, [groupId]);
-
   return absent.rows;
 };
 

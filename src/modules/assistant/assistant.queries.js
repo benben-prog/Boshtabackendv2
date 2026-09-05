@@ -34,7 +34,7 @@ SELECT
 FROM activity_logs al
 LEFT JOIN users u ON al.user_id = u.id
 WHERE ($1 = '' OR al.entity_type = $1)
-  AND ($2::date IS NULL OR DATE(al.created_at) = $2::date)
+  AND ($2::date IS NULL OR DATE(al.created_at AT TIME ZONE 'Africa/Cairo') = $2::date)
   AND ($3 = '' OR al.user_role = $3)
 ORDER BY al.created_at DESC
 LIMIT 20 OFFSET (($4::int - 1) * 20)
@@ -45,7 +45,7 @@ const getActivityLogsCount = `
 SELECT COUNT(*) AS count
 FROM activity_logs al
 WHERE ($1 = '' OR al.entity_type = $1)
-  AND ($2::date IS NULL OR DATE(al.created_at) = $2::date)
+  AND ($2::date IS NULL OR DATE(al.created_at AT TIME ZONE 'Africa/Cairo') = $2::date)
   AND ($3 = '' OR al.user_role = $3)
 `;
 
@@ -101,11 +101,11 @@ SELECT
   (SELECT COUNT(*) FROM assignment_submissions WHERE score IS NULL) AS pending_grading,
   (SELECT COUNT(*) FROM videos) AS total_videos,
   (SELECT COUNT(*) FROM playlists) AS total_playlists,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'present') AS present_today,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'absent') AS absent_today,
-  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE TO_CHAR(payment_date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS total_paid_month,
+  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AT TIME ZONE 'Africa/Cairo' AND status = 'present') AS present_today,
+  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AT TIME ZONE 'Africa/Cairo' AND status = 'absent') AS absent_today,
+  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE TO_CHAR(payment_date AT TIME ZONE 'Africa/Cairo', 'YYYY-MM') = TO_CHAR(CURRENT_DATE AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')) AS total_paid_month,
   (SELECT COUNT(*) FROM students WHERE deleted = 0 AND id NOT IN (
-    SELECT student_id FROM subscriptions WHERE month = TO_CHAR(CURRENT_DATE, 'YYYY-MM') AND deleted = 0
+    SELECT student_id FROM subscriptions WHERE month = TO_CHAR(CURRENT_DATE AT TIME ZONE 'Africa/Cairo', 'YYYY-MM') AND deleted = 0
   )) AS unpaid_students
 `;
 

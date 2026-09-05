@@ -1,5 +1,6 @@
 const { query } = require("../../config/database");
 const studentExamQueries = require("./student_exams.queries");
+const { getNowEgypt, compareEgyptDates } = require("../../utils/timezone");
 
 // Create exam attempt
 const createExamAttempt = async (examId, studentId) => {
@@ -22,7 +23,7 @@ const createExamAttempt = async (examId, studentId) => {
     throw new Error("لقد بدأت هذا الامتحان بالفعل");
   }
 
-  const now = new Date();
+  const now = getNowEgypt();
   const startAt = new Date(exam.start_at);
   const endAt = new Date(exam.end_at);
 
@@ -170,7 +171,7 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
     }),
   );
 
-  const now = new Date();
+  const now = getNowEgypt();
   const startTime = new Date(attempt.started_at);
   const durationMs = attempt.duration_minutes * 60 * 1000;
   const elapsedMs = now.getTime() - startTime.getTime();
@@ -273,7 +274,7 @@ const submitExam = async (attemptId, studentId) => {
 
   const updatedAttempt = await query(
     `UPDATE student_exams 
-     SET score = $1, submitted_at = NOW()
+     SET score = $1, submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
      WHERE id = $2 AND submitted_at IS NULL
      RETURNING *`,
     [finalScore, attemptId],
@@ -293,7 +294,7 @@ const submitExam = async (attemptId, studentId) => {
   };
 };
 
-// Recalculate score after essay grading
+// ... باقي الدوال بنفس الشكل (لم يتم تغييرها)
 const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
   const examResult = await query(
     "SELECT id, full_mark FROM online_exams WHERE id = $1 AND deleted = 0",
@@ -351,7 +352,6 @@ const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
   }
 };
 
-// Get exam review after submission
 const getExamReview = async (attemptId, studentId) => {
   const attemptResult = await query(
     `SELECT 
@@ -375,6 +375,7 @@ const getExamReview = async (attemptId, studentId) => {
     throw new Error("الامتحان غير موجود أو لم يتم تسليمه بعد");
   }
 
+  // ... باقي الكود كما هو
   const questionsResult = await query(
     `SELECT 
       q.id,
@@ -479,14 +480,13 @@ const getExamReview = async (attemptId, studentId) => {
   };
 };
 
-// Auto submit expired exams
 const autoSubmitExpiredExams = async () => {
   const expiredAttempts = await query(
     `SELECT se.id, se.exam_id, se.student_id, oe.full_mark
      FROM student_exams se
      JOIN online_exams oe ON se.exam_id = oe.id
      WHERE se.submitted_at IS NULL 
-       AND oe.end_at < NOW()
+       AND oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
        AND oe.deleted = 0`,
   );
 
@@ -498,13 +498,11 @@ const autoSubmitExpiredExams = async () => {
   return results;
 };
 
-// Mark absent students
 const markAbsentStudents = async () => {
   const result = await query(studentExamQueries.markAbsentStudents);
   return result.rows;
 };
 
-// Get student exams by exam ID
 const getStudentExamsByExamId = async (examId, page = 1) => {
   const result = await query(studentExamQueries.getStudentExamsByExamId, [
     examId,
@@ -513,13 +511,11 @@ const getStudentExamsByExamId = async (examId, page = 1) => {
   return result.rows;
 };
 
-// Get exam attempt stats
 const getExamAttemptStats = async (examId) => {
   const result = await query(studentExamQueries.getExamAttemptStats, [examId]);
   return result.rows[0];
 };
 
-// Get grade exam attempts stats
 const getGradeExamAttemptsStats = async (gradeId) => {
   const result = await query(studentExamQueries.getGradeExamAttemptsStats, [
     gradeId,
@@ -527,7 +523,6 @@ const getGradeExamAttemptsStats = async (gradeId) => {
   return result.rows;
 };
 
-// Get group exam attempts stats
 const getGroupExamAttemptsStats = async (groupId) => {
   const result = await query(studentExamQueries.getGroupExamAttemptsStats, [
     groupId,
@@ -535,7 +530,6 @@ const getGroupExamAttemptsStats = async (groupId) => {
   return result.rows;
 };
 
-// Get exam questions for student with options
 const getExamQuestionsForStudent = async (examId, studentId) => {
   const attemptCheck = await query(
     "SELECT id FROM student_exams WHERE exam_id = $1 AND student_id = $2 AND submitted_at IS NULL",
@@ -592,7 +586,6 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
   return questionsWithOptions;
 };
 
-// Get single question for student
 const getQuestionForStudent = async (questionId) => {
   const questionResult = await query(
     `SELECT 
@@ -633,7 +626,6 @@ const getQuestionForStudent = async (questionId) => {
   return question;
 };
 
-// Get options for student
 const getOptionsForStudent = async (questionId) => {
   const optionsResult = await query(
     `SELECT 

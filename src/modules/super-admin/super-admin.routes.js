@@ -1,5 +1,6 @@
 const express = require("express");
 const routes = express.Router();
+const Joi = require("joi");
 
 // Controllers
 const previewController = require("../../controllers/preview.controller");
@@ -32,25 +33,20 @@ const whatsappController = require("../whatsapp_messages/whatsapp_messages.contr
 
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
+const validate = require("../../middlewares/validate.middleware");
 
 /* ============================================
    SUPER ADMIN - DASHBOARD & ACTIVITY LOG
    ============================================ */
 
-// Get dashboard
 routes.get("/dashboard", superAdminController.getDashboard);
-
-// Get platform status
 routes.get("/platform-status", superAdminController.getPlatformStatus);
-
-// Get activity log
 routes.get("/activity-log", superAdminController.getActivityLog);
 
 /* ============================================
    SUPER ADMIN - USERS MANAGEMENT
    ============================================ */
 
-// Users CRUD
 routes.get("/users", usersController.getAllUsers);
 routes.get("/users/deleted", usersController.getDeletedUsers);
 routes.get("/users/assistants", usersController.getAllAssistants);
@@ -70,7 +66,6 @@ routes.post("/users/:userId/restore", usersController.restoreUser);
    SUPER ADMIN - PLATFORM SETTINGS
    ============================================ */
 
-// Settings
 routes.get("/settings", settingsController.getSettings);
 routes.put("/settings", settingsController.updateSettings);
 routes.put(
@@ -86,11 +81,6 @@ routes.put(
    SUPER ADMIN - STUDENTS MANAGEMENT
    ============================================ */
 
-// ============================================
-// BULK UPLOAD ROUTES (Excel)
-// ============================================
-
-// Students Bulk Upload
 routes.get(
   "/students/template",
   studentsBulkController.downloadStudentsTemplate,
@@ -101,17 +91,21 @@ routes.post(
   studentsBulkController.bulkUploadStudents,
 );
 
-// Students CRUD
 routes.get("/students", studentsController.getAllStudents);
 routes.get("/students/deleted", studentsController.getDeletedStudents);
 routes.get(
   "/students/without-password",
   studentsController.getStudentsWithoutPassword,
 );
+
 routes.post(
   "/students/generate-passwords/grade/:gradeId",
+  validate(
+    Joi.object({ gradeId: Joi.number().integer().positive().required() }),
+  ),
   studentsController.generatePasswordsForGrade,
 );
+
 routes.post(
   "/students/generate-passwords",
   studentsController.generatePasswordsForAllStudents,
@@ -218,11 +212,6 @@ routes.post("/students/:studentId/restore", studentsController.restoreStudent);
    SUPER ADMIN - GRADES & GROUPS
    ============================================ */
 
-// ============================================
-// BULK UPLOAD ROUTES (Excel)
-// ============================================
-
-// Grades Bulk Upload
 routes.get("/grades/template", gradesBulkController.downloadGradesTemplate);
 routes.post(
   "/grades/bulk-upload",
@@ -230,7 +219,6 @@ routes.post(
   gradesBulkController.bulkUploadGrades,
 );
 
-// Groups Bulk Upload
 routes.get("/groups/template", groupsBulkController.downloadGroupsTemplate);
 routes.post(
   "/groups/bulk-upload",
@@ -238,7 +226,6 @@ routes.post(
   groupsBulkController.bulkUploadGroups,
 );
 
-// Grades
 routes.get("/grades", gradesController.getAllGrades);
 routes.get("/grades/groups-count", gradesController.getGradesWithGroupsCount);
 routes.get(
@@ -254,7 +241,6 @@ routes.put("/grades/:id", gradesController.updateGrade);
 routes.delete("/grades/:id", gradesController.softDeleteGrade);
 routes.delete("/grades/:id/permanent", gradesController.hardDeleteGrade);
 
-// Groups
 routes.get("/groups", groupsController.getAllGroups);
 routes.get("/groups/with-grade-name", groupsController.getGroupsWithGradeName);
 routes.get(
@@ -310,7 +296,6 @@ routes.post(
 routes.put("/attendance/:id", attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 
-// Attendance Sessions
 routes.post("/attendance/sessions/start", attendanceController.startSession);
 routes.get(
   "/attendance/sessions/active/:groupId",
@@ -327,7 +312,6 @@ routes.post("/attendance/sessions/lock", attendanceController.lockSession);
    SUPER ADMIN - PAYMENTS & SUBSCRIPTIONS
    ============================================ */
 
-// Payments
 routes.get("/payments", paymentsController.getAllPayments);
 routes.get("/payments/collections", paymentsController.getMonthlyCollections);
 routes.get(
@@ -360,7 +344,6 @@ routes.post("/payments", paymentsController.createPayment);
 routes.put("/payments/:id", paymentsController.updatePayment);
 routes.delete("/payments/:id", paymentsController.deletePayment);
 
-// Subscriptions
 routes.get(
   "/subscriptions/overall",
   subscriptionsController.getOverallSubscriptionStats,
@@ -391,7 +374,11 @@ routes.put(
   subscriptionsController.updateSubscriptionStatus,
 );
 routes.delete("/subscriptions/:id", subscriptionsController.deleteSubscription);
-// Preview routes
+
+/* ============================================
+   SUPER ADMIN - PREVIEW
+   ============================================ */
+
 routes.get(
   "/assignments/:assignmentId/preview",
   previewController.previewAssignment,
@@ -405,15 +392,11 @@ routes.get(
   "/student-answers/:answerId/preview",
   previewController.previewStudentAnswer,
 );
+
 /* ============================================
    SUPER ADMIN - EXAMS
    ============================================ */
 
-// ============================================
-// BULK UPLOAD ROUTES (Excel)
-// ============================================
-
-// Exam Results Bulk Upload
 routes.get(
   "/exam-results/template",
   examResultsBulkController.downloadExamResultsTemplate,
@@ -424,7 +407,6 @@ routes.post(
   examResultsBulkController.bulkUploadExamResults,
 );
 
-// Paper Exams
 routes.get("/exams", examsController.getAllExams);
 routes.get("/exams/grade/:gradeId/stats", examsController.getGradeExamStats);
 routes.get("/exams/grade/:gradeId", examsController.getExamsByGradeId);
@@ -436,7 +418,6 @@ routes.put("/exams/:id", examsController.updateExam);
 routes.delete("/exams/:id", examsController.softDeleteExam);
 routes.delete("/exams/:id/permanent", examsController.hardDeleteExam);
 
-// Exam Results
 routes.get(
   "/exam-results/grade/:gradeId/stats",
   examResultsController.getGradeExamResultsStats,
@@ -459,7 +440,6 @@ routes.post(
 routes.put("/exam-results/:id", examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
-// Online Exams
 routes.get("/online-exams", onlineExamController.getAllOnlineExams);
 routes.get(
   "/online-exams/available",
@@ -494,7 +474,6 @@ routes.delete(
   onlineExamController.hardDeleteOnlineExam,
 );
 
-// Questions
 routes.get("/questions/exam/:examId", questionController.getQuestionsByExamId);
 routes.get("/questions/:questionId", questionController.getQuestionById);
 routes.get(
@@ -505,7 +484,6 @@ routes.post("/questions", questionController.createQuestion);
 routes.put("/questions/:questionId", questionController.updateQuestion);
 routes.delete("/questions/:questionId", questionController.deleteQuestion);
 
-// Options
 routes.get(
   "/options/question/:questionId",
   optionController.getOptionsByQuestionId,
@@ -515,7 +493,6 @@ routes.post("/options", optionController.createOption);
 routes.put("/options/:optionId", optionController.updateOption);
 routes.delete("/options/:optionId", optionController.deleteOption);
 
-// Student Exams
 routes.get(
   "/student-exams/exam/:examId",
   studentExamController.getStudentExamsByExamId,
@@ -533,7 +510,6 @@ routes.get(
   studentExamController.getGroupExamAttemptsStats,
 );
 
-// Student Answers
 routes.get(
   "/student-answers/question/:questionId/stats",
   studentAnswerController.getQuestionAnswerStats,
@@ -587,7 +563,6 @@ routes.delete(
   assignmentController.hardDeleteAssignment,
 );
 
-// Assignment Submissions
 routes.get(
   "/assignment-submissions/stats/grade/:gradeId",
   assignmentSubmissionController.getGradeAssignmentSubmissionStats,
@@ -625,7 +600,6 @@ routes.put(
    SUPER ADMIN - VIDEOS & PLAYLISTS
    ============================================ */
 
-// Videos
 routes.get("/videos", videoController.getAllVideos);
 routes.get("/videos/grade/:gradeId", videoController.getVideosByGradeId);
 routes.get("/videos/:videoId/download", videoController.downloadVideoFile);
@@ -634,7 +608,6 @@ routes.post("/videos", videoController.createVideo);
 routes.put("/videos/:videoId", videoController.updateVideo);
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
-// Playlists
 routes.get("/playlists", playlistController.getAllPlaylists);
 routes.get(
   "/playlists/grade/:gradeId",
@@ -645,7 +618,6 @@ routes.post("/playlists", playlistController.createPlaylist);
 routes.put("/playlists/:playlistId", playlistController.updatePlaylist);
 routes.delete("/playlists/:playlistId", playlistController.hardDeletePlaylist);
 
-// Playlist Videos
 routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
@@ -657,7 +629,7 @@ routes.delete(
 );
 
 /* ============================================
-   SUPER ADMIN - WHATSAPP TEMPLATES
+   SUPER ADMIN - WHATSAPP
    ============================================ */
 
 routes.get("/whatsapp-messages", whatsappController.getAllTemplates);
@@ -672,22 +644,16 @@ routes.put(
   whatsappController.toggleTemplateActive,
 );
 
-// WhatsApp Settings
 routes.put("/whatsapp/settings", whatsappController.updateSettings);
-
-// WhatsApp Dashboard
 routes.get("/whatsapp/dashboard", whatsappController.getDashboard);
-
-// WhatsApp Queue
 routes.get("/whatsapp/queue/stats", whatsappController.getQueueStats);
 routes.post("/whatsapp/queue/send", whatsappController.sendQueue);
 routes.post("/whatsapp/queue/reset-failed", whatsappController.resetFailed);
-
-// WhatsApp Messages
 routes.get("/whatsapp/messages", whatsappController.getMessages);
 routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
 routes.delete(
   "/whatsapp/messages/:messageId",
   whatsappController.deleteMessage,
 );
+
 module.exports = routes;

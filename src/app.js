@@ -5,14 +5,14 @@ const morgan = require("morgan");
 const path = require("path");
 
 // Routes
-const authRouts = require("./modules/auth/auth.routes");
+const authRoutes = require("./modules/auth/auth.routes");
 const studentModuleRoutes = require("./modules/student/student.routes");
 const parentRoutes = require("./modules/parent/parent.routes");
 const assistantRoutes = require("./modules/assistant/assistant.routes");
 const teacherRoutes = require("./modules/teacher/teacher.routes");
 const superAdminRoutes = require("./modules/super-admin/super-admin.routes");
 const whatsappRoutes = require("./modules/whatsapp_messages/whatsapp_messages.routes");
-const webhookRoutes = require("./routes/webhook.routes");
+const webhookRoutes = require("./webhook.routes");
 
 // Middleware
 const {
@@ -239,7 +239,7 @@ app.use(checkPlatformStatus);
 // API ROUTES
 // ============================================
 
-app.use("/api/auth", authRouts);
+app.use("/api/auth", authRoutes);
 app.use("/api/student", apiMiddelware, clientAuth, studentModuleRoutes);
 app.use("/api/parent", apiMiddelware, parentRoutes);
 app.use(
@@ -250,13 +250,7 @@ app.use(
   assistantRoutes,
 );
 app.use("/api/teacher", apiMiddelware, clientAuth, teacherAuth, teacherRoutes);
-app.use(
-  "/api/super-admin",
-  apiMiddelware,
-  clientAuth,
-  superAdminAuth,
-  superAdminRoutes,
-);
+app.use("/api/super-admin", apiMiddelware, superAdminAuth, superAdminRoutes);
 
 // ============================================
 // WHATSAPP ROUTES

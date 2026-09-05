@@ -1,5 +1,5 @@
 const authService = require("./auth.service");
-const { creatToken } = require("../../utils/jwt");
+const { createToken } = require("../../utils/jwt");
 const ROLES = require("../../constants/roles");
 
 // Student login
@@ -17,7 +17,7 @@ const StudentLogin = async (req, res, next) => {
       role: ROLES.STUDENT,
     };
 
-    const token = creatToken(payload);
+    const token = createToken(payload);
 
     return res.status(200).json({
       success: true,
@@ -52,7 +52,7 @@ const userLogin = async (req, res, next) => {
       permissions: user.permissions,
     };
 
-    const token = creatToken(payload);
+    const token = createToken(payload);
 
     return res.status(200).json({
       success: true,
@@ -92,7 +92,7 @@ const parentAccess = async (req, res, next) => {
       role: ROLES.PARENT,
     };
 
-    const newToken = creatToken(payload);
+    const newToken = createToken(payload);
 
     return res.status(200).json({
       success: true,

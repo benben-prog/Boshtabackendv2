@@ -1,35 +1,32 @@
 const assignmentService = require("./assignments.service");
 const { logActivity } = require("../../utils/activityLogger");
 const path = require("path");
+const { formatEgyptTime } = require("../../utils/timezone");
 
-// ✅ دالة مساعدة لتحويل التواقيت
+// Helper function to format dates
 const formatDate = (date) => {
   if (!date) return null;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return date;
-  return d.toLocaleString('en-US', { 
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  return formatEgyptTime(date, "YYYY-MM-DD HH:mm:ss");
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
+// Helper function to format dates in array
 const formatDatesInArray = (items) => {
   if (!items || !Array.isArray(items)) return items;
-  return items.map(item => formatDatesInObject(item));
+  return items.map((item) => formatDatesInObject(item));
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في الكائن
+// Helper function to format dates in object
 const formatDatesInObject = (obj) => {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const formatted = { ...obj };
-  const dateFields = ['created_at', 'updated_at', 'deadline', 'submitted_at', 'date'];
-  dateFields.forEach(field => {
+  const dateFields = [
+    "created_at",
+    "updated_at",
+    "deadline",
+    "submitted_at",
+    "date",
+  ];
+  dateFields.forEach((field) => {
     if (formatted[field] !== undefined && formatted[field] !== null) {
       formatted[field] = formatDate(formatted[field]);
     }
@@ -47,7 +44,6 @@ const getAllAssignments = async (req, res, next) => {
       throw new Error("فشل تحميل الواجبات حاول مرة أخرى!");
     }
 
-    // ✅ تحويل التواقيت
     const formattedAssignments = formatDatesInArray(assignments);
 
     return res.status(200).json({
@@ -70,7 +66,6 @@ const getAssignmentById = async (req, res, next) => {
       throw new Error("فشل تحميل الواجب حاول مرة أخرى!");
     }
 
-    // ✅ تحويل التواقيت
     const formattedAssignment = formatDatesInObject(assignment);
 
     return res.status(200).json({
@@ -93,7 +88,6 @@ const getAssignmentsByGradeId = async (req, res, next) => {
       page,
     );
 
-    // ✅ تحويل التواقيت
     const formattedAssignments = formatDatesInArray(assignments);
 
     return res.status(200).json({
@@ -116,7 +110,6 @@ const getAssignmentsByGroupId = async (req, res, next) => {
       page,
     );
 
-    // ✅ تحويل التواقيت
     const formattedAssignments = formatDatesInArray(assignments);
 
     return res.status(200).json({
@@ -136,7 +129,8 @@ const createAssignment = async (req, res, next) => {
       req.body;
     const file_path = req.file ? req.file.path : null;
     const created_by = req.clientId;
-    const is_closed = req.body.is_closed !== undefined ? parseInt(req.body.is_closed) : 0;
+    const is_closed =
+      req.body.is_closed !== undefined ? parseInt(req.body.is_closed) : 0;
 
     const assignment = await assignmentService.createAssignment({
       title,
@@ -164,7 +158,6 @@ const createAssignment = async (req, res, next) => {
       description: `إنشاء واجب: ${assignment.title}`,
     });
 
-    // ✅ تحويل التواقيت في الـ response
     const formattedAssignment = formatDatesInObject(assignment);
 
     return res.status(201).json({
@@ -177,16 +170,14 @@ const createAssignment = async (req, res, next) => {
   }
 };
 
-// Update assignment - ✅ إصلاح is_closed
+// Update assignment
 const updateAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
 
-    // ✅ لو is_closed مش مبعوت، خليه 0 (مفتوح)
     const updateData = {
       ...req.body,
-      is_closed:
-        req.body.is_closed !== undefined ? req.body.is_closed : 0,
+      is_closed: req.body.is_closed !== undefined ? req.body.is_closed : 0,
     };
 
     const assignment = await assignmentService.updateAssignment(
@@ -208,7 +199,6 @@ const updateAssignment = async (req, res, next) => {
       description: `تعديل واجب (ID: ${assignmentId})`,
     });
 
-    // ✅ تحويل التواقيت في الـ response
     const formattedAssignment = formatDatesInObject(assignment);
 
     return res.status(200).json({

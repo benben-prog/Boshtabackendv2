@@ -1,11 +1,11 @@
 const express = require("express");
 const routes = express.Router();
-const { query } = require("../config/database");
-const env = require("../config/env");
+const { query } = require("./config/database");
+const env = require("./config/env");
 
 // ============ Webhook Verification ============
 
-routes.get("/whatsapp/webhook", (req, res) => {
+routes.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -21,7 +21,7 @@ routes.get("/whatsapp/webhook", (req, res) => {
 
 // ============ Webhook Status Updates ============
 
-routes.post("/whatsapp/webhook", async (req, res) => {
+routes.post("/webhook", async (req, res) => {
   try {
     const { entry } = req.body;
 
@@ -30,7 +30,7 @@ routes.post("/whatsapp/webhook", async (req, res) => {
         if (change.field === "messages") {
           for (const message of change.value?.messages || []) {
             const messageId = message.id;
-            const status = message.status; // sent, delivered, read, failed
+            const status = message.status;
 
             console.log(`Message ${messageId} status update: ${status}`);
 
@@ -38,10 +38,10 @@ routes.post("/whatsapp/webhook", async (req, res) => {
               `
               UPDATE messages 
               SET status = $1,
-                  updated_at = NOW()
+                  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
               WHERE message_id = $2
             `,
-              [status, messageId]
+              [status, messageId],
             );
           }
         }

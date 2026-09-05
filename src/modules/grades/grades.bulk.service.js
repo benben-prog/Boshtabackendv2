@@ -1,16 +1,12 @@
 const { query } = require("../../config/database");
 const { cleanNumber } = require("../../utils/excelValidator");
 
-/**
- * معالجة بيانات الصفوف من Excel
- */
 const processGradesBulk = async (data) => {
   const results = [];
   const errors = [];
   let successCount = 0;
   let errorCount = 0;
 
-  // مصفوفات للـ bulk insert
   const names = [];
   const prices = [];
 
@@ -26,7 +22,11 @@ const processGradesBulk = async (data) => {
         throw new Error("اسم الصف مطلوب");
       }
 
-      if (monthly_price === null || monthly_price === undefined || isNaN(monthly_price)) {
+      if (
+        monthly_price === null ||
+        monthly_price === undefined ||
+        isNaN(monthly_price)
+      ) {
         throw new Error(`السعر غير صحيح: ${row.monthly_price}`);
       }
 
@@ -34,12 +34,10 @@ const processGradesBulk = async (data) => {
         throw new Error(`السعر يجب أن يكون أكبر من صفر: ${monthly_price}`);
       }
 
-      // التحقق من عدم تكرار الاسم في الملف
       if (names.includes(name)) {
         throw new Error(`اسم الصف مكرر في الملف: ${name}`);
       }
 
-      // التحقق من عدم وجود الصف في قاعدة البيانات
       const existingGrade = await query(
         "SELECT id FROM grades WHERE name = $1 AND deleted = 0",
         [name],
@@ -69,15 +67,11 @@ const processGradesBulk = async (data) => {
     }
   }
 
-  // Bulk insert
   if (names.length > 0) {
     try {
       const insertResult = await query(
         `INSERT INTO grades (name, monthly_price)
-         SELECT * FROM UNNEST(
-           $1::text[],
-           $2::numeric[]
-         )
+         SELECT unnest($1::text[]), unnest($2::numeric[])
          RETURNING id, name, monthly_price`,
         [names, prices],
       );
@@ -90,7 +84,7 @@ const processGradesBulk = async (data) => {
         }
       });
     } catch (error) {
-      console.error("❌ Bulk insert error:", error);
+      console.error("Bulk insert error:", error);
       throw new Error(`فشل إدخال الصفوف: ${error.message}`);
     }
   }

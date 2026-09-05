@@ -2,26 +2,14 @@
 const whatsappDispatcher = require("./whatsapp_dispatcher.service");
 const { query } = require("../../config/database");
 const { logActivity } = require("../../utils/activityLogger");
+const { formatEgyptTime, getTodayEgypt } = require("../../utils/timezone");
 
-const getEgyptDate = () => {
-  const now = new Date();
-  const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-  return cairoTime.toISOString().split("T")[0];
-};
+// Use the shared timezone functions
+const getEgyptDate = () => getTodayEgypt();
 
 const formatDate = (date) => {
   if (!date) return null;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return date;
-  return d.toLocaleString("en-US", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  return formatEgyptTime(date, "YYYY-MM-DD HH:mm:ss");
 };
 
 const formatDatesInArray = (items) => {
@@ -270,11 +258,12 @@ const sendExam = async (req, res, next) => {
     };
 
     const examDate = resultData.exam_date
-      ? new Date(resultData.exam_date).toISOString().split("T")[0]
+      ? formatEgyptTime(resultData.exam_date, "YYYY-MM-DD")
       : getEgyptDate();
 
     const dayName = resultData.exam_date
       ? new Date(resultData.exam_date).toLocaleString("en-US", {
+          timeZone: "Africa/Cairo",
           weekday: "long",
         })
       : "";
@@ -380,6 +369,8 @@ const resetFailed = async (req, res, next) => {
 const getMessages = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
+    const limitNum = parseInt(limit) || 20;
+    const offset = (parseInt(page) - 1) * limitNum;
 
     let whereClause = "";
     const params = [];
@@ -398,8 +389,6 @@ const getMessages = async (req, res, next) => {
       params.push(type);
       paramIndex++;
     }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const result = await query(
       `
@@ -426,7 +415,7 @@ const getMessages = async (req, res, next) => {
       ORDER BY m.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `,
-      [...params, parseInt(limit), offset],
+      [...params, limitNum, offset],
     );
 
     const countResult = await query(
@@ -445,10 +434,10 @@ const getMessages = async (req, res, next) => {
       data: formattedMessages,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: limitNum,
         total: parseInt(countResult.rows[0]?.total || 0),
         totalPages: Math.ceil(
-          parseInt(countResult.rows[0]?.total || 0) / parseInt(limit),
+          parseInt(countResult.rows[0]?.total || 0) / limitNum,
         ),
       },
     });
@@ -618,7 +607,7 @@ const updateTemplate = async (req, res, next) => {
         template = COALESCE($2, template),
         sent_to = COALESCE($3, sent_to),
         delay = COALESCE($4, delay),
-        updated_at = NOW()
+        updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
       WHERE id = $5
       RETURNING id, type, template, is_active, sent_to, delay, created_at, updated_at
     `,
@@ -664,7 +653,7 @@ const toggleTemplateActive = async (req, res, next) => {
       `
       UPDATE whatsapp_messages
       SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
-          updated_at = NOW()
+          updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
       WHERE id = $1
       RETURNING id, type, template, is_active, sent_to, delay, created_at, updated_at
     `,
@@ -710,21 +699,20 @@ const getDashboard = async (req, res, next) => {
     next(error);
   }
 };
+
 const updateSettings = async (req, res, next) => {
   try {
     const { whatsapp_daily_limit, whatsapp_delay_seconds } = req.body;
 
     const result = await query(
-      `
-      UPDATE settings 
-      SET 
-        whatsapp_daily_limit = COALESCE($1::int, whatsapp_daily_limit),
-        whatsapp_delay_seconds = COALESCE($2::int, whatsapp_delay_seconds),
-        updated_at = NOW()
-      WHERE id = 1
-      RETURNING whatsapp_daily_limit, whatsapp_delay_seconds
-      `,
-      [whatsapp_daily_limit ?? null, whatsapp_delay_seconds ?? null],
+      `INSERT INTO settings (id, whatsapp_daily_limit, whatsapp_delay_seconds)
+       VALUES (1, $1, $2)
+       ON CONFLICT (id) DO UPDATE SET
+         whatsapp_daily_limit = EXCLUDED.whatsapp_daily_limit,
+         whatsapp_delay_seconds = EXCLUDED.whatsapp_delay_seconds,
+         updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+       RETURNING whatsapp_daily_limit, whatsapp_delay_seconds`,
+      [whatsapp_daily_limit ?? 250, whatsapp_delay_seconds ?? 45],
     );
 
     return res.status(200).json({
@@ -736,6 +724,7 @@ const updateSettings = async (req, res, next) => {
     next(error);
   }
 };
+
 module.exports = {
   sendWelcome,
   sendAbsence,

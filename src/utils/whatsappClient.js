@@ -1,5 +1,6 @@
 // src/utils/whatsappClient.js
 const env = require("../config/env");
+const { formatEgyptTime, getTodayEgypt } = require("./timezone");
 
 const WHATSAPP_TOKEN = env.WHATSAPP_TOKEN;
 const WHATSAPP_PHONE_ID = env.WHATSAPP_PHONE_ID || "1300602659800445";
@@ -97,12 +98,7 @@ function getEgyptDate(dateStr) {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return String(dateStr || "");
-    // UTC+3
-    const cairoTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-    const year = cairoTime.getUTCFullYear();
-    const month = String(cairoTime.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(cairoTime.getUTCDate()).padStart(2, "0");
-    return `${day}/${month}/${year}`;
+    return formatEgyptTime(date, "DD/MM/YYYY");
   } catch {
     return String(dateStr || "");
   }
@@ -113,7 +109,9 @@ function getEgyptDay(dateStr) {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "";
-    const cairoTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    const egyptDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+    );
     const days = [
       "الأحد",
       "الاثنين",
@@ -123,7 +121,7 @@ function getEgyptDay(dateStr) {
       "الجمعة",
       "السبت",
     ];
-    return days[cairoTime.getUTCDay()];
+    return days[egyptDate.getDay()];
   } catch {
     return "";
   }

@@ -21,7 +21,14 @@ const updateAssignmentSchema = Joi.object({
   is_closed: Joi.number().integer().valid(0, 1),
 }).min(1);
 
+// Grade submission schema
+const gradeSubmissionSchema = Joi.object({
+  score: Joi.number().min(0).required(),
+  feedback: Joi.string().allow("", null).max(1000),
+});
+
 module.exports = {
   createAssignmentSchema,
   updateAssignmentSchema,
+  gradeSubmissionSchema,
 };

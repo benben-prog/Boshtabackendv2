@@ -5,16 +5,12 @@ const {
   validateTimeRange,
 } = require("../../utils/excelValidator");
 
-/**
- * معالجة بيانات المجموعات من Excel
- */
 const processGroupsBulk = async (data) => {
   const results = [];
   const errors = [];
   let successCount = 0;
   let errorCount = 0;
 
-  // مصفوفات للـ bulk insert
   const names = [];
   const gradeIds = [];
   const daysList = [];
@@ -60,7 +56,6 @@ const processGroupsBulk = async (data) => {
         );
       }
 
-      // البحث عن الصف
       const gradeResult = await query(
         "SELECT id FROM grades WHERE name = $1 AND deleted = 0",
         [grade_name],
@@ -71,25 +66,19 @@ const processGroupsBulk = async (data) => {
         throw new Error(`الصف غير موجود: ${grade_name}`);
       }
 
-      // التحقق من عدم تكرار المجموعة في الملف
       const duplicateIndex = names.findIndex(
         (n, idx) => n === name && gradeIds[idx] === grade.id,
       );
       if (duplicateIndex !== -1) {
-        throw new Error(
-          `المجموعة مكررة في الملف: ${name} في صف ${grade_name}`,
-        );
+        throw new Error(`المجموعة مكررة في الملف: ${name} في صف ${grade_name}`);
       }
 
-      // التحقق من عدم وجود المجموعة في قاعدة البيانات
       const existingGroup = await query(
         "SELECT id FROM groups WHERE name = $1 AND grade_id = $2 AND deleted = 0",
         [name, grade.id],
       );
       if (existingGroup.rows[0]) {
-        throw new Error(
-          `المجموعة موجودة مسبقاً: ${name} في صف ${grade_name}`,
-        );
+        throw new Error(`المجموعة موجودة مسبقاً: ${name} في صف ${grade_name}`);
       }
 
       names.push(name);
@@ -121,34 +110,24 @@ const processGroupsBulk = async (data) => {
     }
   }
 
-  // Bulk insert
   if (names.length > 0) {
     try {
       const insertResult = await query(
         `INSERT INTO groups (name, grade_id, days, start_time, end_time, room)
-         SELECT * FROM UNNEST(
-           $1::text[],
-           $2::int[],
-           $3::text[],
-           $4::time[],
-           $5::time[],
-           $6::text[]
-         )
+         SELECT unnest($1::text[]), unnest($2::int[]), unnest($3::text[]), unnest($4::time[]), unnest($5::time[]), unnest($6::text[])
          RETURNING id, name, grade_id`,
         [names, gradeIds, daysList, startTimes, endTimes, rooms],
       );
 
       const insertedGroups = insertResult.rows;
       results.forEach((result) => {
-        const inserted = insertedGroups.find(
-          (g) => g.name === result.name,
-        );
+        const inserted = insertedGroups.find((g) => g.name === result.name);
         if (inserted) {
           result.group_id = inserted.id;
         }
       });
     } catch (error) {
-      console.error("❌ Bulk insert error:", error);
+      console.error("Bulk insert error:", error);
       throw new Error(`فشل إدخال المجموعات: ${error.message}`);
     }
   }
