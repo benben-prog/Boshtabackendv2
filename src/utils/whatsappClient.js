@@ -146,33 +146,47 @@ function getEgyptMonth(monthStr) {
   return months[monthStr] || monthStr;
 }
 
+// ============================================
+// WELCOME TEMPLATE
+// Template parameters: {{1}} = student name, {{2}} = barcode
+// Button: {{1}} = parent token URL
+// ============================================
 async function sendWelcomeMsg(student, phone) {
   return sendTemplate({
     phone,
     templateName: "welcome",
     parameters: [
-      student.full_name || student.name || "Student",
-      student.barcode || "N/A",
+      student.full_name || student.name || "Student", // {{1}}
+      student.barcode || "N/A", // {{2}}
     ],
     buttonParams: student.parent_token,
     lang_code: "en",
   });
 }
 
+// ============================================
+// ABSENCE TEMPLATE
+// Template parameters: {{1}} = student name, {{2}} = barcode, {{3}} = date
+// Button: {{1}} = parent token URL
+// ============================================
 async function sendAbsentMsg(student, phone, date) {
   return sendTemplate({
     phone,
     templateName: "absent",
     parameters: [
-      student.full_name || student.name || "Student",
-      student.barcode || "N/A",
-      getEgyptDate(date),
+      student.full_name || student.name || "Student", // {{1}}
+      student.barcode || "N/A", // {{2}}
+      getEgyptDate(date), // {{3}}
     ],
     buttonParams: student.parent_token,
     lang_code: "ar",
   });
 }
 
+// ============================================
+// PAYMENT TEMPLATE
+// Template parameters: {{1}} = student name, {{2}} = month, {{3}} = amount
+// ============================================
 async function sendPaymentMsg(student, phone, paymentData) {
   const monthStr = String(paymentData.month || "").slice(5, 7);
   const monthArabic = getEgyptMonth(monthStr);
@@ -183,25 +197,29 @@ async function sendPaymentMsg(student, phone, paymentData) {
     phone,
     templateName: "payment",
     parameters: [
-      student.full_name || student.name || "Student",
-      `${monthArabic} ${year}`,
-      amount,
+      student.full_name || student.name || "Student", // {{1}}
+      `${monthArabic} ${year}`, // {{2}}
+      amount, // {{3}}
     ],
     lang_code: "ar",
   });
 }
 
+// ============================================
+// EXAM TEMPLATE
+// Template parameters: {{1}} = student name, {{2}} = score, {{3}} = full mark, {{4}} = date, {{5}} = day, {{6}} = barcode
+// ============================================
 async function sendExamMsg(student, phone, examData) {
   return sendTemplate({
     phone,
     templateName: "exam",
     parameters: [
-      student.full_name || student.name || "Student",
-      Number(examData.score) || 0,
-      Number(examData.fullMark) || 100,
-      getEgyptDate(examData.date),
-      getEgyptDay(examData.date),
-      student.barcode || "N/A",
+      student.full_name || student.name || "Student", // {{1}}
+      Number(examData.score) || 0, // {{2}}
+      Number(examData.fullMark) || 100, // {{3}}
+      getEgyptDate(examData.date), // {{4}}
+      getEgyptDay(examData.date), // {{5}}
+      student.barcode || "N/A", // {{6}}
     ],
     lang_code: "ar",
   });

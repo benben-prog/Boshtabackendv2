@@ -2,6 +2,7 @@
 const { query } = require("../../config/database");
 const whatsappClient = require("../../utils/whatsappClient");
 const { messages } = require("../../constants/messages");
+const { formatEgyptTime, getTodayEgypt } = require("../../utils/timezone");
 
 async function getWhatsappSettings() {
   const result = await query(
@@ -142,7 +143,7 @@ async function enqueueForStudentAndParent(student, type, messageData) {
   }
 
   const results = [];
-  const baseRefKey = `${type}_${student.id}_${new Date().toLocaleDateString("en-CA")}`;
+  const baseRefKey = `${type}_${student.id}_${getTodayEgypt()}`;
 
   const sendTo = template.sent_to || "parents";
   const phones = [];
@@ -233,9 +234,12 @@ async function dispatchMessage(messageId) {
       sendResult = await whatsappClient.sendWelcomeMsg(student, message.phone);
       break;
     case "absence":
-      let date;
+      let date = "";
       try {
-        date = message.params ? JSON.parse(message.params).date : "";
+        if (message.params) {
+          const parsed = JSON.parse(message.params);
+          date = parsed.date || "";
+        }
       } catch {
         date = "";
       }
@@ -248,7 +252,9 @@ async function dispatchMessage(messageId) {
     case "payment":
       let paymentData = {};
       try {
-        paymentData = message.params ? JSON.parse(message.params) : {};
+        if (message.params) {
+          paymentData = JSON.parse(message.params);
+        }
       } catch {}
       sendResult = await whatsappClient.sendPaymentMsg(
         student,
@@ -259,7 +265,9 @@ async function dispatchMessage(messageId) {
     case "exam":
       let examData = {};
       try {
-        examData = message.params ? JSON.parse(message.params) : {};
+        if (message.params) {
+          examData = JSON.parse(message.params);
+        }
       } catch {}
       sendResult = await whatsappClient.sendExamMsg(
         student,
@@ -285,10 +293,10 @@ async function markSent(id, messageId) {
     `
     UPDATE messages 
     SET status = 'sent', 
-        sent_at = NOW(),
+        sent_at = NOW() AT TIME ZONE 'Africa/Cairo',
         message_id = $2,
         attempts = attempts + 1,
-        updated_at = NOW()
+        updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
     WHERE id = $1
   `,
     [id, messageId],
@@ -302,7 +310,7 @@ async function markFailed(id, error) {
     SET status = 'failed', 
         error_message = $2,
         attempts = attempts + 1,
-        updated_at = NOW()
+        updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
     WHERE id = $1
   `,
     [id, error?.slice(0, 500) || "Unknown error"],
@@ -329,7 +337,7 @@ async function sendQueue({ limit = 5 } = {}) {
   await query(
     `
     UPDATE messages 
-    SET status = 'pending', updated_at = NOW()
+    SET status = 'pending', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
     WHERE id IN (
       SELECT id FROM messages 
       WHERE status = 'scheduled'
@@ -420,7 +428,7 @@ async function resetFailed() {
     UPDATE messages 
     SET status = 'pending', 
         error_message = NULL,
-        updated_at = NOW()
+        updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
     WHERE status = 'failed' AND attempts < 3
     RETURNING id
   `);
