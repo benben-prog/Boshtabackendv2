@@ -52,13 +52,6 @@ const createPayment = async (paymentData) => {
   const { subscription_id, student_id, amount, payment_date, notes } =
     paymentData;
 
-  console.log("[WhatsApp] createPayment called with:", {
-    subscription_id,
-    student_id,
-    amount,
-    payment_date,
-  });
-
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
     subscription_id,
   ]);
@@ -68,11 +61,6 @@ const createPayment = async (paymentData) => {
   }
 
   const { required_amount, status, month } = subscriptionResult.rows[0];
-  console.log("[WhatsApp] Subscription data:", {
-    required_amount,
-    status,
-    month,
-  });
 
   if (status === "paid") {
     throw new Error("Subscription already paid");
@@ -89,7 +77,6 @@ const createPayment = async (paymentData) => {
   await query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
 
   const payment = paymentResult.rows[0];
-  console.log("[WhatsApp] Payment created:", payment);
 
   if (payment) {
     try {
@@ -98,10 +85,8 @@ const createPayment = async (paymentData) => {
         [student_id],
       );
       const student = studentResult.rows[0];
-      console.log("[WhatsApp] Student data:", student);
 
       if (student) {
-        // Format month and year separately for WhatsApp template
         const { month: monthName, year } = formatPaymentData(month);
         const paymentAmount = Number(amount) || 0;
 
@@ -111,16 +96,13 @@ const createPayment = async (paymentData) => {
           amount: paymentAmount,
         };
 
-        console.log("[WhatsApp] Payment info being sent:", paymentInfo);
-
         const paymentMessage = whatsappDispatcher.generatePaymentMessage(
           student,
           paymentInfo,
         );
 
-        console.log("[WhatsApp] Payment message:", paymentMessage);
-
-        const result = await whatsappDispatcher.enqueueForStudentAndParent(
+        // ✅ Pass paymentData as params so it gets stored in the messages table
+        await whatsappDispatcher.enqueueForStudentAndParent(
           student,
           "payment",
           {
@@ -128,11 +110,9 @@ const createPayment = async (paymentData) => {
             paymentData: paymentInfo,
           },
         );
-
-        console.log("[WhatsApp] Enqueue result:", result);
       }
     } catch (error) {
-      console.error("[WhatsApp] Error enqueueing payment message:", error);
+      console.error("Error enqueueing payment message:", error);
     }
   }
 

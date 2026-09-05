@@ -72,12 +72,6 @@ function generateAbsenceMessage(student, date) {
 }
 
 function generatePaymentMessage(student, paymentData) {
-  console.log("[WhatsApp] generatePaymentMessage received:", {
-    studentName: student.full_name,
-    paymentData,
-  });
-
-  // paymentData should have: { month: "سبتمبر", year: "2026", amount: 200 }
   return messages.payment(
     student.full_name,
     paymentData.month || "غير محدد",
@@ -85,6 +79,7 @@ function generatePaymentMessage(student, paymentData) {
     paymentData.amount || 0,
   );
 }
+
 function generateExamMessage(student, examData) {
   return messages.exams(
     student.full_name,
@@ -97,7 +92,8 @@ function generateExamMessage(student, examData) {
 }
 
 async function enqueueMessage(messageData) {
-  const { student_id, type, phone, recipient, message, ref_key } = messageData;
+  const { student_id, type, phone, recipient, message, ref_key, params } =
+    messageData;
 
   if (!phone) {
     return { inserted: false, error: "Phone number required" };
@@ -125,13 +121,16 @@ async function enqueueMessage(messageData) {
     status = "scheduled";
   }
 
+  // ✅ Store params as JSON in the messages table
+  const paramsJson = params ? JSON.stringify(params) : null;
+
   const result = await query(
     `
-    INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Africa/Cairo', NOW() AT TIME ZONE 'Africa/Cairo')
+    INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, params, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() AT TIME ZONE 'Africa/Cairo', NOW() AT TIME ZONE 'Africa/Cairo')
     RETURNING id, status
   `,
-    [student_id, phone, message, type, recipient, ref_key, status],
+    [student_id, phone, message, type, recipient, ref_key, status, paramsJson],
   );
 
   return {
@@ -169,6 +168,11 @@ async function enqueueForStudentAndParent(student, type, messageData) {
   for (const phoneInfo of phones) {
     const message = messageData.message;
     const refKey = `${baseRefKey}_${phoneInfo.recipient}`;
+    // ✅ Pass params to enqueueMessage
+    const params =
+      messageData.paymentData || messageData.examData || messageData.date
+        ? { date: messageData.date }
+        : null;
 
     const result = await enqueueMessage({
       student_id: student.id,
@@ -177,6 +181,7 @@ async function enqueueForStudentAndParent(student, type, messageData) {
       recipient: phoneInfo.recipient,
       message,
       ref_key: refKey,
+      params: params,
     });
 
     results.push(result);
@@ -235,20 +240,26 @@ async function dispatchMessage(messageId) {
 
   let sendResult;
 
+  // ✅ Parse params from the message
+  let params = {};
+  try {
+    if (message.params) {
+      params =
+        typeof message.params === "string"
+          ? JSON.parse(message.params)
+          : message.params;
+    }
+  } catch (e) {
+    console.error("[WhatsApp] Failed to parse params:", e);
+    params = {};
+  }
+
   switch (message.type) {
     case "welcome":
       sendResult = await whatsappClient.sendWelcomeMsg(student, message.phone);
       break;
     case "absence":
-      let date = "";
-      try {
-        if (message.params) {
-          const parsed = JSON.parse(message.params);
-          date = parsed.date || "";
-        }
-      } catch {
-        date = "";
-      }
+      const date = params.date || "";
       sendResult = await whatsappClient.sendAbsentMsg(
         student,
         message.phone,
@@ -256,12 +267,12 @@ async function dispatchMessage(messageId) {
       );
       break;
     case "payment":
-      let paymentData = {};
-      try {
-        if (message.params) {
-          paymentData = JSON.parse(message.params);
-        }
-      } catch {}
+      // ✅ Use params from the message (which contains paymentData)
+      const paymentData = {
+        month: params.month || "غير محدد",
+        year: params.year || new Date().getFullYear(),
+        amount: params.amount || 0,
+      };
       sendResult = await whatsappClient.sendPaymentMsg(
         student,
         message.phone,
@@ -269,12 +280,12 @@ async function dispatchMessage(messageId) {
       );
       break;
     case "exam":
-      let examData = {};
-      try {
-        if (message.params) {
-          examData = JSON.parse(message.params);
-        }
-      } catch {}
+      const examData = {
+        score: params.score || 0,
+        fullMark: params.fullMark || 100,
+        date: params.date || "غير محدد",
+        day: params.day || "غير محدد",
+      };
       sendResult = await whatsappClient.sendExamMsg(
         student,
         message.phone,
