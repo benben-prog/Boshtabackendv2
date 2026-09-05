@@ -221,10 +221,6 @@ async function sendPaymentMsg(student, phone, paymentData) {
     return { success: false, skipped: true, error: "No valid phone number" };
   }
 
-  // paymentData.month should already be formatted as "سبتمبر 2026"
-  const monthDisplay = paymentData.month || "غير محدد";
-  const amount = Number(paymentData.amount) || 0;
-
   const template = {
     messaging_product: "whatsapp",
     to: to,
@@ -240,8 +236,13 @@ async function sendPaymentMsg(student, phone, paymentData) {
               type: "text",
               text: student.full_name || student.name || "Student",
             },
-            { type: "text", text: monthDisplay },
-            { type: "text", text: String(amount) },
+            { type: "text", text: paymentData.month },
+            { type: "text", text: paymentData.year },
+
+            {
+              type: "text",
+              text: paymentData.amount,
+            },
           ],
         },
       ],

@@ -76,6 +76,7 @@ function generatePaymentMessage(student, paymentData) {
   return messages.payment(
     student.full_name,
     paymentData.month || "غير محدد",
+    paymentData.year || "غير محدد",
     paymentData.amount || 0,
   );
 }
