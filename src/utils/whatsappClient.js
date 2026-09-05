@@ -1,11 +1,12 @@
 // src/utils/whatsappClient.js
 const env = require("../config/env");
-const { formatEgyptTime, getTodayEgypt } = require("./timezone");
+const { formatEgyptTime } = require("./timezone");
 
 const WHATSAPP_TOKEN = env.WHATSAPP_TOKEN;
 const WHATSAPP_PHONE_ID = env.WHATSAPP_PHONE_ID || "1300602659800445";
 const API_URL = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_ID}/messages`;
 
+// Helper: Normalize phone number to international format
 function normalizePhone(phone) {
   const digits = String(phone ?? "").replace(/\D/g, "");
   if (!digits) return "";
@@ -15,10 +16,333 @@ function normalizePhone(phone) {
   return digits;
 }
 
+// Helper: Check if phone number is valid
 function hasPhone(phone) {
   return normalizePhone(phone).length >= 11;
 }
 
+// Helper: Format date for display
+function getEgyptDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return String(dateStr || "");
+    return formatEgyptTime(date, "DD/MM/YYYY");
+  } catch {
+    return String(dateStr || "");
+  }
+}
+
+// Helper: Get day name in Arabic
+function getEgyptDay(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    const egyptDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+    );
+    const days = [
+      "الأحد",
+      "الاثنين",
+      "الثلاثاء",
+      "الأربعاء",
+      "الخميس",
+      "الجمعة",
+      "السبت",
+    ];
+    return days[egyptDate.getDay()];
+  } catch {
+    return "";
+  }
+}
+
+// Helper: Get month name in Arabic
+function getEgyptMonth(monthStr) {
+  if (!monthStr) return "";
+  const months = {
+    "01": "يناير",
+    "02": "فبراير",
+    "03": "مارس",
+    "04": "أبريل",
+    "05": "مايو",
+    "06": "يونيو",
+    "07": "يوليو",
+    "08": "أغسطس",
+    "09": "سبتمبر",
+    10: "أكتوبر",
+    11: "نوفمبر",
+    12: "ديسمبر",
+  };
+  return months[monthStr] || monthStr;
+}
+
+// ============================================
+// SEND WELCOME TEMPLATE
+// Template: welcome
+// Parameters: {{1}} = name, {{2}} = barcode
+// Button: {{1}} = parent_token (URL)
+// ============================================
+async function sendWelcomeMsg(student, phone) {
+  const to = normalizePhone(phone);
+  if (!hasPhone(to)) {
+    return { success: false, skipped: true, error: "No valid phone number" };
+  }
+
+  const template = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "template",
+    template: {
+      name: "welcome",
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: student.full_name || student.name || "Student",
+            },
+            { type: "text", text: student.barcode || "N/A" },
+          ],
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [{ type: "text", text: student.parent_token || "" }],
+        },
+      ],
+    },
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(template),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: `HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, id: data?.messages?.[0]?.id || null, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// SEND ABSENCE TEMPLATE
+// Template: absent
+// Parameters: {{1}} = name, {{2}} = barcode, {{3}} = date
+// Button: {{1}} = parent_token (URL)
+// ============================================
+async function sendAbsentMsg(student, phone, date) {
+  const to = normalizePhone(phone);
+  if (!hasPhone(to)) {
+    return { success: false, skipped: true, error: "No valid phone number" };
+  }
+
+  const formattedDate = date || getEgyptDate(new Date()) || "غير محدد";
+
+  const template = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "template",
+    template: {
+      name: "absent",
+      language: { code: "ar" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: student.full_name || student.name || "Student",
+            },
+            { type: "text", text: student.barcode || "N/A" },
+            { type: "text", text: formattedDate },
+          ],
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [{ type: "text", text: student.parent_token || "" }],
+        },
+      ],
+    },
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(template),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: `HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, id: data?.messages?.[0]?.id || null, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// SEND PAYMENT TEMPLATE
+// Template: payment
+// Parameters: {{1}} = name, {{2}} = month (with year), {{3}} = amount
+// ============================================
+async function sendPaymentMsg(student, phone, paymentData) {
+  const to = normalizePhone(phone);
+  if (!hasPhone(to)) {
+    return { success: false, skipped: true, error: "No valid phone number" };
+  }
+
+  // paymentData.month should already be formatted as "سبتمبر 2026"
+  const monthDisplay = paymentData.month || "غير محدد";
+  const amount = Number(paymentData.amount) || 0;
+
+  const template = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "template",
+    template: {
+      name: "payment",
+      language: { code: "ar" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: student.full_name || student.name || "Student",
+            },
+            { type: "text", text: monthDisplay },
+            { type: "text", text: String(amount) },
+          ],
+        },
+      ],
+    },
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(template),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: `HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, id: data?.messages?.[0]?.id || null, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// SEND EXAM TEMPLATE
+// Template: exam
+// Parameters: {{1}} = name, {{2}} = score, {{3}} = fullMark, {{4}} = date, {{5}} = day, {{6}} = barcode
+// ============================================
+async function sendExamMsg(student, phone, examData) {
+  const to = normalizePhone(phone);
+  if (!hasPhone(to)) {
+    return { success: false, skipped: true, error: "No valid phone number" };
+  }
+
+  const score = Number(examData.score) || 0;
+  const fullMark = Number(examData.fullMark) || 100;
+  const date = examData.date || "غير محدد";
+  const day = examData.day || "غير محدد";
+
+  const template = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "template",
+    template: {
+      name: "exam",
+      language: { code: "ar" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: student.full_name || student.name || "Student",
+            },
+            { type: "text", text: String(score) },
+            { type: "text", text: String(fullMark) },
+            { type: "text", text: date },
+            { type: "text", text: day },
+            { type: "text", text: student.barcode || "N/A" },
+          ],
+        },
+      ],
+    },
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(template),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: `HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, id: data?.messages?.[0]?.id || null, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// GENERIC SEND TEMPLATE (fallback)
+// ============================================
 async function sendTemplate({
   phone,
   templateName,
@@ -93,137 +417,6 @@ async function sendTemplate({
   }
 }
 
-function getEgyptDate(dateStr) {
-  if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateStr || "");
-    return formatEgyptTime(date, "DD/MM/YYYY");
-  } catch {
-    return String(dateStr || "");
-  }
-}
-
-function getEgyptDay(dateStr) {
-  if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "";
-    const egyptDate = new Date(
-      date.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
-    );
-    const days = [
-      "الأحد",
-      "الاثنين",
-      "الثلاثاء",
-      "الأربعاء",
-      "الخميس",
-      "الجمعة",
-      "السبت",
-    ];
-    return days[egyptDate.getDay()];
-  } catch {
-    return "";
-  }
-}
-
-function getEgyptMonth(monthStr) {
-  if (!monthStr) return "";
-  const months = {
-    "01": "يناير",
-    "02": "فبراير",
-    "03": "مارس",
-    "04": "أبريل",
-    "05": "مايو",
-    "06": "يونيو",
-    "07": "يوليو",
-    "08": "أغسطس",
-    "09": "سبتمبر",
-    10: "أكتوبر",
-    11: "نوفمبر",
-    12: "ديسمبر",
-  };
-  return months[monthStr] || monthStr;
-}
-
-// ============================================
-// WELCOME TEMPLATE
-// Template parameters: {{1}} = student name, {{2}} = barcode
-// Button: {{1}} = parent token URL
-// ============================================
-async function sendWelcomeMsg(student, phone) {
-  return sendTemplate({
-    phone,
-    templateName: "welcome",
-    parameters: [
-      student.full_name || student.name || "Student", // {{1}}
-      student.barcode || "N/A", // {{2}}
-    ],
-    buttonParams: student.parent_token,
-    lang_code: "en",
-  });
-}
-
-// ============================================
-// ABSENCE TEMPLATE
-// Template parameters: {{1}} = student name, {{2}} = barcode, {{3}} = date
-// Button: {{1}} = parent token URL
-// ============================================
-async function sendAbsentMsg(student, phone, date) {
-  return sendTemplate({
-    phone,
-    templateName: "absent",
-    parameters: [
-      student.full_name || student.name || "Student", // {{1}}
-      student.barcode || "N/A", // {{2}}
-      date || "غير محدد", // {{3}}
-    ],
-    buttonParams: student.parent_token,
-    lang_code: "ar",
-  });
-}
-
-// ============================================
-// PAYMENT TEMPLATE
-// Template parameters: {{1}} = student name, {{2}} = month, {{3}} = amount
-// month should be like "سبتمبر 2026" not "2026-09"
-// ============================================
-async function sendPaymentMsg(student, phone, paymentData) {
-  const monthDisplay = paymentData.month || "غير محدد";
-  const amount = Number(paymentData.amount) || 0;
-
-  return sendTemplate({
-    phone,
-    templateName: "payment",
-    parameters: [
-      student.full_name || student.name || "Student", // {{1}}
-      monthDisplay, // {{2}}
-      amount, // {{3}}
-    ],
-    lang_code: "ar",
-  });
-}
-
-// ============================================
-// EXAM TEMPLATE
-// Template parameters: {{1}} = student name, {{2}} = score, {{3}} = full mark, {{4}} = date, {{5}} = day, {{6}} = barcode
-// ============================================
-async function sendExamMsg(student, phone, examData) {
-  return sendTemplate({
-    phone,
-    templateName: "exam",
-    parameters: [
-      student.full_name || student.name || "Student", // {{1}}
-      Number(examData.score) || 0, // {{2}}
-      Number(examData.fullMark) || 100, // {{3}}
-      examData.date || "غير محدد", // {{4}}
-      examData.day || "غير محدد", // {{5}}
-      student.barcode || "N/A", // {{6}}
-    ],
-    lang_code: "ar",
-  });
-}
-
 module.exports = {
   sendTemplate,
   sendWelcomeMsg,
@@ -232,4 +425,7 @@ module.exports = {
   sendExamMsg,
   normalizePhone,
   hasPhone,
+  getEgyptDate,
+  getEgyptDay,
+  getEgyptMonth,
 };
