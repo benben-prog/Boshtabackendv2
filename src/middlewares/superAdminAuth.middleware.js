@@ -1,18 +1,29 @@
 const env = require("../config/env");
+const { verifyToken } = require("../utils/jwt");
 
 const superAdminAuth = (req, res, next) => {
-  if (req.clientRole !== "super_admin") {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied - Super Admin only",
-    });
+  // ✅ First: Check JWT token from x-client-key (for logged-in super admin)
+  const clientToken = req.headers["x-client-key"];
+  if (clientToken) {
+    try {
+      const decoded = verifyToken(clientToken);
+      if (decoded && decoded.role === "super_admin") {
+        req.clientId = decoded.id;
+        req.clientRole = decoded.role;
+        req.clientPermissions = decoded.permissions;
+        return next();
+      }
+    } catch (error) {
+      // Token invalid, continue to check x-super-admin-key
+    }
   }
 
+  // ✅ Second: Check Basic Auth from x-super-admin-key (for API access)
   const authHeader = req.headers["x-super-admin-key"];
   if (!authHeader) {
     return res.status(401).json({
       success: false,
-      message: "Super admin key required",
+      message: "Super admin authentication required",
     });
   }
 
@@ -28,7 +39,6 @@ const superAdminAuth = (req, res, next) => {
   const decodedToken = Buffer.from(token, "base64").toString("utf-8");
   const [username, password] = decodedToken.split(":");
 
-  // استخدام env.js مباشرة بدون fallback
   const SUPER_ADMIN_USERNAME = env.SUPER_ADMIN_USERNAME;
   const SUPER_ADMIN_PASSWORD = env.SUPER_ADMIN_PASSWORD;
 
@@ -45,6 +55,10 @@ const superAdminAuth = (req, res, next) => {
       message: "Invalid super admin key",
     });
   }
+
+  req.clientId = null;
+  req.clientRole = "super_admin";
+  req.clientPermissions = "center_management";
 
   next();
 };
