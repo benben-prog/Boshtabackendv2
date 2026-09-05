@@ -222,7 +222,7 @@ async function sendAbsentMsg(student, phone, date) {
 // ============================================
 // SEND PAYMENT TEMPLATE
 // Template: payment
-// Parameters: {{1}} = name, {{2}} = month (with year), {{3}} = amount
+// Parameters: {{1}} = name, {{2}} = month, {{3}} = year, {{4}} = amount
 // ============================================
 async function sendPaymentMsg(student, phone, paymentData) {
   const to = normalizePhone(phone);
@@ -231,7 +231,8 @@ async function sendPaymentMsg(student, phone, paymentData) {
   }
 
   const name = safeText(student.full_name || student.name || "Student");
-  const monthDisplay = safeText(paymentData?.month || "غير محدد");
+  const month = safeText(paymentData?.month || "غير محدد");
+  const year = safeText(String(paymentData?.year || new Date().getFullYear()));
   const amount = safeText(String(paymentData?.amount ?? 0));
 
   const template = {
@@ -246,7 +247,8 @@ async function sendPaymentMsg(student, phone, paymentData) {
           type: "body",
           parameters: [
             { type: "text", text: name },
-            { type: "text", text: monthDisplay },
+            { type: "text", text: month },
+            { type: "text", text: year },
             { type: "text", text: amount },
           ],
         },

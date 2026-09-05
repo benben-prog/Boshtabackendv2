@@ -2,12 +2,14 @@ const { query } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
-// Helper function to format month for display
-function formatMonthForDisplay(monthStr) {
-  if (!monthStr) return "غير محدد";
-  // monthStr format: "2026-09"
+// Helper function to format month and year separately for WhatsApp template
+// WhatsApp payment template expects: {{1}} = name, {{2}} = month, {{3}} = year, {{4}} = amount
+function formatPaymentData(monthStr) {
+  if (!monthStr) return { month: "غير محدد", year: new Date().getFullYear() };
+
   const parts = monthStr.split("-");
-  if (parts.length !== 2) return monthStr;
+  if (parts.length !== 2)
+    return { month: monthStr, year: new Date().getFullYear() };
 
   const year = parts[0];
   const month = parts[1];
@@ -27,7 +29,10 @@ function formatMonthForDisplay(monthStr) {
     12: "ديسمبر",
   };
 
-  return `${monthNames[month] || month} ${year}`;
+  return {
+    month: monthNames[month] || month,
+    year: year,
+  };
 }
 
 const createPayment = async (paymentData) => {
@@ -69,12 +74,12 @@ const createPayment = async (paymentData) => {
       const student = studentResult.rows[0];
 
       if (student) {
-        // Format month properly for display
-        const monthForDisplay = formatMonthForDisplay(month);
+        // Format month and year separately for WhatsApp template
+        const { month: monthName, year } = formatPaymentData(month);
 
         const paymentInfo = {
-          month: monthForDisplay,
-          year: new Date().getFullYear(),
+          month: monthName,
+          year: year,
           amount: Number(amount) || 0,
         };
 
