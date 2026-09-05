@@ -57,8 +57,8 @@ async function processQueue() {
 
 async function scheduleDynamicCron() {
   const delaySeconds = await getDelaySeconds();
-  const batchSize = 5;
-  const restTime = 60;
+  const batchSize = 50;
+  const restTime = 1;
   const totalSeconds = batchSize * delaySeconds + restTime;
   const cronMinutes = Math.ceil(totalSeconds / 60);
 
