@@ -4,12 +4,18 @@ const whatsappClient = require("../../utils/whatsappClient");
 const { messages } = require("../../constants/messages");
 const { formatEgyptTime, getTodayEgypt } = require("../../utils/timezone");
 
+// ============ Queue System ============
+let messageQueue = [];
+let processingQueue = false;
+
+// ============ Helper Functions ============
+
 async function getWhatsappSettings() {
   const result = await query(
     "SELECT whatsapp_daily_limit, whatsapp_delay_seconds FROM settings WHERE id = 1",
   );
   return (
-    result.rows[0] || { whatsapp_daily_limit: 250, whatsapp_delay_seconds: 45 }
+    result.rows[0] || { whatsapp_daily_limit: 250, whatsapp_delay_seconds: 2 }
   );
 }
 
@@ -23,6 +29,31 @@ async function getTodaySentCount() {
   `,
   );
   return parseInt(result.rows[0]?.count || 0);
+}
+
+// ✅ التحقق من إن الوقت الحالي في الفترة المسموحة (7 صباحًا - 11 مساءً)
+function isWithinSendingHours() {
+  const now = new Date();
+  const egyptTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+  );
+  const hour = egyptTime.getHours();
+
+  // من 7 صباحًا إلى 11 مساءً
+  return hour >= 7 && hour < 23;
+}
+
+// ✅ حساب الوقت المتبقي لحد 7 الصباح
+function getMillisecondsUntilMorning() {
+  const now = new Date();
+  const egyptTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+  );
+  const tomorrow = new Date(egyptTime);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(7, 0, 0, 0);
+
+  return tomorrow.getTime() - egyptTime.getTime();
 }
 
 async function getTemplateByType(type) {
@@ -53,6 +84,8 @@ async function getAllTemplates() {
   `);
   return result.rows;
 }
+
+// ============ Message Generators ============
 
 function generateWelcomeMessage(student) {
   return messages.welcome(
@@ -91,6 +124,124 @@ function generateExamMessage(student, examData) {
   );
 }
 
+// ============ Queue Processing ============
+
+// ✅ الـ Queue الرئيسي - بيبعت رسالة رسالة مع delay
+async function processQueueWithDelay() {
+  if (processingQueue) return;
+  processingQueue = true;
+
+  const settings = await getWhatsappSettings();
+  const delaySeconds = settings.whatsapp_delay_seconds || 2;
+
+  while (messageQueue.length > 0) {
+    // ✅ التحقق من الوقت - لو بره الفترة المسموحة نوقف
+    if (!isWithinSendingHours()) {
+      console.log("خارج وقت الإرسال المسموح - نستنى لـ 7 الصبح");
+
+      // إعادة الرسائل المتبقية لـ scheduled
+      if (messageQueue.length > 0) {
+        await query(
+          `UPDATE messages SET status = 'scheduled' WHERE id = ANY($1)`,
+          [messageQueue],
+        );
+        messageQueue = [];
+      }
+
+      // جدولة استئناف الإرسال الساعة 7 الصبح
+      setTimeout(() => {
+        processScheduledMessages();
+      }, getMillisecondsUntilMorning());
+
+      break;
+    }
+
+    // ✅ التحقق من الـ Daily Limit
+    const sentToday = await getTodaySentCount();
+
+    if (sentToday >= settings.whatsapp_daily_limit) {
+      console.log("الـ Daily Limit اكتمل - نستنى لبكرة");
+
+      // إعادة الرسائل المتبقية لـ scheduled
+      if (messageQueue.length > 0) {
+        await query(
+          `UPDATE messages SET status = 'scheduled' WHERE id = ANY($1)`,
+          [messageQueue],
+        );
+        messageQueue = [];
+      }
+
+      // جدولة لبكرة 7 الصبح
+      setTimeout(() => {
+        processScheduledMessages();
+      }, getMillisecondsUntilMorning());
+
+      break;
+    }
+
+    const messageId = messageQueue.shift();
+
+    try {
+      await dispatchMessage(messageId);
+    } catch (error) {
+      console.error("Error dispatching message:", error);
+    }
+
+    // ✅ delay من الإعدادات (افتراضي 2 ثانية)
+    if (messageQueue.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+    }
+  }
+
+  processingQueue = false;
+}
+
+// ✅ معالجة الرسائل المؤجلة (scheduled)
+async function processScheduledMessages() {
+  // التحقق من الوقت أولاً
+  if (!isWithinSendingHours()) {
+    setTimeout(() => {
+      processScheduledMessages();
+    }, getMillisecondsUntilMorning());
+    return;
+  }
+
+  const sentToday = await getTodaySentCount();
+  const settings = await getWhatsappSettings();
+
+  if (sentToday >= settings.whatsapp_daily_limit) {
+    setTimeout(() => {
+      processScheduledMessages();
+    }, getMillisecondsUntilMorning());
+    return;
+  }
+
+  const available = settings.whatsapp_daily_limit - sentToday;
+
+  // تحويل رسائل scheduled إلى pending
+  const result = await query(
+    `
+    UPDATE messages 
+    SET status = 'pending', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+    WHERE id IN (
+      SELECT id FROM messages 
+      WHERE status = 'scheduled'
+      ORDER BY created_at ASC
+      LIMIT $1
+    )
+    RETURNING id
+  `,
+    [available],
+  );
+
+  if (result.rows.length > 0) {
+    result.rows.forEach((row) => messageQueue.push(row.id));
+    processQueueWithDelay();
+  }
+}
+
+// ============ Message Enqueueing ============
+
 async function enqueueMessage(messageData) {
   const { student_id, type, phone, recipient, message, ref_key, params } =
     messageData;
@@ -104,9 +255,6 @@ async function enqueueMessage(messageData) {
     return { inserted: false, error: "Template inactive", skipped: true };
   }
 
-  const dailyLimit = await getWhatsappSettings();
-  const sentToday = await getTodaySentCount();
-
   if (ref_key) {
     const existing = await query("SELECT id FROM messages WHERE ref_key = $1", [
       ref_key,
@@ -116,22 +264,31 @@ async function enqueueMessage(messageData) {
     }
   }
 
-  let status = "pending";
-  if (sentToday >= dailyLimit.whatsapp_daily_limit) {
-    status = "scheduled";
+  const settings = await getWhatsappSettings();
+  const sentToday = await getTodaySentCount();
+
+  // ✅ تحديد حالة الرسالة
+  let status;
+  if (sentToday >= settings.whatsapp_daily_limit) {
+    status = "scheduled"; // الـ Daily Limit اكتمل
+  } else {
+    status = "pending"; // جاهزة للإرسال
   }
 
-  // ✅ Store params as JSON in the messages table
   const paramsJson = params ? JSON.stringify(params) : null;
 
   const result = await query(
-    `
-    INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, params, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() AT TIME ZONE 'Africa/Cairo', NOW() AT TIME ZONE 'Africa/Cairo')
-    RETURNING id, status
-  `,
+    `INSERT INTO messages (student_id, phone, message, type, recipient, ref_key, status, params, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() AT TIME ZONE 'Africa/Cairo', NOW() AT TIME ZONE 'Africa/Cairo')
+     RETURNING id, status`,
     [student_id, phone, message, type, recipient, ref_key, status, paramsJson],
   );
+
+  // ✅ لو الرسالة pending → نضيفها للـ Queue
+  if (status === "pending") {
+    messageQueue.push(result.rows[0].id);
+    processQueueWithDelay();
+  }
 
   return {
     inserted: true,
@@ -139,7 +296,6 @@ async function enqueueMessage(messageData) {
     scheduled: status === "scheduled",
   };
 }
-
 
 async function enqueueForStudentAndParent(student, type, messageData) {
   const template = await getTemplateByType(type);
@@ -180,29 +336,20 @@ async function enqueueForStudentAndParent(student, type, messageData) {
 
   for (const phoneInfo of phones) {
     const message = messageData.message;
-
     const refKey = `${baseRefKey}_${phoneInfo.recipient}`;
 
-    // Prepare params according to message type
     let params = null;
 
     switch (type) {
       case "payment":
         params = messageData.paymentData || null;
         break;
-
       case "exam":
         params = messageData.examData || null;
         break;
-
       case "absence":
-        params = messageData.date
-          ? {
-              date: messageData.date,
-            }
-          : null;
+        params = messageData.date ? { date: messageData.date } : null;
         break;
-
       default:
         params = null;
     }
@@ -233,7 +380,7 @@ async function enqueueForStudentAndParent(student, type, messageData) {
   return results;
 }
 
-
+// ============ Message Dispatching ============
 
 async function dispatchMessage(messageId) {
   const result = await query(
@@ -279,7 +426,6 @@ async function dispatchMessage(messageId) {
 
   let sendResult;
 
-  // ✅ Parse params from the message
   let params = {};
   try {
     if (message.params) {
@@ -306,7 +452,6 @@ async function dispatchMessage(messageId) {
       );
       break;
     case "payment":
-      // ✅ Use params from the message (which contains paymentData)
       const paymentData = {
         month: params.month || "غير محدد",
         year: params.year || new Date().getFullYear(),
@@ -344,6 +489,8 @@ async function dispatchMessage(messageId) {
   }
 }
 
+// ============ Status Updates ============
+
 async function markSent(id, messageId) {
   await query(
     `
@@ -372,6 +519,8 @@ async function markFailed(id, error) {
     [id, error?.slice(0, 500) || "Unknown error"],
   );
 }
+
+// ============ Public API ============
 
 async function sendQueue({ limit = 5 } = {}) {
   const settings = await getWhatsappSettings();
@@ -423,7 +572,7 @@ async function sendQueue({ limit = 5 } = {}) {
 
   let sent = 0;
   let failed = 0;
-  const delaySeconds = settings.whatsapp_delay_seconds || 45;
+  const delaySeconds = settings.whatsapp_delay_seconds || 2;
 
   for (let i = 0; i < pendingMessages.length; i++) {
     const dispatchResult = await dispatchMessage(pendingMessages[i].id);
@@ -488,7 +637,33 @@ async function resetFailed() {
     WHERE status = 'failed' AND attempts < 3
     RETURNING id
   `);
+
+  if (result.rows.length > 0) {
+    result.rows.forEach((row) => messageQueue.push(row.id));
+    processQueueWithDelay();
+  }
+
   return result.rows;
+}
+
+// ✅ بدء النظام
+function startSystem() {
+  console.log("WhatsApp system started");
+  console.log(`Sending hours: 7:00 AM - 11:00 PM`);
+  console.log(`Delay between messages: ${2} seconds (default)`);
+
+  // ✅ معالجة الرسائل المؤجلة فورًا
+  processScheduledMessages();
+
+  // ✅ إعادة المحاولة كل 30 دقيقة
+  setInterval(
+    () => {
+      if (isWithinSendingHours()) {
+        processScheduledMessages();
+      }
+    },
+    30 * 60 * 1000,
+  );
 }
 
 module.exports = {
@@ -507,4 +682,5 @@ module.exports = {
   generateAbsenceMessage,
   generatePaymentMessage,
   generateExamMessage,
+  startSystem,
 };

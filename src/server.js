@@ -27,12 +27,13 @@ if (process.env.VERCEL) {
       server.headersTimeout = 66000;
       server.requestTimeout = 0;
 
-      // Load WhatsApp queue job
+      // ✅ Load WhatsApp system (new system - no cron job)
       try {
-        require("./jobs/whatsappQueueJob");
-        console.log("WhatsApp queue job loaded");
+        const whatsappDispatcher = require("./modules/whatsapp_messages/whatsapp_dispatcher.service");
+        whatsappDispatcher.startSystem();
+        console.log("WhatsApp system loaded successfully");
       } catch (error) {
-        console.log("WhatsApp queue job not loaded:", error.message);
+        console.log("WhatsApp system not loaded:", error.message);
       }
     } catch (error) {
       console.error("Failed to start server:", error);
