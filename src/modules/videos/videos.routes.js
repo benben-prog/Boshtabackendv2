@@ -8,6 +8,10 @@ const {
   updateVideoSchema,
 } = require("../../middlewares/validations/video.validation");
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get all videos
 routes.get("/", videoController.getAllVideos);
 
@@ -20,7 +24,10 @@ routes.get("/:videoId/download", videoController.downloadVideoFile);
 // Get video by ID
 routes.get("/:videoId", videoController.getVideoById);
 
-// Create video
+// ============================================
+// CREATE
+// ============================================
+
 routes.post(
   "/",
   videoFilesUpload.fields([
@@ -31,7 +38,10 @@ routes.post(
   videoController.createVideo,
 );
 
-// Update video
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put(
   "/:videoId",
   videoFilesUpload.fields([
@@ -42,7 +52,11 @@ routes.put(
   videoController.updateVideo,
 );
 
-// Hard delete video
+// ============================================
+// DELETE
+// ============================================
+
+// Hard delete
 routes.delete("/:videoId", videoController.hardDeleteVideo);
 
 module.exports = routes;

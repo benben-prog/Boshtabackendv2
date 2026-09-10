@@ -2,12 +2,19 @@
    EXAMS QUERIES
    ============================================ */
 
-// Create a new exam
+// ============================================
+// CREATE
+// ============================================
+
 const createExam = `
 INSERT INTO exams (title, grade_id, group_id, total_degree, exam_date, notes)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get all exams - 20 per page
 const getAllExams = `
@@ -95,37 +102,67 @@ ORDER BY e.exam_date DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Update an exam
+// Count exam results for an exam
+const countExamResults = `
+SELECT COUNT(*) AS count
+FROM exam_results
+WHERE exam_id = $1
+`;
+
+// ============================================
+// UPDATE
+// ============================================
+
+// Update exam (full update)
 const updateExam = `
 UPDATE exams
 SET 
-  title = $1,
-  grade_id = $2,
-  group_id = $3,
-  total_degree = $4,
-  exam_date = $5,
-  notes = $6,
-  updated_at = NOW()
-WHERE id = $7 AND deleted = 0
-RETURNING *
-`;
-
-// Soft delete an exam
-const softDeleteExam = `
-UPDATE exams
-SET deleted = 1, updated_at = NOW()
+  title = COALESCE($2, title),
+  grade_id = COALESCE($3, grade_id),
+  group_id = COALESCE($4, group_id),
+  total_degree = COALESCE($5, total_degree),
+  exam_date = COALESCE($6, exam_date),
+  notes = COALESCE($7, notes),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
 RETURNING *
 `;
 
-// Hard delete an exam
-const hardDeleteExam = `
-DELETE FROM exams
-WHERE id = $1
+// Update exam (restricted - no total_degree)
+const updateExamRestricted = `
+UPDATE exams
+SET 
+  title = COALESCE($2, title),
+  grade_id = COALESCE($3, grade_id),
+  group_id = COALESCE($4, group_id),
+  exam_date = COALESCE($5, exam_date),
+  notes = COALESCE($6, notes),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
 RETURNING *
 `;
 
-// Get exam statistics
+// ============================================
+// DELETE
+// ============================================
+
+const softDeleteExam = `
+UPDATE exams
+SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING id
+`;
+
+const hardDeleteExam = `
+DELETE FROM exams
+WHERE id = $1
+RETURNING id
+`;
+
+// ============================================
+// STATISTICS
+// ============================================
+
 const getExamStats = `
 SELECT 
   e.id,
@@ -141,7 +178,6 @@ WHERE e.id = $1 AND e.deleted = 0
 GROUP BY e.id, e.title, e.total_degree
 `;
 
-// Get grade exam statistics
 const getGradeExamStats = `
 SELECT 
   g.id,
@@ -163,7 +199,9 @@ module.exports = {
   getExamById,
   getExamsByGradeId,
   getExamsByGroupId,
+  countExamResults,
   updateExam,
+  updateExamRestricted,
   softDeleteExam,
   hardDeleteExam,
   getExamStats,

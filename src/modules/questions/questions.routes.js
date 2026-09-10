@@ -8,6 +8,10 @@ const {
   updateQuestionSchema,
 } = require("../../middlewares/validations/question.validation");
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get questions by exam
 routes.get("/exam/:examId", questionController.getQuestionsByExamId);
 
@@ -17,7 +21,10 @@ routes.get("/:questionId/download", questionController.downloadQuestionFile);
 // Get question by ID
 routes.get("/:questionId", questionController.getQuestionById);
 
-// Create question
+// ============================================
+// CREATE
+// ============================================
+
 routes.post(
   "/",
   examUpload.single("file"),
@@ -25,7 +32,10 @@ routes.post(
   questionController.createQuestion,
 );
 
-// Update question
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put(
   "/:questionId",
   examUpload.single("file"),
@@ -33,7 +43,10 @@ routes.put(
   questionController.updateQuestion,
 );
 
-// Delete question
+// ============================================
+// DELETE
+// ============================================
+
 routes.delete("/:questionId", questionController.deleteQuestion);
 
 module.exports = routes;

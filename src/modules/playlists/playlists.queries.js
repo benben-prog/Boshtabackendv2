@@ -2,12 +2,19 @@
    PLAYLISTS QUERIES
    ============================================ */
 
-// Create playlist
+// ============================================
+// CREATE
+// ============================================
+
 const createPlaylist = `
 INSERT INTO playlists (title, description, grade_id, thumbnail_url, created_by)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get all playlists - 20 per page
 const getAllPlaylists = `
@@ -71,24 +78,30 @@ ORDER BY p.created_at DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Update playlist
+// ============================================
+// UPDATE
+// ============================================
+
 const updatePlaylist = `
 UPDATE playlists
 SET 
-  title = $2,
-  description = $3,
-  grade_id = $4,
-  thumbnail_url = $5,
-  updated_at = NOW()
+  title = COALESCE($2, title),
+  description = COALESCE($3, description),
+  grade_id = COALESCE($4, grade_id),
+  thumbnail_url = COALESCE($5, thumbnail_url),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1
 RETURNING *
 `;
 
-// Hard delete playlist
+// ============================================
+// DELETE
+// ============================================
+
 const hardDeletePlaylist = `
 DELETE FROM playlists
 WHERE id = $1
-RETURNING id
+RETURNING id, thumbnail_url
 `;
 
 module.exports = {

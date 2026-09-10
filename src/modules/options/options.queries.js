@@ -2,12 +2,19 @@
    OPTIONS QUERIES
    ============================================ */
 
-// Create option
+// ============================================
+// CREATE
+// ============================================
+
 const createOption = `
 INSERT INTO options (question_id, option_text, is_correct, "order")
 VALUES ($1, $2, $3, $4)
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get options by question ID
 const getOptionsByQuestionId = `
@@ -36,18 +43,47 @@ FROM options
 WHERE id = $1
 `;
 
-// Update option
+// Get option with exam info (for validation)
+const getOptionWithExam = `
+SELECT 
+  o.id,
+  o.question_id,
+  o.option_text,
+  o.is_correct,
+  o."order",
+  q.exam_id,
+  oe.start_at AS exam_start_at
+FROM options o
+JOIN questions q ON o.question_id = q.id
+JOIN online_exams oe ON q.exam_id = oe.id
+WHERE o.id = $1
+`;
+
+// Count correct options for a question
+const countCorrectOptions = `
+SELECT COUNT(*) AS count
+FROM options
+WHERE question_id = $1 AND is_correct = 1
+`;
+
+// ============================================
+// UPDATE
+// ============================================
+
 const updateOption = `
 UPDATE options
 SET 
-  option_text = $2,
-  is_correct = $3,
-  "order" = $4
+  option_text = COALESCE($2, option_text),
+  is_correct = COALESCE($3, is_correct),
+  "order" = COALESCE($4, "order")
 WHERE id = $1
 RETURNING *
 `;
 
-// Delete option
+// ============================================
+// DELETE
+// ============================================
+
 const deleteOption = `
 DELETE FROM options
 WHERE id = $1
@@ -65,6 +101,8 @@ module.exports = {
   createOption,
   getOptionsByQuestionId,
   getOptionById,
+  getOptionWithExam,
+  countCorrectOptions,
   updateOption,
   deleteOption,
   deleteOptionsByQuestionId,

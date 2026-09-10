@@ -1,36 +1,23 @@
-/**
- * التحقق من صحة رقم الهاتف المصري
- * @param {string} phone - رقم الهاتف
- * @returns {boolean} - هل الرقم صحيح
- */
+// Validate Egyptian phone number
 const validateEgyptianPhone = (phone) => {
-  // لو فاضي أو null، يعتبر صحيح (لأنه اختياري)
+  // Empty is valid (optional field)
   if (!phone || phone === "") return true;
 
-  // إزالة المسافات والشرطات والأقواس
   const cleaned = String(phone).replace(/[\s\-\(\)]/g, "");
 
-  // التحقق من الصيغة المصرية: 01xxxxxxxxx (11 رقم)
+  // Egyptian format: 01xxxxxxxxx (11 digits)
   const egyptianPhoneRegex = /^01[0125][0-9]{8}$/;
 
   return egyptianPhoneRegex.test(cleaned);
 };
 
-/**
- * تنظيف رقم الهاتف
- * @param {string} phone - رقم الهاتف
- * @returns {string} - الرقم المنظف
- */
+// Clean phone number
 const cleanPhone = (phone) => {
   if (!phone || phone === "") return null;
   return String(phone).replace(/[\s\-\(\)]/g, "");
 };
 
-/**
- * التحقق من صحة الوقت
- * @param {string} time - الوقت بصيغة HH:MM
- * @returns {boolean} - هل الوقت صحيح
- */
+// Validate time format (HH:MM)
 const validateTime = (time) => {
   if (!time || time === "") return false;
 
@@ -38,31 +25,26 @@ const validateTime = (time) => {
   return timeRegex.test(String(time).trim());
 };
 
-/**
- * تنظيف الوقت
- * @param {string|number} time - الوقت
- * @returns {string|null} - الوقت المنظف
- */
+// Clean time (handles Excel time format)
 const cleanTime = (time) => {
   if (time === null || time === undefined || time === "") return null;
 
-  // لو الوقت رقم (Excel time format)
+  // Excel time format (number)
   if (typeof time === "number") {
     const hours = Math.floor(time * 24);
     const minutes = Math.round((time * 24 - hours) * 60);
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   }
 
-  // لو الوقت نص
   const timeStr = String(time).trim();
 
-  // لو بصيغة HH:MM:SS
+  // HH:MM:SS format
   const timeWithSeconds = timeStr.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
   if (timeWithSeconds) {
     return `${timeWithSeconds[1].padStart(2, "0")}:${timeWithSeconds[2]}`;
   }
 
-  // لو بصيغة HH:MM
+  // HH:MM format
   const timeSimple = timeStr.match(/^(\d{1,2}):(\d{2})$/);
   if (timeSimple) {
     return `${timeSimple[1].padStart(2, "0")}:${timeSimple[2]}`;
@@ -71,12 +53,7 @@ const cleanTime = (time) => {
   return null;
 };
 
-/**
- * التحقق من أن الوقت الأول أقل من الثاني
- * @param {string} startTime - وقت البداية
- * @param {string} endTime - وقت النهاية
- * @returns {boolean} - هل البداية قبل النهاية
- */
+// Validate that start time is before end time
 const validateTimeRange = (startTime, endTime) => {
   if (!startTime || !endTime) return false;
 
@@ -89,21 +66,13 @@ const validateTimeRange = (startTime, endTime) => {
   return startMinutes < endMinutes;
 };
 
-/**
- * التحقق من أن القيمة رقم صحيح
- * @param {*} value - القيمة
- * @returns {boolean} - هل هي رقم
- */
+// Validate number
 const validateNumber = (value) => {
   if (value === null || value === undefined || value === "") return false;
   return !isNaN(Number(value));
 };
 
-/**
- * تنظيف الرقم
- * @param {*} value - القيمة
- * @returns {number|null} - الرقم المنظف
- */
+// Clean number
 const cleanNumber = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const num = Number(value);

@@ -1,7 +1,10 @@
 const optionService = require("./options.service");
 const { logActivity } = require("../../utils/activityLogger");
 
-// Get options by question
+// ============================================
+// GETTERS
+// ============================================
+
 const getOptionsByQuestionId = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -9,7 +12,7 @@ const getOptionsByQuestionId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الاختيارات بنجاح!",
+      message: "تم تحميل الاختيارات بنجاح",
       data: options,
     });
   } catch (error) {
@@ -17,19 +20,18 @@ const getOptionsByQuestionId = async (req, res, next) => {
   }
 };
 
-// Get option by ID
 const getOptionById = async (req, res, next) => {
   try {
     const { optionId } = req.params;
     const option = await optionService.getOptionById(optionId);
 
     if (!option) {
-      throw new Error("فشل تحميل الاختيار حاول مرة أخرى!");
+      throw new Error("الاختيار غير موجود");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الاختيار بنجاح!",
+      message: "تم تحميل الاختيار بنجاح",
       data: option,
     });
   } catch (error) {
@@ -37,16 +39,18 @@ const getOptionById = async (req, res, next) => {
   }
 };
 
-// Create option
+// ============================================
+// CREATE
+// ============================================
+
 const createOption = async (req, res, next) => {
   try {
     const option = await optionService.createOption(req.body);
 
     if (!option) {
-      throw new Error("فشل إنشاء الاختيار حاول مرة أخرى!");
+      throw new Error("فشل إنشاء الاختيار حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -59,7 +63,7 @@ const createOption = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء الاختيار بنجاح!",
+      message: "تم إنشاء الاختيار بنجاح",
       data: option,
     });
   } catch (error) {
@@ -67,17 +71,19 @@ const createOption = async (req, res, next) => {
   }
 };
 
-// Update option
+// ============================================
+// UPDATE
+// ============================================
+
 const updateOption = async (req, res, next) => {
   try {
     const { optionId } = req.params;
     const option = await optionService.updateOption(optionId, req.body);
 
     if (!option) {
-      throw new Error("فشل تعديل الاختيار حاول مرة أخرى!");
+      throw new Error("الاختيار غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -90,7 +96,7 @@ const updateOption = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل الاختيار بنجاح!",
+      message: "تم تعديل الاختيار بنجاح",
       data: option,
     });
   } catch (error) {
@@ -98,17 +104,19 @@ const updateOption = async (req, res, next) => {
   }
 };
 
-// Delete option
+// ============================================
+// DELETE
+// ============================================
+
 const deleteOption = async (req, res, next) => {
   try {
     const { optionId } = req.params;
     const option = await optionService.deleteOption(optionId);
 
     if (!option) {
-      throw new Error("فشل حذف الاختيار حاول مرة أخرى!");
+      throw new Error("الاختيار غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -121,7 +129,7 @@ const deleteOption = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الاختيار بنجاح!",
+      message: "تم حذف الاختيار بنجاح",
       data: option,
     });
   } catch (error) {

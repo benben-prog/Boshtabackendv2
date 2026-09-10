@@ -1,39 +1,10 @@
 const { query } = require("../../config/database");
 const assignmentQueries = require("./assignments.queries");
 
-// Get all assignments
-const getAllAssignments = async (page = 1) => {
-  const result = await query(assignmentQueries.getAllAssignments, [page]);
-  return result.rows;
-};
+// ============================================
+// CREATE
+// ============================================
 
-// Get assignment by ID
-const getAssignmentById = async (assignmentId) => {
-  const result = await query(assignmentQueries.getAssignmentById, [
-    assignmentId,
-  ]);
-  return result.rows[0];
-};
-
-// Get assignments by grade
-const getAssignmentsByGradeId = async (gradeId, page = 1) => {
-  const result = await query(assignmentQueries.getAssignmentsByGradeId, [
-    gradeId,
-    page,
-  ]);
-  return result.rows;
-};
-
-// Get assignments by group
-const getAssignmentsByGroupId = async (groupId, page = 1) => {
-  const result = await query(assignmentQueries.getAssignmentsByGroupId, [
-    groupId,
-    page,
-  ]);
-  return result.rows;
-};
-
-// Create assignment
 const createAssignment = async (assignmentData) => {
   const {
     title,
@@ -46,6 +17,7 @@ const createAssignment = async (assignmentData) => {
     created_by,
     is_closed = 0,
   } = assignmentData;
+
   const result = await query(assignmentQueries.createAssignment, [
     title,
     description,
@@ -57,10 +29,46 @@ const createAssignment = async (assignmentData) => {
     created_by,
     is_closed,
   ]);
+
   return result.rows[0];
 };
 
-// Update assignment - ✅ إصلاح is_closed
+// ============================================
+// GETTERS
+// ============================================
+
+const getAllAssignments = async (page = 1) => {
+  const result = await query(assignmentQueries.getAllAssignments, [page]);
+  return result.rows;
+};
+
+const getAssignmentById = async (assignmentId) => {
+  const result = await query(assignmentQueries.getAssignmentById, [
+    assignmentId,
+  ]);
+  return result.rows[0];
+};
+
+const getAssignmentsByGradeId = async (gradeId, page = 1) => {
+  const result = await query(assignmentQueries.getAssignmentsByGradeId, [
+    gradeId,
+    page,
+  ]);
+  return result.rows;
+};
+
+const getAssignmentsByGroupId = async (groupId, page = 1) => {
+  const result = await query(assignmentQueries.getAssignmentsByGroupId, [
+    groupId,
+    page,
+  ]);
+  return result.rows;
+};
+
+// ============================================
+// UPDATE (with validation)
+// ============================================
+
 const updateAssignment = async (assignmentId, assignmentData) => {
   const {
     title,
@@ -73,43 +81,52 @@ const updateAssignment = async (assignmentId, assignmentData) => {
     is_closed,
   } = assignmentData;
 
-  const existing = await query(
-    "SELECT * FROM assignments WHERE id = $1 AND deleted = 0",
+  // Check if assignment exists
+  const existingResult = await query(assignmentQueries.getAssignmentById, [
+    assignmentId,
+  ]);
+  const existing = existingResult.rows[0];
+
+  if (!existing) {
+    return null;
+  }
+
+  // Check if there are submissions
+  const submissionCountResult = await query(
+    assignmentQueries.countSubmissionsByAssignmentId,
     [assignmentId],
   );
-  if (!existing.rows[0]) return null;
+  const submissionCount = parseInt(submissionCountResult.rows[0]?.count || 0);
 
-  const updated = {
-    title: title ?? existing.rows[0].title,
-    description: description ?? existing.rows[0].description,
-    grade_id: grade_id ?? existing.rows[0].grade_id,
-    group_id: group_id ?? existing.rows[0].group_id,
-    file_path: file_path ?? existing.rows[0].file_path,
-    full_mark: full_mark ?? existing.rows[0].full_mark,
-    deadline: deadline ?? existing.rows[0].deadline,
-    // ✅ لو is_closed مش مبعوت، خليه 0 (مفتوح)
-    // ✅ لو مبعوت كـ string، حوله لرقم
-    is_closed:
-      is_closed !== undefined && is_closed !== null
-        ? parseInt(is_closed)
-        : 0,
-  };
+  // If there are submissions, restrict update to title, description, deadline only
+  if (submissionCount > 0) {
+    const result = await query(assignmentQueries.updateAssignmentRestricted, [
+      assignmentId,
+      title ?? null,
+      description ?? null,
+      deadline ?? null,
+    ]);
+    return result.rows[0];
+  }
 
+  // No submissions - full update allowed
   const result = await query(assignmentQueries.updateAssignment, [
     assignmentId,
-    updated.title,
-    updated.description,
-    updated.grade_id,
-    updated.group_id,
-    updated.file_path,
-    updated.full_mark,
-    updated.deadline,
-    updated.is_closed,
+    title ?? null,
+    description ?? null,
+    deadline ?? null,
+    full_mark ?? null,
+    file_path ?? null,
+    is_closed !== undefined && is_closed !== null ? parseInt(is_closed) : null,
   ]);
+
   return result.rows[0];
 };
 
-// Soft delete assignment
+// ============================================
+// DELETE
+// ============================================
+
 const softDeleteAssignment = async (assignmentId) => {
   const result = await query(assignmentQueries.softDeleteAssignment, [
     assignmentId,
@@ -117,7 +134,6 @@ const softDeleteAssignment = async (assignmentId) => {
   return result.rows[0];
 };
 
-// Hard delete assignment
 const hardDeleteAssignment = async (assignmentId) => {
   const result = await query(assignmentQueries.hardDeleteAssignment, [
     assignmentId,
@@ -126,11 +142,11 @@ const hardDeleteAssignment = async (assignmentId) => {
 };
 
 module.exports = {
+  createAssignment,
   getAllAssignments,
   getAssignmentById,
   getAssignmentsByGradeId,
   getAssignmentsByGroupId,
-  createAssignment,
   updateAssignment,
   softDeleteAssignment,
   hardDeleteAssignment,

@@ -3,19 +3,20 @@ const { logActivity } = require("../../utils/activityLogger");
 const path = require("path");
 const { formatEgyptTime } = require("../../utils/timezone");
 
-// Helper function to format dates
+// ============================================
+// HELPER: Format dates
+// ============================================
+
 const formatDate = (date) => {
   if (!date) return null;
   return formatEgyptTime(date, "YYYY-MM-DD HH:mm:ss");
 };
 
-// Helper function to format dates in array
 const formatDatesInArray = (items) => {
   if (!items || !Array.isArray(items)) return items;
   return items.map((item) => formatDatesInObject(item));
 };
 
-// Helper function to format dates in object
 const formatDatesInObject = (obj) => {
   if (!obj || typeof obj !== "object") return obj;
   const formatted = { ...obj };
@@ -34,21 +35,20 @@ const formatDatesInObject = (obj) => {
   return formatted;
 };
 
-// Get all assignments
+// ============================================
+// GET ALL
+// ============================================
+
 const getAllAssignments = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const assignments = await assignmentService.getAllAssignments(page);
 
-    if (!assignments) {
-      throw new Error("فشل تحميل الواجبات حاول مرة أخرى!");
-    }
-
     const formattedAssignments = formatDatesInArray(assignments);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الواجبات بنجاح!",
+      message: "تم تحميل الواجبات بنجاح",
       data: formattedAssignments,
     });
   } catch (error) {
@@ -56,21 +56,24 @@ const getAllAssignments = async (req, res, next) => {
   }
 };
 
-// Get assignment by ID
+// ============================================
+// GET BY ID
+// ============================================
+
 const getAssignmentById = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
     const assignment = await assignmentService.getAssignmentById(assignmentId);
 
     if (!assignment) {
-      throw new Error("فشل تحميل الواجب حاول مرة أخرى!");
+      throw new Error("الواجب غير موجود");
     }
 
     const formattedAssignment = formatDatesInObject(assignment);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الواجب بنجاح!",
+      message: "تم تحميل الواجب بنجاح",
       data: formattedAssignment,
     });
   } catch (error) {
@@ -78,11 +81,15 @@ const getAssignmentById = async (req, res, next) => {
   }
 };
 
-// Get assignments by grade
+// ============================================
+// GET BY GRADE
+// ============================================
+
 const getAssignmentsByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
     const page = parseInt(req.query.page) || 1;
+
     const assignments = await assignmentService.getAssignmentsByGradeId(
       gradeId,
       page,
@@ -92,7 +99,7 @@ const getAssignmentsByGradeId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الواجبات بنجاح!",
+      message: "تم تحميل الواجبات بنجاح",
       data: formattedAssignments,
     });
   } catch (error) {
@@ -100,11 +107,15 @@ const getAssignmentsByGradeId = async (req, res, next) => {
   }
 };
 
-// Get assignments by group
+// ============================================
+// GET BY GROUP
+// ============================================
+
 const getAssignmentsByGroupId = async (req, res, next) => {
   try {
     const { groupId } = req.params;
     const page = parseInt(req.query.page) || 1;
+
     const assignments = await assignmentService.getAssignmentsByGroupId(
       groupId,
       page,
@@ -114,7 +125,7 @@ const getAssignmentsByGroupId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الواجبات بنجاح!",
+      message: "تم تحميل الواجبات بنجاح",
       data: formattedAssignments,
     });
   } catch (error) {
@@ -122,7 +133,10 @@ const getAssignmentsByGroupId = async (req, res, next) => {
   }
 };
 
-// Create assignment
+// ============================================
+// CREATE
+// ============================================
+
 const createAssignment = async (req, res, next) => {
   try {
     const { title, description, grade_id, group_id, full_mark, deadline } =
@@ -145,7 +159,7 @@ const createAssignment = async (req, res, next) => {
     });
 
     if (!assignment) {
-      throw new Error("فشل إنشاء الواجب حاول مرة أخرى!");
+      throw new Error("فشل إنشاء الواجب حاول مرة أخرى");
     }
 
     await logActivity({
@@ -162,7 +176,7 @@ const createAssignment = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء الواجب بنجاح!",
+      message: "تم إنشاء الواجب بنجاح",
       data: formattedAssignment,
     });
   } catch (error) {
@@ -170,23 +184,21 @@ const createAssignment = async (req, res, next) => {
   }
 };
 
-// Update assignment
+// ============================================
+// UPDATE
+// ============================================
+
 const updateAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
 
-    const updateData = {
-      ...req.body,
-      is_closed: req.body.is_closed !== undefined ? req.body.is_closed : 0,
-    };
-
     const assignment = await assignmentService.updateAssignment(
       assignmentId,
-      updateData,
+      req.body,
     );
 
     if (!assignment) {
-      throw new Error("فشل تعديل الواجب حاول مرة أخرى!");
+      throw new Error("الواجب غير موجود");
     }
 
     await logActivity({
@@ -203,7 +215,7 @@ const updateAssignment = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل الواجب بنجاح!",
+      message: "تم تعديل الواجب بنجاح",
       data: formattedAssignment,
     });
   } catch (error) {
@@ -211,7 +223,10 @@ const updateAssignment = async (req, res, next) => {
   }
 };
 
-// Download assignment file
+// ============================================
+// DOWNLOAD
+// ============================================
+
 const downloadAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
@@ -228,7 +243,10 @@ const downloadAssignment = async (req, res, next) => {
   }
 };
 
-// Soft delete assignment
+// ============================================
+// DELETE
+// ============================================
+
 const softDeleteAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
@@ -236,7 +254,7 @@ const softDeleteAssignment = async (req, res, next) => {
       await assignmentService.softDeleteAssignment(assignmentId);
 
     if (!assignment) {
-      throw new Error("فشل حذف الواجب حاول مرة أخرى!");
+      throw new Error("الواجب غير موجود");
     }
 
     await logActivity({
@@ -251,7 +269,7 @@ const softDeleteAssignment = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الواجب بنجاح!",
+      message: "تم حذف الواجب بنجاح",
       data: assignment,
     });
   } catch (error) {
@@ -259,7 +277,6 @@ const softDeleteAssignment = async (req, res, next) => {
   }
 };
 
-// Hard delete assignment
 const hardDeleteAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
@@ -267,7 +284,7 @@ const hardDeleteAssignment = async (req, res, next) => {
       await assignmentService.hardDeleteAssignment(assignmentId);
 
     if (!assignment) {
-      throw new Error("فشل حذف الواجب نهائيًا حاول مرة أخرى!");
+      throw new Error("الواجب غير موجود");
     }
 
     await logActivity({
@@ -282,7 +299,7 @@ const hardDeleteAssignment = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الواجب نهائيًا بنجاح!",
+      message: "تم حذف الواجب نهائياً بنجاح",
       data: assignment,
     });
   } catch (error) {

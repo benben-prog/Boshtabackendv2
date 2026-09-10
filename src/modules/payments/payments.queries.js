@@ -2,17 +2,17 @@
    PAYMENTS QUERIES
    ============================================ */
 
-// Get subscription required amount
+// Get subscription info
 const getSubscriptionAmount = `
 SELECT required_amount, status, month
 FROM subscriptions
 WHERE id = $1 AND deleted = 0
 `;
 
-// Create a new payment - amount comes from subscription
+// Create a new payment
 const createPayment = `
-INSERT INTO payments (subscription_id, student_id, amount, payment_date, notes)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO payments (subscription_id, student_id, amount, payment_date, payment_mode, notes)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *
 `;
 
@@ -36,6 +36,7 @@ SELECT
   gr.name AS group_name,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes,
   sub.month AS subscription_month,
   sub.required_amount
@@ -51,6 +52,16 @@ ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($4::int - 1) * 20)
 `;
 
+// Get payments count with filters
+const getPaymentsCount = `
+SELECT COUNT(*) AS count
+FROM payments p
+JOIN students s ON p.student_id = s.id AND s.deleted = 0
+WHERE ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1)
+  AND ($2::int IS NULL OR s.grade_id = $2::int)
+  AND ($3::int IS NULL OR s.group_id = $3::int)
+`;
+
 // Get payment by ID
 const getPaymentById = `
 SELECT 
@@ -63,6 +74,7 @@ SELECT
   gr.name AS group_name,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes,
   sub.month AS subscription_month,
   sub.required_amount
@@ -80,12 +92,13 @@ UPDATE payments
 SET 
   amount = $1,
   payment_date = $2,
-  notes = $3
-WHERE id = $4
+  payment_mode = $3,
+  notes = $4
+WHERE id = $5
 RETURNING *
 `;
 
-// Delete payment - and revert subscription status to unpaid
+// Delete payment
 const deletePayment = `
 DELETE FROM payments
 WHERE id = $1
@@ -125,6 +138,7 @@ SELECT
   gr.name AS group_name,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes
 FROM payments p
 JOIN students s ON p.student_id = s.id AND s.deleted = 0
@@ -146,6 +160,7 @@ SELECT
   gr.name AS group_name,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes
 FROM payments p
 JOIN students s ON p.student_id = s.id AND s.deleted = 0
@@ -162,7 +177,8 @@ SELECT
   TO_CHAR(p.payment_date, 'YYYY-MM') AS month,
   COUNT(p.id) AS total_payments,
   COALESCE(SUM(p.amount), 0) AS total_collected,
-  COUNT(DISTINCT p.student_id) AS students_paid
+  COUNT(DISTINCT p.student_id) AS students_paid,
+  COUNT(CASE WHEN p.payment_mode = 'custom' THEN 1 END) AS custom_payments_count
 FROM payments p
 GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
 ORDER BY month DESC
@@ -184,7 +200,7 @@ FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 WHERE s.deleted = 0
   AND (sub.id IS NULL OR sub.status = 'unpaid')
@@ -206,7 +222,7 @@ SELECT
 FROM grades g
 LEFT JOIN students s ON g.id = s.grade_id AND s.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 LEFT JOIN payments p ON p.subscription_id = sub.id
 WHERE g.id = $1 AND g.deleted = 0
@@ -230,7 +246,7 @@ FROM groups gr
 JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 LEFT JOIN payments p ON p.subscription_id = sub.id
 WHERE gr.id = $1 AND gr.deleted = 0
@@ -249,7 +265,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 LEFT JOIN payments p ON p.subscription_id = sub.id
 WHERE s.deleted = 0
@@ -274,25 +290,16 @@ SELECT
     WHEN sub.id IS NULL THEN 'no_subscription'
     ELSE 'unpaid'
   END AS payment_status,
-  COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount
+  COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount,
+  COALESCE((SELECT p.payment_mode FROM payments p WHERE p.subscription_id = sub.id ORDER BY p.created_at DESC LIMIT 1), NULL) AS last_payment_mode
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 WHERE s.deleted = 0
 ORDER BY s.full_name ASC
-`;
-
-// Get payments count with filters
-const getPaymentsCount = `
-SELECT COUNT(*) AS count
-FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
-WHERE ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1)
-  AND ($2::int IS NULL OR s.grade_id = $2::int)
-  AND ($3::int IS NULL OR s.group_id = $3::int)
 `;
 
 module.exports = {
@@ -300,6 +307,7 @@ module.exports = {
   createPayment,
   markSubscriptionAsPaid,
   getAllPayments,
+  getPaymentsCount,
   getPaymentById,
   updatePayment,
   deletePayment,
@@ -314,5 +322,4 @@ module.exports = {
   getGroupPaymentStats,
   getOverallPaymentStats,
   getAllStudentsPaymentStatus,
-  getPaymentsCount,
 };

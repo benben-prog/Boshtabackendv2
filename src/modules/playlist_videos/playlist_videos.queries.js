@@ -2,6 +2,10 @@
    PLAYLIST VIDEOS QUERIES
    ============================================ */
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get playlist videos
 const getPlaylistVideos = `
 SELECT 
@@ -20,12 +24,21 @@ WHERE pv.playlist_id = $1
 ORDER BY pv.added_at ASC
 `;
 
-// Add video to playlist
+// ============================================
+// ADD
+// ============================================
+
+// Add video to playlist (idempotent)
 const addVideoToPlaylist = `
 INSERT INTO playlist_videos (playlist_id, video_id)
 VALUES ($1, $2)
+ON CONFLICT (playlist_id, video_id) DO NOTHING
 RETURNING *
 `;
+
+// ============================================
+// REMOVE
+// ============================================
 
 // Remove video from playlist
 const removeVideoFromPlaylist = `

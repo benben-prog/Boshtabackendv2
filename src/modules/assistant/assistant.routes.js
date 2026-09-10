@@ -467,10 +467,7 @@ routes.get(
 );
 routes.get("/attendance/:id", attendanceController.getAttendanceById);
 routes.post("/attendance", attendanceController.createAttendance);
-routes.post(
-  "/attendance/mark-rest-absent",
-  attendanceController.markRestAbsent,
-);
+
 routes.put("/attendance/:id", attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 

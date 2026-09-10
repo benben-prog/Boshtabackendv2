@@ -1,7 +1,10 @@
 const { query } = require("../../config/database");
 const playlistVideoQueries = require("./playlist_videos.queries");
 
-// Get playlist videos
+// ============================================
+// GETTERS
+// ============================================
+
 const getPlaylistVideos = async (playlistId) => {
   const result = await query(playlistVideoQueries.getPlaylistVideos, [
     playlistId,
@@ -9,16 +12,25 @@ const getPlaylistVideos = async (playlistId) => {
   return result.rows;
 };
 
-// Add video to playlist
+// ============================================
+// ADD
+// ============================================
+
 const addVideoToPlaylist = async (playlistId, videoId) => {
   const result = await query(playlistVideoQueries.addVideoToPlaylist, [
     playlistId,
     videoId,
   ]);
-  return result.rows[0];
+
+  // If conflict (already exists), return null
+  // The controller will handle it
+  return result.rows[0] || null;
 };
 
-// Remove video from playlist
+// ============================================
+// REMOVE
+// ============================================
+
 const removeVideoFromPlaylist = async (id) => {
   const result = await query(playlistVideoQueries.removeVideoFromPlaylist, [
     id,

@@ -5,21 +5,57 @@ const validate = require("../../middlewares/validate.middleware");
 const {
   createAttendanceSchema,
   updateAttendanceSchema,
-  markRestAbsentSchema,
+  startSessionSchema,
+  scanBarcodeSchema,
+  closeSessionSchema,
 } = require("../../middlewares/validations/attendance.validation");
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+// Start session
+routes.post(
+  "/sessions/start",
+  validate(startSessionSchema),
+  attendanceController.startSession,
+);
+
+// Get active session for group
+routes.get("/sessions/active/:groupId", attendanceController.getActiveSession);
+
+// Toggle makeup mode
+routes.put(
+  "/sessions/:id/toggle-makeup",
+  attendanceController.toggleMakeupMode,
+);
+
+// Close session (final lock)
+routes.post(
+  "/sessions/close",
+  validate(closeSessionSchema),
+  attendanceController.lockSession,
+);
+
+// ============================================
+// BARCODE SCANNING
+// ============================================
+
+routes.post(
+  "/scan-barcode",
+  validate(scanBarcodeSchema),
+  attendanceController.scanBarcode,
+);
+
+// ============================================
+// ATTENDANCE CRUD
+// ============================================
 
 // Create attendance
 routes.post(
   "/",
   validate(createAttendanceSchema),
   attendanceController.createAttendance,
-);
-
-// Mark rest as absent
-routes.post(
-  "/mark-rest-absent",
-  validate(markRestAbsentSchema),
-  attendanceController.markRestAbsent,
 );
 
 // Get overall stats

@@ -1,17 +1,30 @@
+const fs = require("fs");
+const path = require("path");
+
+// Middleware to preview files securely
 const previewFile = (filePath) => {
   return (req, res) => {
     if (!filePath) {
       return res.status(404).json({
         success: false,
-        message: "File not found",
+        message: "الملف غير موجود",
       });
     }
 
-    // إزالة / من الأول لو موجودة
+    // Remove leading slash if exists
     const cleanPath = filePath.replace(/^\//, "");
+    const fullPath = path.join(process.cwd(), cleanPath);
 
-    // Redirect للـ static URL
-    return res.redirect(`/${cleanPath}`);
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({
+        success: false,
+        message: "الملف غير موجود",
+      });
+    }
+
+    // Send file directly
+    return res.sendFile(fullPath);
   };
 };
 

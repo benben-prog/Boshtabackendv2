@@ -1,9 +1,296 @@
 const { query } = require("../../config/database");
 const attendanceQueries = require("./attendance.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
+const { logActivity } = require("../../utils/activityLogger");
 const { getTodayEgypt, formatEgyptTime } = require("../../utils/timezone");
 
-// Create or update attendance record (Upsert)
+// ============================================
+// HELPER: Check if attendance can be modified
+// ============================================
+
+const checkSessionModifiable = async (groupId, date) => {
+  const sessionResult = await query(
+    attendanceQueries.checkSessionExistsForGroupOnDate,
+    [groupId],
+  );
+
+  const session = sessionResult.rows[0];
+
+  if (session) {
+    // If session is locked (closed), prevent any modification
+    if (session.status === "locked" || session.status === "closed") {
+      throw new Error("الجلسة مقفولة - لا يمكن التعديل بعد إغلاق الجلسة");
+    }
+
+    // If attendance is locked (lock_at passed), prevent modifications
+    if (session.attendance_locked === 1) {
+      throw new Error("انتهى وقت تسجيل الحضور - لا يمكن التعديل");
+    }
+  }
+
+  return session;
+};
+
+// ============================================
+// HELPER: Auto lock attendance if lock_at passed
+// ============================================
+
+const autoLockAttendanceIfNeeded = async (session) => {
+  if (!session) return session;
+
+  // Already locked
+  if (session.attendance_locked === 1) {
+    return session;
+  }
+
+  // No lock_at set
+  if (!session.lock_at) {
+    return session;
+  }
+
+  const now = new Date();
+  const lockAt = new Date(session.lock_at);
+
+  // lock_at hasn't passed yet
+  if (now < lockAt) {
+    return session;
+  }
+
+  // lock_at passed - lock attendance
+  const today = getTodayEgypt();
+
+  // Mark rest absent
+  await query(attendanceQueries.markRestAbsent, [session.group_id, today]);
+
+  // Update session attendance_locked flag
+  const result = await query(attendanceQueries.lockAttendanceRecording, [
+    session.id,
+  ]);
+
+  return result.rows[0] || session;
+};
+
+// ============================================
+// HELPER: Check and soft delete students with 3 consecutive absences
+// ============================================
+
+const checkAndSoftDeleteAbsentStudents = async () => {
+  const result = await query(
+    attendanceQueries.getStudentsWithThreeConsecutiveAbsences,
+  );
+
+  const students = result.rows;
+
+  if (students.length === 0) {
+    return { deleted_count: 0, students: [] };
+  }
+
+  const studentIds = students.map((s) => s.id);
+
+  // Soft delete all students in one query
+  const deleteResult = await query(attendanceQueries.softDeleteStudent, [
+    studentIds,
+  ]);
+
+  // Log activity for each student
+  for (const student of students) {
+    await logActivity({
+      user_id: null,
+      user_role: "system",
+      user_permissions: null,
+      action: "auto_soft_delete_student",
+      entity_type: "student",
+      entity_id: student.id,
+      description: `حذف تلقائي للطالب ${student.full_name} (${student.barcode}) بسبب 3 غياب متتالي`,
+    });
+  }
+
+  return {
+    deleted_count: deleteResult.rows.length,
+    students: deleteResult.rows,
+  };
+};
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+const startSession = async (sessionData) => {
+  const { group_id, grade_id, started_by, lock_at } = sessionData;
+
+  // Check if session exists today for this group
+  const existingResult = await query(
+    attendanceQueries.checkSessionExistsForGroupOnDate,
+    [group_id],
+  );
+
+  if (existingResult.rows[0]) {
+    throw new Error(
+      "توجد جلسة بالفعل لهذه المجموعة اليوم - لا يمكن بدء جلسة جديدة",
+    );
+  }
+
+  // Validate lock_at (must be in the future if provided)
+  let finalLockAt = null;
+  if (lock_at) {
+    const lockAtDate = new Date(lock_at);
+    if (isNaN(lockAtDate.getTime())) {
+      throw new Error("صيغة وقت القفل غير صحيحة");
+    }
+    if (lockAtDate <= new Date()) {
+      throw new Error("وقت القفل يجب أن يكون في المستقبل");
+    }
+    finalLockAt = lockAtDate.toISOString();
+  }
+
+  // Create session
+  const result = await query(attendanceQueries.startSession, [
+    group_id,
+    grade_id,
+    started_by,
+    finalLockAt,
+  ]);
+
+  return result.rows[0];
+};
+
+const getActiveSession = async (groupId) => {
+  const result = await query(attendanceQueries.getActiveSessionByGroup, [
+    groupId,
+  ]);
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  // Auto lock attendance if lock_at passed
+  const session = await autoLockAttendanceIfNeeded(result.rows[0]);
+
+  return session;
+};
+
+const getSessionById = async (sessionId) => {
+  const result = await query(attendanceQueries.getSessionById, [sessionId]);
+  return result.rows[0];
+};
+
+const toggleMakeupMode = async (sessionId) => {
+  const result = await query(attendanceQueries.toggleMakeupMode, [sessionId]);
+  return result.rows[0];
+};
+
+const closeSession = async (sessionId, groupId) => {
+  // Get session
+  const sessionResult = await query(attendanceQueries.getSessionById, [
+    sessionId,
+  ]);
+  const session = sessionResult.rows[0];
+
+  if (!session) {
+    throw new Error("الجلسة غير موجودة");
+  }
+
+  if (session.status !== "active") {
+    throw new Error("الجلسة مقفولة بالفعل");
+  }
+
+  if (session.group_id !== Number(groupId)) {
+    throw new Error("الجلسة لا تنتمي لهذه المجموعة");
+  }
+
+  const today = getTodayEgypt();
+
+  // Mark rest absent if not already done
+  if (session.attendance_locked === 0) {
+    await query(attendanceQueries.markRestAbsent, [groupId, today]);
+  }
+
+  // Close session
+  const result = await query(attendanceQueries.closeSession, [sessionId]);
+
+  // Check and soft delete students with 3 consecutive absences
+  await checkAndSoftDeleteAbsentStudents();
+
+  return result.rows[0];
+};
+
+// ============================================
+// BARCODE SCANNING
+// ============================================
+
+const scanBarcode = async (barcode, sessionData) => {
+  const { group_id, grade_id } = sessionData;
+
+  // Get active session
+  const session = await getActiveSession(group_id);
+
+  if (!session) {
+    throw new Error("لا توجد جلسة نشطة لهذه المجموعة");
+  }
+
+  // Check if attendance recording is locked
+  if (session.attendance_locked === 1) {
+    throw new Error("انتهى وقت تسجيل الحضور");
+  }
+
+  // Check if session is closed
+  if (session.status !== "active") {
+    throw new Error("الجلسة مقفولة - انتهى وقت تسجيل الحضور");
+  }
+
+  // Check student
+  const studentResult = await query(attendanceQueries.checkStudentByBarcode, [
+    barcode,
+  ]);
+  const student = studentResult.rows[0];
+
+  if (!student) {
+    throw new Error("الطالب غير موجود");
+  }
+
+  // Determine if makeup
+  let is_makeup = 0;
+  let makeup_group_id = null;
+
+  if (student.group_id === group_id) {
+    is_makeup = 0;
+  } else if (
+    Number(session.is_makeup_enabled) === 1 &&
+    student.grade_id === grade_id
+  ) {
+    is_makeup = 1;
+    makeup_group_id = student.group_id;
+  } else {
+    throw new Error("الطالب غير تابع لهذه المجموعة");
+  }
+
+  // Check if already attended
+  const existingResult = await query(
+    attendanceQueries.checkExistingAttendance,
+    [student.id],
+  );
+
+  if (existingResult.rows[0]) {
+    throw new Error("الطالب مسجل حضوره بالفعل");
+  }
+
+  // Record attendance
+  const attendanceResult = await query(
+    attendanceQueries.recordAttendanceWithSession,
+    [student.id, group_id, grade_id, is_makeup, makeup_group_id],
+  );
+
+  return {
+    student,
+    attendance: attendanceResult.rows[0],
+    is_makeup,
+  };
+};
+
+// ============================================
+// ATTENDANCE CRUD
+// ============================================
+
 const createAttendance = async (attendanceData) => {
   const {
     student_id,
@@ -11,12 +298,14 @@ const createAttendance = async (attendanceData) => {
     grade_id,
     attendance_date,
     status,
-    attendance_time,
     method = "manual",
     is_makeup = 0,
     makeup_group_id = null,
     notes = null,
   } = attendanceData;
+
+  // Check if session can be modified
+  await checkSessionModifiable(group_id, attendance_date);
 
   const result = await query(attendanceQueries.createAttendance, [
     student_id,
@@ -24,7 +313,6 @@ const createAttendance = async (attendanceData) => {
     grade_id,
     attendance_date,
     status,
-    attendance_time,
     method,
     is_makeup,
     makeup_group_id,
@@ -33,6 +321,7 @@ const createAttendance = async (attendanceData) => {
 
   const attendance = result.rows[0];
 
+  // Send WhatsApp notification if absent
   if (attendance && status === "absent") {
     try {
       const studentResult = await query(
@@ -61,14 +350,13 @@ const createAttendance = async (attendanceData) => {
         );
       }
     } catch (error) {
-      console.error("Error enqueueing absence message:", error);
+      console.error("Error enqueueing absence message:", error.message);
     }
   }
 
   return attendance;
 };
 
-// Get attendance by group and date
 const getAttendanceByGroupAndDate = async (groupId, date) => {
   const result = await query(attendanceQueries.getAttendanceByGroupAndDate, [
     groupId,
@@ -77,7 +365,6 @@ const getAttendanceByGroupAndDate = async (groupId, date) => {
   return result.rows;
 };
 
-// Get attendance by group and month
 const getAttendanceByGroupAndMonth = async (groupId, month, page = 1) => {
   const result = await query(attendanceQueries.getAttendanceByGroupAndMonth, [
     groupId,
@@ -87,7 +374,6 @@ const getAttendanceByGroupAndMonth = async (groupId, month, page = 1) => {
   return result.rows;
 };
 
-// Get attendance summary
 const getAttendanceSummary = async (groupId, date) => {
   const result = await query(attendanceQueries.getAttendanceSummary, [
     groupId,
@@ -96,13 +382,58 @@ const getAttendanceSummary = async (groupId, date) => {
   return result.rows[0];
 };
 
-// Mark all unmarked students as absent
-const markRestAbsent = async (groupId, date) => {
-  const result = await query(attendanceQueries.markRestAbsent, [groupId, date]);
-  return result.rows;
+const getAttendanceById = async (id) => {
+  const result = await query(attendanceQueries.getAttendanceById, [id]);
+  return result.rows[0];
 };
 
-// Get grade attendance stats
+const updateAttendance = async (id, attendanceData) => {
+  // Get existing attendance
+  const existingResult = await query(attendanceQueries.getAttendanceById, [id]);
+  const existing = existingResult.rows[0];
+
+  if (!existing) {
+    throw new Error("سجل الحضور غير موجود");
+  }
+
+  // Check if session can be modified
+  await checkSessionModifiable(existing.group_id, existing.attendance_date);
+
+  const { status, method, is_makeup, makeup_group_id, notes } = attendanceData;
+
+  const result = await query(attendanceQueries.updateAttendance, [
+    status,
+    existing.attendance_time,
+    method,
+    is_makeup,
+    makeup_group_id,
+    notes,
+    id,
+  ]);
+
+  return result.rows[0];
+};
+
+const deleteAttendance = async (id) => {
+  // Get existing attendance
+  const existingResult = await query(attendanceQueries.getAttendanceById, [id]);
+  const existing = existingResult.rows[0];
+
+  if (!existing) {
+    throw new Error("سجل الحضور غير موجود");
+  }
+
+  // Check if session can be modified
+  await checkSessionModifiable(existing.group_id, existing.attendance_date);
+
+  const result = await query(attendanceQueries.deleteAttendance, [id]);
+  return result.rows[0];
+};
+
+// ============================================
+// STATISTICS
+// ============================================
+
 const getGradeAttendanceStats = async (gradeId) => {
   const result = await query(attendanceQueries.getGradeAttendanceStats, [
     gradeId,
@@ -110,13 +441,11 @@ const getGradeAttendanceStats = async (gradeId) => {
   return result.rows;
 };
 
-// Get overall attendance stats
 const getOverallAttendanceStats = async () => {
   const result = await query(attendanceQueries.getOverallAttendanceStats);
   return result.rows;
 };
 
-// Get students with 3+ consecutive absences
 const getStudentsWithThreeConsecutiveAbsences = async () => {
   const result = await query(
     attendanceQueries.getStudentsWithThreeConsecutiveAbsences,
@@ -124,159 +453,35 @@ const getStudentsWithThreeConsecutiveAbsences = async () => {
   return result.rows;
 };
 
-// Get attendance by ID
-const getAttendanceById = async (id) => {
-  const result = await query(attendanceQueries.getAttendanceById, [id]);
-  return result.rows[0];
-};
-
-// Update attendance record
-const updateAttendance = async (id, attendanceData) => {
-  const { status, attendance_time, method, is_makeup, makeup_group_id, notes } =
-    attendanceData;
-
-  const result = await query(attendanceQueries.updateAttendance, [
-    status,
-    attendance_time,
-    method,
-    is_makeup,
-    makeup_group_id,
-    notes,
-    id,
-  ]);
-  return result.rows[0];
-};
-
-// Delete attendance record
-const deleteAttendance = async (id) => {
-  const result = await query(attendanceQueries.deleteAttendance, [id]);
-  return result.rows[0];
-};
-
-// Get dashboard stats
 const getDashboard = async () => {
   const result = await query(attendanceQueries.getDashboard);
   return result.rows[0];
 };
 
-// Start new session
-const startSession = async (sessionData) => {
-  const { group_id, grade_id, started_by, lock_at } = sessionData;
-
-  // Check if session exists
-  const existing = await query(attendanceQueries.checkActiveSession, [
-    group_id,
-  ]);
-  if (existing.rows[0]) {
-    throw new Error("توجد جلسة نشطة بالفعل لهذه المجموعة!");
-  }
-
-  const result = await query(attendanceQueries.startSession, [
-    group_id,
-    grade_id,
-    started_by,
-    lock_at,
-  ]);
-  return result.rows[0];
-};
-
-// Get active session
-const getActiveSession = async (groupId) => {
-  const result = await query(attendanceQueries.checkActiveSession, [groupId]);
-  return result.rows[0];
-};
-
-// Toggle makeup mode
-const toggleMakeupMode = async (sessionId) => {
-  const result = await query(attendanceQueries.toggleMakeupMode, [sessionId]);
-  return result.rows[0];
-};
-
-// Scan barcode
-const scanBarcode = async (barcode, sessionData) => {
-  const { session_id, group_id, grade_id } = sessionData;
-
-  // Get session
-  const session = await getActiveSession(group_id);
-  if (!session) {
-    throw new Error("لا توجد جلسة نشطة لهذه المجموعة!");
-  }
-
-  // Check if session is locked
-  if (session.status === "locked") {
-    throw new Error("الجلسة مقفلة - انتهى وقت تسجيل الحضور!");
-  }
-
-  // Check student
-  const student = await query(attendanceQueries.checkStudentByBarcode, [
-    barcode,
-  ]);
-  const studentData = student.rows[0];
-
-  if (!studentData) {
-    throw new Error("الطالب غير موجود!");
-  }
-
-  // Check if student belongs to this group or grade (makeup)
-  let is_makeup = 0;
-  let makeup_group_id = null;
-
-  if (studentData.group_id === group_id) {
-    is_makeup = 0;
-  } else if (
-    session.is_makeup_enabled === 1 &&
-    studentData.grade_id === grade_id
-  ) {
-    is_makeup = 1;
-    makeup_group_id = studentData.group_id;
-  } else {
-    throw new Error("الطالب غير تابع لهذه المجموعة!");
-  }
-
-  // Check if already attended
-  const existing = await query(attendanceQueries.checkExistingAttendance, [
-    studentData.id,
-  ]);
-  if (existing.rows[0]) {
-    throw new Error("الطالب مسجل حضوره بالفعل!");
-  }
-
-  // Record attendance
-  const attendance = await query(
-    attendanceQueries.recordAttendanceWithSession,
-    [studentData.id, group_id, grade_id, is_makeup, makeup_group_id],
-  );
-
-  return {
-    student: studentData,
-    attendance: attendance.rows[0],
-    is_makeup,
-  };
-};
-
-// Lock session
-const lockSession = async (sessionId, groupId) => {
-  await query(attendanceQueries.lockSession, [sessionId]);
-  const absent = await query(attendanceQueries.markAbsentInSession, [groupId]);
-  return absent.rows;
-};
+// ============================================
+// EXPORTS
+// ============================================
 
 module.exports = {
+  // Session management
+  startSession,
+  getActiveSession,
+  getSessionById,
+  toggleMakeupMode,
+  closeSession,
+  // Attendance
   createAttendance,
   getAttendanceByGroupAndDate,
   getAttendanceByGroupAndMonth,
   getAttendanceSummary,
-  markRestAbsent,
-  getGradeAttendanceStats,
-  getOverallAttendanceStats,
-  getStudentsWithThreeConsecutiveAbsences,
   getAttendanceById,
   updateAttendance,
   deleteAttendance,
-  getDashboard,
-  startSession,
-  getActiveSession,
-  toggleMakeupMode,
+  // Barcode
   scanBarcode,
-  lockSession,
+  // Statistics
+  getGradeAttendanceStats,
+  getOverallAttendanceStats,
+  getStudentsWithThreeConsecutiveAbsences,
+  getDashboard,
 };

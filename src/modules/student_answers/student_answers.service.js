@@ -1,64 +1,111 @@
 const { query } = require("../../config/database");
 const studentAnswerQueries = require("./student_answers.queries");
 const studentExamService = require("../student_exams/student_exams.service");
+const { getNowEgypt } = require("../../utils/timezone");
 
-// Insert MCQ/True-False answer with auto verification
-const insertAnswer = async (answerData) => {
-  const { exam_id, student_id, question_id, selected_option_id } = answerData;
+// ============================================
+// HELPER: Validate exam attempt and timing
+// ============================================
 
-  const attemptCheck = await query(
-    "SELECT id FROM student_exams WHERE exam_id = $1 AND student_id = $2 AND submitted_at IS NULL",
-    [exam_id, student_id],
-  );
-
-  if (!attemptCheck.rows[0]) {
-    throw new Error("يجب بدء الامتحان أولاً");
-  }
-
-  const questionCheck = await query(
-    "SELECT id, type FROM questions WHERE id = $1 AND exam_id = $2",
-    [question_id, exam_id],
-  );
-  const question = questionCheck.rows[0];
+const validateExamAttempt = async (examId, studentId, questionId) => {
+  // Get question + exam info in one query
+  const questionResult = await query(studentAnswerQueries.getQuestionWithExam, [
+    questionId,
+    examId,
+  ]);
+  const question = questionResult.rows[0];
 
   if (!question) {
     throw new Error("السؤال غير موجود في هذا الامتحان");
   }
 
-  if (question.type === "essay") {
+  // Check active attempt
+  const attemptResult = await query(studentAnswerQueries.getActiveAttempt, [
+    examId,
+    studentId,
+  ]);
+  const attempt = attemptResult.rows[0];
+
+  if (!attempt) {
+    throw new Error("يجب بدء الامتحان أولاً");
+  }
+
+  // Check if exam time is still valid
+  const now = getNowEgypt();
+  const examEnd = new Date(question.exam_end_at);
+
+  // Check by exam end time
+  if (now > examEnd) {
+    throw new Error("انتهى وقت الامتحان");
+  }
+
+  // Check by duration
+  const startedAt = new Date(attempt.started_at);
+  const durationMs = question.duration_minutes * 60 * 1000;
+  const elapsedMs = now.getTime() - startedAt.getTime();
+
+  if (elapsedMs > durationMs) {
+    throw new Error("انتهى وقت الامتحان");
+  }
+
+  return {
+    question,
+    attempt,
+  };
+};
+
+// ============================================
+// INSERT MCQ/TRUE-FALSE ANSWER
+// ============================================
+
+const insertAnswer = async (answerData) => {
+  const { exam_id, student_id, question_id, selected_option_id } = answerData;
+
+  const { question } = await validateExamAttempt(
+    exam_id,
+    student_id,
+    question_id,
+  );
+
+  if (question.question_type === "essay") {
     throw new Error("هذا سؤال مقالي - استخدم رفع ملف");
   }
 
-  const optionCheck = await query(
-    "SELECT id, is_correct FROM options WHERE id = $1 AND question_id = $2",
+  // Get option correctness
+  const optionResult = await query(
+    studentAnswerQueries.getOptionWithCorrectness,
     [selected_option_id, question_id],
   );
-  const option = optionCheck.rows[0];
+  const option = optionResult.rows[0];
 
   if (!option) {
     throw new Error("الاختيار غير صحيح");
   }
 
-  const is_correct = option.is_correct;
+  const isCorrect = option.is_correct;
 
   const result = await query(studentAnswerQueries.insertAnswer, [
     exam_id,
     student_id,
     question_id,
     selected_option_id,
-    is_correct,
+    isCorrect,
   ]);
 
   return {
     ...result.rows[0],
-    is_correct,
+    is_correct: isCorrect,
   };
 };
 
-// Update answer with auto verification
+// ============================================
+// UPDATE MCQ/TRUE-FALSE ANSWER
+// ============================================
+
 const updateAnswer = async (answerId, answerData) => {
   const { selected_option_id } = answerData;
 
+  // Get existing answer
   const oldAnswer = await query("SELECT * FROM student_answers WHERE id = $1", [
     answerId,
   ]);
@@ -67,11 +114,21 @@ const updateAnswer = async (answerId, answerData) => {
     throw new Error("الإجابة غير موجودة");
   }
 
-  const optionCheck = await query(
-    "SELECT is_correct FROM options WHERE id = $1 AND question_id = $2",
-    [selected_option_id, oldAnswer.rows[0].question_id],
+  const answer = oldAnswer.rows[0];
+
+  // Validate attempt and timing
+  await validateExamAttempt(
+    answer.exam_id,
+    answer.student_id,
+    answer.question_id,
   );
-  const option = optionCheck.rows[0];
+
+  // Get option correctness
+  const optionResult = await query(
+    studentAnswerQueries.getOptionWithCorrectness,
+    [selected_option_id, answer.question_id],
+  );
+  const option = optionResult.rows[0];
 
   if (!option) {
     throw new Error("الاختيار غير صحيح");
@@ -89,30 +146,20 @@ const updateAnswer = async (answerId, answerData) => {
   };
 };
 
-// Insert essay answer
+// ============================================
+// INSERT ESSAY ANSWER
+// ============================================
+
 const insertEssayAnswer = async (answerData) => {
   const { exam_id, student_id, question_id, file_path } = answerData;
 
-  const attemptCheck = await query(
-    "SELECT id FROM student_exams WHERE exam_id = $1 AND student_id = $2 AND submitted_at IS NULL",
-    [exam_id, student_id],
+  const { question } = await validateExamAttempt(
+    exam_id,
+    student_id,
+    question_id,
   );
 
-  if (!attemptCheck.rows[0]) {
-    throw new Error("يجب بدء الامتحان أولاً");
-  }
-
-  const questionCheck = await query(
-    "SELECT id, type FROM questions WHERE id = $1 AND exam_id = $2",
-    [question_id, exam_id],
-  );
-  const question = questionCheck.rows[0];
-
-  if (!question) {
-    throw new Error("السؤال غير موجود في هذا الامتحان");
-  }
-
-  if (question.type !== "essay") {
+  if (question.question_type !== "essay") {
     throw new Error("هذا السؤال ليس مقالي");
   }
 
@@ -126,7 +173,10 @@ const insertEssayAnswer = async (answerData) => {
   return result.rows[0];
 };
 
-// Update essay answer
+// ============================================
+// UPDATE ESSAY ANSWER
+// ============================================
+
 const updateEssayAnswer = async (answerId, file_path) => {
   const result = await query(studentAnswerQueries.updateEssayAnswer, [
     answerId,
@@ -135,13 +185,19 @@ const updateEssayAnswer = async (answerId, file_path) => {
   return result.rows[0];
 };
 
-// Delete answer
+// ============================================
+// DELETE ANSWER
+// ============================================
+
 const deleteAnswer = async (answerId) => {
   const result = await query(studentAnswerQueries.deleteAnswer, [answerId]);
   return result.rows[0];
 };
 
-// Check existing answer
+// ============================================
+// CHECK EXISTING ANSWER
+// ============================================
+
 const checkExistingAnswer = async (examId, studentId, questionId) => {
   const result = await query(studentAnswerQueries.checkExistingAnswer, [
     examId,
@@ -151,7 +207,10 @@ const checkExistingAnswer = async (examId, studentId, questionId) => {
   return result.rows[0];
 };
 
-// Get question stats
+// ============================================
+// GET QUESTION STATS
+// ============================================
+
 const getQuestionAnswerStats = async (questionId) => {
   const result = await query(studentAnswerQueries.getQuestionAnswerStats, [
     questionId,
@@ -159,7 +218,10 @@ const getQuestionAnswerStats = async (questionId) => {
   return result.rows[0];
 };
 
-// Get most selected options
+// ============================================
+// GET MOST SELECTED OPTIONS
+// ============================================
+
 const getMostSelectedOptions = async (questionId) => {
   const result = await query(studentAnswerQueries.getMostSelectedOptions, [
     questionId,
@@ -167,7 +229,10 @@ const getMostSelectedOptions = async (questionId) => {
   return result.rows;
 };
 
-// Get student answers
+// ============================================
+// GET STUDENT ANSWERS
+// ============================================
+
 const getStudentAnswersByExam = async (examId, studentId) => {
   const result = await query(studentAnswerQueries.getStudentAnswersByExam, [
     examId,
@@ -176,7 +241,10 @@ const getStudentAnswersByExam = async (examId, studentId) => {
   return result.rows;
 };
 
-// Grade essay answer and recalculate score
+// ============================================
+// GRADE ESSAY ANSWER
+// ============================================
+
 const gradeEssayAnswer = async (answerId, is_correct) => {
   const result = await query(studentAnswerQueries.gradeEssayAnswer, [
     is_correct,
@@ -202,18 +270,35 @@ const gradeEssayAnswer = async (answerId, is_correct) => {
   return gradedAnswer;
 };
 
-// Get essay answers for grading
+// ============================================
+// GET ESSAY ANSWERS FOR GRADING
+// ============================================
+
 const getEssayAnswersForGrading = async () => {
   const result = await query(studentAnswerQueries.getEssayAnswersForGrading);
   return result.rows;
 };
 
-// Get essay answers by exam
+// ============================================
+// GET ESSAY ANSWERS BY EXAM
+// ============================================
+
 const getEssayAnswersByExam = async (examId) => {
   const result = await query(studentAnswerQueries.getEssayAnswersByExam, [
     examId,
   ]);
   return result.rows;
+};
+
+// ============================================
+// GET ANSWER FILE PATH
+// ============================================
+
+const getAnswerFilePath = async (answerId) => {
+  const result = await query(studentAnswerQueries.getAnswerFilePath, [
+    answerId,
+  ]);
+  return result.rows[0];
 };
 
 module.exports = {
@@ -229,4 +314,5 @@ module.exports = {
   gradeEssayAnswer,
   getEssayAnswersForGrading,
   getEssayAnswersByExam,
+  getAnswerFilePath,
 };

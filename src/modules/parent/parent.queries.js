@@ -59,19 +59,20 @@ ORDER BY a.attendance_date DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Get payments summary
+// Get payments summary (current month only)
 const getParentDashboardPayments = `
 SELECT 
-  COALESCE(SUM(sub.required_amount), 0) AS total_required,
-  COALESCE(
-    (SELECT SUM(p.amount) FROM payments p WHERE p.student_id = $1), 0
-  ) AS total_paid,
-  COALESCE(SUM(sub.required_amount), 0) - 
-  COALESCE(
-    (SELECT SUM(p.amount) FROM payments p WHERE p.student_id = $1), 0
-  ) AS remaining
-FROM subscriptions sub
-WHERE sub.student_id = $1 AND sub.deleted = 0
+  CASE 
+    WHEN EXISTS (
+      SELECT 1 FROM subscriptions sub
+      WHERE sub.student_id = $1 
+        AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+        AND sub.status = 'paid'
+        AND sub.deleted = 0
+    ) THEN true
+    ELSE false
+  END AS is_fully_paid,
+  TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM') AS current_month
 `;
 
 // Get payment history - 20 per page
@@ -81,8 +82,7 @@ SELECT
   p.amount,
   p.payment_date,
   p.notes,
-  sub.month AS subscription_month,
-  sub.required_amount
+  sub.month AS subscription_month
 FROM payments p
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
 WHERE p.student_id = $1
@@ -90,7 +90,7 @@ ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// ✅ Get all exams (paper + online) combined
+// Get all exams (paper + online) combined
 const getParentAllExams = `
 SELECT 
   'paper' AS exam_type,
@@ -101,8 +101,8 @@ SELECT
   er.degree AS score,
   ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage,
   CASE 
-    WHEN ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) >= 50 THEN 'passed'
-    ELSE 'failed'
+    WHEN ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) >= 50 THEN 'ناجح'
+    ELSE 'راسب'
   END AS status,
   e.exam_date AS sort_date
 FROM exam_results er
@@ -120,9 +120,9 @@ SELECT
   se.score AS score,
   ROUND((se.score::numeric / NULLIF(oe.full_mark::numeric, 0)) * 100, 2) AS percentage,
   CASE 
-    WHEN se.score IS NULL THEN 'pending'
-    WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
-    ELSE 'failed'
+    WHEN se.score IS NULL THEN 'قيد التصحيح'
+    WHEN se.score >= (oe.full_mark * 0.5) THEN 'ناجح'
+    ELSE 'راسب'
   END AS status,
   se.submitted_at AS sort_date
 FROM student_exams se
@@ -146,10 +146,10 @@ SELECT
   asub.score,
   asub.feedback,
   CASE 
-    WHEN asub.score IS NOT NULL THEN 'graded'
-    WHEN asub.id IS NOT NULL THEN 'submitted'
-    WHEN a.deadline < NOW() THEN 'overdue'
-    ELSE 'pending'
+    WHEN asub.score IS NOT NULL THEN 'تم التصحيح'
+    WHEN asub.id IS NOT NULL THEN 'تم التسليم'
+    WHEN a.deadline < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'متأخر'
+    ELSE 'معلق'
   END AS status
 FROM assignments a
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = $1
@@ -177,15 +177,15 @@ GROUP BY gr.id, gr.name, gr.days, gr.start_time, gr.end_time, gr.room
 // Get overall stats
 const getStudentOverallStats = `
 SELECT 
-  ROUND(AVG(er.degree)::numeric, 2) AS avg_paper_score,
-  ROUND(AVG(se.score)::numeric, 2) AS avg_online_score,
-  COUNT(DISTINCT er.id) AS total_paper_exams,
-  COUNT(DISTINCT se.id) AS total_online_exams
-FROM students s
-LEFT JOIN exam_results er ON s.id = er.student_id
-LEFT JOIN student_exams se ON s.id = se.student_id AND se.submitted_at IS NOT NULL
-WHERE s.id = $1
-GROUP BY s.id
+  (SELECT ROUND(AVG(er.degree)::numeric, 2) 
+   FROM exam_results er 
+   WHERE er.student_id = $1) AS avg_paper_score,
+  (SELECT ROUND(AVG(se.score)::numeric, 2) 
+   FROM student_exams se 
+   WHERE se.student_id = $1 AND se.submitted_at IS NOT NULL) AS avg_online_score,
+  (SELECT COUNT(*) FROM exam_results er WHERE er.student_id = $1) AS total_paper_exams,
+  (SELECT COUNT(*) FROM student_exams se 
+   WHERE se.student_id = $1 AND se.submitted_at IS NOT NULL) AS total_online_exams
 `;
 
 module.exports = {

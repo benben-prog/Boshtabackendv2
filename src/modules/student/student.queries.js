@@ -2,6 +2,10 @@
    STUDENT QUERIES (Personal Dashboard)
    ============================================ */
 
+// ============================================
+// DASHBOARD QUERIES
+// ============================================
+
 // Get student dashboard data
 const getStudentDashboard = `
 SELECT 
@@ -51,7 +55,7 @@ SELECT
 FROM online_exams oe
 WHERE oe.grade_id = $1
   AND oe.deleted = 0
-  AND oe.start_at > NOW()
+  AND oe.start_at > NOW() AT TIME ZONE 'Africa/Cairo'
   AND (oe.group_id IS NULL OR oe.group_id = $2)
 ORDER BY oe.start_at ASC
 LIMIT 5
@@ -68,7 +72,7 @@ SELECT
 FROM exams e
 WHERE e.grade_id = $1
   AND e.deleted = 0
-  AND e.exam_date >= CURRENT_DATE
+  AND e.exam_date >= CURRENT_DATE AT TIME ZONE 'Africa/Cairo'
   AND (e.group_id IS NULL OR e.group_id = $2)
 ORDER BY e.exam_date ASC
 LIMIT 5
@@ -83,14 +87,14 @@ SELECT
   a.deadline,
   CASE 
     WHEN asub.id IS NOT NULL THEN 'submitted'
-    WHEN a.deadline < NOW() THEN 'overdue'
+    WHEN a.deadline < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'overdue'
     ELSE 'pending'
   END AS status
 FROM assignments a
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = $1
 WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND a.deleted = 0
-  AND a.deadline > NOW()
+  AND a.deadline > NOW() AT TIME ZONE 'Africa/Cairo'
   AND a.is_closed = 0
 ORDER BY a.deadline ASC
 LIMIT 5
@@ -113,7 +117,7 @@ SELECT COUNT(*) AS count
 FROM assignments a
 WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND a.deleted = 0
-  AND a.deadline > NOW()
+  AND a.deadline > NOW() AT TIME ZONE 'Africa/Cairo'
   AND a.is_closed = 0
   AND NOT EXISTS (
     SELECT 1 FROM assignment_submissions asub 

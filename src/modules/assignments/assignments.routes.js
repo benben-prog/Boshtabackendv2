@@ -8,6 +8,10 @@ const {
   updateAssignmentSchema,
 } = require("../../middlewares/validations/assignment.validation");
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get all assignments
 routes.get("/", assignmentController.getAllAssignments);
 
@@ -23,7 +27,10 @@ routes.get("/:assignmentId/download", assignmentController.downloadAssignment);
 // Get assignment by ID
 routes.get("/:assignmentId", assignmentController.getAssignmentById);
 
-// Create assignment
+// ============================================
+// CREATE
+// ============================================
+
 routes.post(
   "/",
   assignmentUpload.single("file"),
@@ -31,18 +38,24 @@ routes.post(
   assignmentController.createAssignment,
 );
 
-// Update assignment
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put(
   "/:assignmentId",
   validate(updateAssignmentSchema),
   assignmentController.updateAssignment,
 );
 
+// ============================================
+// DELETE
+// ============================================
 
-// Soft delete assignment
+// Soft delete
 routes.delete("/:assignmentId", assignmentController.softDeleteAssignment);
 
-// Hard delete assignment
+// Hard delete
 routes.delete(
   "/:assignmentId/permanent",
   assignmentController.hardDeleteAssignment,

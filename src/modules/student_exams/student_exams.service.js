@@ -1,11 +1,96 @@
 const { query } = require("../../config/database");
 const studentExamQueries = require("./student_exams.queries");
-const { getNowEgypt, compareEgyptDates } = require("../../utils/timezone");
+const { getNowEgypt } = require("../../utils/timezone");
 
-// Create exam attempt
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+// Calculate remaining time in seconds
+function calculateRemainingSeconds(startedAt, durationMinutes, endAt) {
+  const now = getNowEgypt();
+  const startTime = new Date(startedAt);
+  const examEnd = new Date(endAt);
+
+  const durationMs = durationMinutes * 60 * 1000;
+  const elapsedMs = now.getTime() - startTime.getTime();
+  const remainingByDuration = durationMs - elapsedMs;
+  const remainingByEndTime = examEnd.getTime() - now.getTime();
+
+  const remainingMs = Math.max(
+    0,
+    Math.min(remainingByDuration, remainingByEndTime),
+  );
+  return Math.floor(remainingMs / 1000);
+}
+
+// Group options by question_id
+function groupOptionsByQuestion(options) {
+  const map = {};
+  options.forEach((opt) => {
+    if (!map[opt.question_id]) {
+      map[opt.question_id] = [];
+    }
+    map[opt.question_id].push({
+      id: opt.id,
+      option_text: opt.option_text,
+      order: opt.order,
+    });
+  });
+  return map;
+}
+
+// Group review details by question_id
+function groupReviewDetails(rows) {
+  const questionsMap = new Map();
+
+  rows.forEach((row) => {
+    if (!questionsMap.has(row.question_id)) {
+      questionsMap.set(row.question_id, {
+        question_id: row.question_id,
+        question_text: row.question_text,
+        question_type: row.type,
+        file_path: row.file_path,
+        order: row.order,
+        student_answer: null,
+        is_correct: row.student_is_correct,
+        options: [],
+      });
+    }
+
+    const question = questionsMap.get(row.question_id);
+
+    if (row.option_id) {
+      question.options.push({
+        option_id: row.option_id,
+        option_text: row.option_text,
+        is_correct: row.option_is_correct === 1,
+        is_selected: row.selected_option_id === row.option_id,
+      });
+
+      if (row.selected_option_id === row.option_id) {
+        question.student_answer = row.option_text;
+      }
+    }
+
+    // For essay questions
+    if (row.type === "essay" && row.student_file_path) {
+      question.student_answer = row.student_file_path;
+    }
+  });
+
+  return Array.from(questionsMap.values());
+}
+
+// ============================================
+// CREATE EXAM ATTEMPT
+// ============================================
+
 const createExamAttempt = async (examId, studentId) => {
+  // Get exam details
   const examCheck = await query(
-    "SELECT id, start_at, end_at, full_mark, title, duration_minutes, grade_id, group_id FROM online_exams WHERE id = $1 AND deleted = 0",
+    `SELECT id, start_at, end_at, full_mark, title, duration_minutes, grade_id, group_id 
+     FROM online_exams WHERE id = $1 AND deleted = 0`,
     [examId],
   );
   const exam = examCheck.rows[0];
@@ -14,15 +99,26 @@ const createExamAttempt = async (examId, studentId) => {
     throw new Error("الامتحان غير موجود");
   }
 
+  // Check existing attempt
   const existingAttempt = await query(studentExamQueries.checkExistingAttempt, [
     examId,
     studentId,
   ]);
 
-  if (existingAttempt.rows[0]) {
-    throw new Error("لقد بدأت هذا الامتحان بالفعل");
+  // If already submitted, reject
+  if (existingAttempt.rows[0]?.submitted_at) {
+    throw new Error("لقد قمت بحل هذا الامتحان من قبل");
   }
 
+  // If exists and not submitted, resume it
+  if (existingAttempt.rows[0]) {
+    return {
+      ...existingAttempt.rows[0],
+      is_resumed: true,
+    };
+  }
+
+  // Check exam time
   const now = getNowEgypt();
   const startAt = new Date(exam.start_at);
   const endAt = new Date(exam.end_at);
@@ -35,6 +131,7 @@ const createExamAttempt = async (examId, studentId) => {
     throw new Error("انتهى وقت الامتحان");
   }
 
+  // Check student eligibility
   const studentCheck = await query(
     "SELECT id, grade_id, group_id FROM students WHERE id = $1 AND deleted = 0",
     [studentId],
@@ -53,6 +150,7 @@ const createExamAttempt = async (examId, studentId) => {
     throw new Error("هذا الامتحان غير متاح لمجموعتك");
   }
 
+  // Create new attempt
   const result = await query(studentExamQueries.createExamAttempt, [
     examId,
     studentId,
@@ -64,30 +162,16 @@ const createExamAttempt = async (examId, studentId) => {
   };
 };
 
-// Get student exam with questions
+// ============================================
+// GET EXAM WITH QUESTIONS (NO N+1)
+// ============================================
+
 const getStudentExamWithQuestions = async (attemptId, studentId) => {
-  const attemptResult = await query(
-    `SELECT 
-      se.id AS attempt_id,
-      se.exam_id,
-      se.student_id,
-      se.score,
-      se.started_at,
-      se.submitted_at,
-      oe.title,
-      oe.description,
-      oe.full_mark,
-      oe.duration_minutes,
-      oe.start_at,
-      oe.end_at,
-      oe.randomize_questions,
-      oe.grade_id,
-      oe.group_id
-     FROM student_exams se
-     JOIN online_exams oe ON se.exam_id = oe.id
-     WHERE se.id = $1 AND se.student_id = $2 AND se.submitted_at IS NULL`,
-    [attemptId, studentId],
-  );
+  // Get exam + attempt in one query
+  const attemptResult = await query(studentExamQueries.getExamWithQuestions, [
+    attemptId,
+    studentId,
+  ]);
 
   const attempt = attemptResult.rows[0];
 
@@ -95,40 +179,19 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
     throw new Error("المحاولة غير موجودة أو تم تسليمها");
   }
 
+  // Get all questions with options in ONE query
   const questionsResult = await query(
-    `SELECT 
-      q.id,
-      q.question_text,
-      q.type,
-      q.file_path,
-      q."order"
-     FROM questions q
-     WHERE q.exam_id = $1
-     ORDER BY q."order" ASC`,
+    studentExamQueries.getQuestionsWithOptions,
     [attempt.exam_id],
   );
 
-  let questions = questionsResult.rows;
-
-  if (attempt.randomize_questions === 1) {
-    questions = questions.sort(() => Math.random() - 0.5);
-    questions = questions.map((q, index) => ({
-      ...q,
-      order: index + 1,
-    }));
-  }
-
+  // Get student's previous answers
   const answersResult = await query(
-    `SELECT 
-      question_id,
-      selected_option_id,
-      file_path,
-      is_correct
-     FROM student_answers
-     WHERE exam_id = $1 AND student_id = $2`,
+    studentExamQueries.getStudentAnswersForExam,
     [attempt.exam_id, studentId],
   );
 
+  // Build answers map
   const previousAnswers = {};
   answersResult.rows.forEach((answer) => {
     previousAnswers[answer.question_id] = {
@@ -138,48 +201,48 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
     };
   });
 
-  const questionsWithOptions = await Promise.all(
-    questions.map(async (question) => {
-      if (question.type === "mcq" || question.type === "true_false") {
-        const optionsResult = await query(
-          `SELECT 
-            id,
-            option_text,
-            "order"
-           FROM options
-           WHERE question_id = $1
-           ORDER BY "order" ASC`,
-          [question.id],
-        );
+  // Build questions with options
+  const questionsMap = new Map();
 
-        return {
-          ...question,
-          options: optionsResult.rows.map((opt) => ({
-            id: opt.id,
-            option_text: opt.option_text,
-            order: opt.order,
-          })),
-          previous_answer: previousAnswers[question.id] || null,
-        };
-      }
+  questionsResult.rows.forEach((row) => {
+    if (!questionsMap.has(row.question_id)) {
+      questionsMap.set(row.question_id, {
+        id: row.question_id,
+        question_text: row.question_text,
+        type: row.type,
+        file_path: row.file_path,
+        order: row.order,
+        options: [],
+        previous_answer: previousAnswers[row.question_id] || null,
+      });
+    }
 
-      return {
-        ...question,
-        file_url: question.file_path,
-        previous_answer: previousAnswers[question.id] || null,
-      };
-    }),
+    if (row.option_id) {
+      questionsMap.get(row.question_id).options.push({
+        id: row.option_id,
+        option_text: row.option_text,
+        order: row.option_order,
+      });
+    }
+  });
+
+  let questions = Array.from(questionsMap.values());
+
+  // Randomize if needed
+  if (attempt.randomize_questions === 1) {
+    questions = questions.sort(() => Math.random() - 0.5);
+    questions = questions.map((q, index) => ({
+      ...q,
+      order: index + 1,
+    }));
+  }
+
+  // Calculate remaining time
+  const remainingSeconds = calculateRemainingSeconds(
+    attempt.started_at,
+    attempt.duration_minutes,
+    attempt.end_at,
   );
-
-  const now = getNowEgypt();
-  const startTime = new Date(attempt.started_at);
-  const durationMs = attempt.duration_minutes * 60 * 1000;
-  const elapsedMs = now.getTime() - startTime.getTime();
-  const remainingMs = Math.max(0, durationMs - elapsedMs);
-  const remainingSeconds = Math.floor(remainingMs / 1000);
-
-  const examEndAt = new Date(attempt.end_at);
-  const isTimeUp = now > examEndAt || remainingMs <= 0;
 
   return {
     attempt_id: attempt.attempt_id,
@@ -192,15 +255,18 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
     end_at: attempt.end_at,
     started_at: attempt.started_at,
     remaining_seconds: remainingSeconds,
-    is_time_up: isTimeUp,
+    is_time_up: remainingSeconds <= 0,
     randomize_questions: attempt.randomize_questions === 1,
     questions_count: questions.length,
     answered_count: Object.keys(previousAnswers).length,
-    questions: questionsWithOptions,
+    questions,
   };
 };
 
-// Check existing attempt
+// ============================================
+// CHECK EXISTING ATTEMPT
+// ============================================
+
 const checkExistingAttempt = async (examId, studentId) => {
   const result = await query(studentExamQueries.checkExistingAttempt, [
     examId,
@@ -209,8 +275,12 @@ const checkExistingAttempt = async (examId, studentId) => {
   return result.rows[0];
 };
 
-// Submit exam - with essay support
+// ============================================
+// SUBMIT EXAM
+// ============================================
+
 const submitExam = async (attemptId, studentId) => {
+  // Get attempt
   const attemptResult = await query(
     "SELECT * FROM student_exams WHERE id = $1 AND student_id = $2 AND submitted_at IS NULL",
     [attemptId, studentId],
@@ -221,8 +291,9 @@ const submitExam = async (attemptId, studentId) => {
     throw new Error("المحاولة غير موجودة أو تم تسليمها مسبقاً");
   }
 
+  // Check if exam time is still valid
   const examResult = await query(
-    "SELECT id, full_mark FROM online_exams WHERE id = $1 AND deleted = 0",
+    "SELECT id, full_mark, end_at FROM online_exams WHERE id = $1 AND deleted = 0",
     [attempt.exam_id],
   );
   const exam = examResult.rows[0];
@@ -231,8 +302,14 @@ const submitExam = async (attemptId, studentId) => {
     throw new Error("الامتحان غير موجود");
   }
 
+  // Auto-submit if time is up
+  const now = getNowEgypt();
+  const endAt = new Date(exam.end_at);
+  const isTimeUp = now > endAt;
+
+  // Get questions
   const questionsResult = await query(
-    `SELECT id, type FROM questions WHERE exam_id = $1`,
+    "SELECT id, type FROM questions WHERE exam_id = $1",
     [attempt.exam_id],
   );
   const questions = questionsResult.rows;
@@ -241,6 +318,7 @@ const submitExam = async (attemptId, studentId) => {
     throw new Error("الامتحان لا يحتوي على أسئلة");
   }
 
+  // Get answers
   const answersResult = await query(
     `SELECT question_id, selected_option_id, is_correct, file_path 
      FROM student_answers 
@@ -249,6 +327,7 @@ const submitExam = async (attemptId, studentId) => {
   );
   const answers = answersResult.rows;
 
+  // Calculate score
   const autoGradedQuestions = questions.filter(
     (q) => q.type === "mcq" || q.type === "true_false",
   );
@@ -272,13 +351,12 @@ const submitExam = async (attemptId, studentId) => {
   const finalScore = hasEssayQuestions ? null : autoScore;
   const isFullyGraded = !hasEssayQuestions;
 
-  const updatedAttempt = await query(
-    `UPDATE student_exams 
-     SET score = $1, submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE id = $2 AND submitted_at IS NULL
-     RETURNING *`,
-    [finalScore, attemptId],
-  );
+  // Submit
+  const updatedAttempt = await query(studentExamQueries.submitExam, [
+    attemptId,
+    studentId,
+    finalScore,
+  ]);
 
   if (!updatedAttempt.rows[0]) {
     throw new Error("فشل تسليم الامتحان");
@@ -291,10 +369,14 @@ const submitExam = async (attemptId, studentId) => {
     auto_graded_score: autoScore,
     total_questions: questions.length,
     answered_questions: answeredCount,
+    is_time_up: isTimeUp,
   };
 };
 
-// ... باقي الدوال بنفس الشكل (لم يتم تغييرها)
+// ============================================
+// RECALCULATE SCORE AFTER ESSAY GRADING
+// ============================================
+
 const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
   const examResult = await query(
     "SELECT id, full_mark FROM online_exams WHERE id = $1 AND deleted = 0",
@@ -307,7 +389,7 @@ const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
   }
 
   const questionsResult = await query(
-    `SELECT id, type FROM questions WHERE exam_id = $1`,
+    "SELECT id, type FROM questions WHERE exam_id = $1",
     [examId],
   );
   const questions = questionsResult.rows;
@@ -346,28 +428,24 @@ const recalculateScoreAfterEssayGrading = async (examId, studentId) => {
 
   if (allGraded) {
     await query(
-      `UPDATE student_exams SET score = $1 WHERE exam_id = $2 AND student_id = $3`,
+      `UPDATE student_exams 
+       SET score = $1 
+       WHERE exam_id = $2 AND student_id = $3`,
       [totalScore, examId, studentId],
     );
   }
 };
 
+// ============================================
+// GET EXAM REVIEW (NO N+1)
+// ============================================
+
 const getExamReview = async (attemptId, studentId) => {
-  const attemptResult = await query(
-    `SELECT 
-      se.id AS attempt_id,
-      se.exam_id,
-      se.score,
-      se.started_at,
-      se.submitted_at,
-      oe.title AS exam_title,
-      oe.full_mark,
-      oe.duration_minutes
-     FROM student_exams se
-     JOIN online_exams oe ON se.exam_id = oe.id
-     WHERE se.id = $1 AND se.student_id = $2 AND se.submitted_at IS NOT NULL`,
-    [attemptId, studentId],
-  );
+  // Get attempt + exam info
+  const attemptResult = await query(studentExamQueries.getExamReviewData, [
+    attemptId,
+    studentId,
+  ]);
 
   const attempt = attemptResult.rows[0];
 
@@ -375,84 +453,15 @@ const getExamReview = async (attemptId, studentId) => {
     throw new Error("الامتحان غير موجود أو لم يتم تسليمه بعد");
   }
 
-  // ... باقي الكود كما هو
-  const questionsResult = await query(
-    `SELECT 
-      q.id,
-      q.question_text,
-      q.type,
-      q.file_path,
-      q."order"
-     FROM questions q
-     WHERE q.exam_id = $1
-     ORDER BY q."order" ASC`,
-    [attempt.exam_id],
-  );
+  // Get all questions + options + answers in ONE query
+  const detailsResult = await query(studentExamQueries.getExamReviewDetails, [
+    attempt.exam_id,
+    studentId,
+  ]);
 
-  const questions = questionsResult.rows;
+  const reviewQuestions = groupReviewDetails(detailsResult.rows);
 
-  const answersResult = await query(
-    `SELECT 
-      sa.id AS answer_id,
-      sa.question_id,
-      sa.selected_option_id,
-      sa.file_path,
-      sa.is_correct
-     FROM student_answers sa
-     WHERE sa.exam_id = $1 AND sa.student_id = $2`,
-    [attempt.exam_id, studentId],
-  );
-
-  const answers = answersResult.rows;
-
-  const reviewQuestions = await Promise.all(
-    questions.map(async (question) => {
-      const studentAnswer = answers.find((a) => a.question_id === question.id);
-
-      let reviewData = {
-        question_id: question.id,
-        question_text: question.question_text,
-        question_type: question.type,
-        file_path: question.file_path,
-        order: question.order,
-        student_answer: null,
-        is_correct: studentAnswer?.is_correct ?? null,
-      };
-
-      if (question.type === "mcq" || question.type === "true_false") {
-        const optionsResult = await query(
-          `SELECT 
-            id,
-            option_text,
-            is_correct,
-            "order"
-           FROM options
-           WHERE question_id = $1
-           ORDER BY "order" ASC`,
-          [question.id],
-        );
-
-        const options = optionsResult.rows;
-
-        reviewData.options = options.map((opt) => ({
-          option_id: opt.id,
-          option_text: opt.option_text,
-          is_correct: opt.is_correct === 1,
-          is_selected: studentAnswer?.selected_option_id === opt.id,
-        }));
-
-        reviewData.student_answer =
-          options.find((opt) => opt.id === studentAnswer?.selected_option_id)
-            ?.option_text || null;
-      } else if (question.type === "essay") {
-        reviewData.student_answer = studentAnswer?.file_path || null;
-      }
-
-      return reviewData;
-    }),
-  );
-
-  const totalQuestions = questions.length;
+  const totalQuestions = reviewQuestions.length;
   const correctAnswers = reviewQuestions.filter(
     (q) => q.is_correct === 1,
   ).length;
@@ -461,16 +470,18 @@ const getExamReview = async (attemptId, studentId) => {
     (q) => q.is_correct === null,
   ).length;
 
+  const percentage =
+    attempt.full_mark > 0
+      ? Math.round((attempt.score / attempt.full_mark) * 100 * 100) / 100
+      : 0;
+
   return {
     attempt_id: attempt.attempt_id,
     exam_id: attempt.exam_id,
     exam_title: attempt.exam_title,
     full_mark: attempt.full_mark,
     score: attempt.score,
-    percentage:
-      attempt.full_mark > 0
-        ? Math.round((attempt.score / attempt.full_mark) * 100 * 100) / 100
-        : 0,
+    percentage,
     submitted_at: attempt.submitted_at,
     total_questions: totalQuestions,
     correct_answers: correctAnswers,
@@ -480,28 +491,27 @@ const getExamReview = async (attemptId, studentId) => {
   };
 };
 
-const autoSubmitExpiredExams = async () => {
-  const expiredAttempts = await query(
-    `SELECT se.id, se.exam_id, se.student_id, oe.full_mark
-     FROM student_exams se
-     JOIN online_exams oe ON se.exam_id = oe.id
-     WHERE se.submitted_at IS NULL 
-       AND oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
-       AND oe.deleted = 0`,
-  );
+// ============================================
+// AUTO SUBMIT EXPIRED EXAMS
+// ============================================
 
-  const results = [];
-  for (const attempt of expiredAttempts.rows) {
-    const result = await submitExam(attempt.id, attempt.student_id);
-    results.push(result);
-  }
-  return results;
+const autoSubmitExpiredExams = async () => {
+  const result = await query(studentExamQueries.autoSubmitExpiredExams);
+  return result.rows;
 };
+
+// ============================================
+// MARK ABSENT STUDENTS
+// ============================================
 
 const markAbsentStudents = async () => {
   const result = await query(studentExamQueries.markAbsentStudents);
   return result.rows;
 };
+
+// ============================================
+// GETTERS
+// ============================================
 
 const getStudentExamsByExamId = async (examId, page = 1) => {
   const result = await query(studentExamQueries.getStudentExamsByExamId, [
@@ -530,7 +540,12 @@ const getGroupExamAttemptsStats = async (groupId) => {
   return result.rows;
 };
 
+// ============================================
+// GET EXAM QUESTIONS FOR STUDENT (NO N+1)
+// ============================================
+
 const getExamQuestionsForStudent = async (examId, studentId) => {
+  // Verify active attempt exists
   const attemptCheck = await query(
     "SELECT id FROM student_exams WHERE exam_id = $1 AND student_id = $2 AND submitted_at IS NULL",
     [examId, studentId],
@@ -540,66 +555,48 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
     throw new Error("يجب بدء الامتحان أولاً");
   }
 
+  // Get questions
   const questionsResult = await query(
-    `SELECT 
-      q.id,
-      q.exam_id,
-      q.question_text,
-      q.type,
-      q.file_path,
-      q."order"
-     FROM questions q
-     WHERE q.exam_id = $1
-     ORDER BY q."order" ASC`,
+    studentExamQueries.getExamQuestionsForStudent,
     [examId],
   );
-
   const questions = questionsResult.rows;
 
-  const questionsWithOptions = await Promise.all(
-    questions.map(async (question) => {
-      if (question.type === "mcq" || question.type === "true_false") {
-        const optionsResult = await query(
-          `SELECT 
-            id,
-            option_text,
-            "order"
-           FROM options
-           WHERE question_id = $1
-           ORDER BY "order" ASC`,
-          [question.id],
-        );
+  if (questions.length === 0) {
+    return [];
+  }
 
-        return {
-          ...question,
-          options: optionsResult.rows,
-        };
-      }
+  // Get all options for all questions in ONE query
+  const questionIds = questions.map((q) => q.id);
+  const optionsResult = await query(studentExamQueries.getOptionsForQuestions, [
+    questionIds,
+  ]);
 
+  const optionsMap = groupOptionsByQuestion(optionsResult.rows);
+
+  // Attach options to questions
+  return questions.map((question) => {
+    if (question.type === "mcq" || question.type === "true_false") {
       return {
         ...question,
-        file_url: question.file_path,
+        options: optionsMap[question.id] || [],
       };
-    }),
-  );
-
-  return questionsWithOptions;
+    }
+    return {
+      ...question,
+      file_url: question.file_path,
+    };
+  });
 };
 
-const getQuestionForStudent = async (questionId) => {
-  const questionResult = await query(
-    `SELECT 
-      id,
-      exam_id,
-      question_text,
-      type,
-      file_path,
-      "order"
-     FROM questions
-     WHERE id = $1`,
-    [questionId],
-  );
+// ============================================
+// GET SINGLE QUESTION FOR STUDENT
+// ============================================
 
+const getQuestionForStudent = async (questionId) => {
+  const questionResult = await query(studentExamQueries.getQuestionById, [
+    questionId,
+  ]);
   const question = questionResult.rows[0];
 
   if (!question) {
@@ -608,16 +605,9 @@ const getQuestionForStudent = async (questionId) => {
 
   if (question.type === "mcq" || question.type === "true_false") {
     const optionsResult = await query(
-      `SELECT 
-        id,
-        option_text,
-        "order"
-       FROM options
-       WHERE question_id = $1
-       ORDER BY "order" ASC`,
+      studentExamQueries.getOptionsByQuestionId,
       [questionId],
     );
-
     question.options = optionsResult.rows;
   } else {
     question.file_url = question.file_path;
@@ -626,19 +616,15 @@ const getQuestionForStudent = async (questionId) => {
   return question;
 };
 
-const getOptionsForStudent = async (questionId) => {
-  const optionsResult = await query(
-    `SELECT 
-      id,
-      option_text,
-      "order"
-     FROM options
-     WHERE question_id = $1
-     ORDER BY "order" ASC`,
-    [questionId],
-  );
+// ============================================
+// GET OPTIONS FOR STUDENT
+// ============================================
 
-  return optionsResult.rows;
+const getOptionsForStudent = async (questionId) => {
+  const result = await query(studentExamQueries.getOptionsByQuestionId, [
+    questionId,
+  ]);
+  return result.rows;
 };
 
 module.exports = {

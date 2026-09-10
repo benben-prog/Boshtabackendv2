@@ -11,7 +11,6 @@ const parentRoutes = require("./modules/parent/parent.routes");
 const assistantRoutes = require("./modules/assistant/assistant.routes");
 const teacherRoutes = require("./modules/teacher/teacher.routes");
 const superAdminRoutes = require("./modules/super-admin/super-admin.routes");
-const whatsappRoutes = require("./modules/whatsapp_messages/whatsapp_messages.routes");
 const webhookRoutes = require("./webhook.routes");
 
 // Middleware
@@ -35,16 +34,31 @@ const swaggerSpec = require("./docs/swagger");
 const app = express();
 
 // ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+
+app.use(helmet());
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ============================================
+// LOGGING
+// ============================================
+
+if (env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
+} else {
+  app.use(morgan("dev"));
+}
+
+// ============================================
 // CORS HEADERS
 // ============================================
 
-const allowedOrigins = env.CORS_ORIGINS || ["*"];
-
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-  }
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
@@ -64,12 +78,12 @@ app.use((req, res, next) => {
 });
 
 // ============================================
-// STATIC FILES - Public access for uploads
+// STATIC FILES - PUBLIC (thumbnails, videos)
 // ============================================
 
 app.use(
-  "/uploads",
-  express.static(path.join(process.cwd(), "uploads"), {
+  "/uploads/thumbnails",
+  express.static(path.join(process.cwd(), "uploads/thumbnails"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
@@ -78,26 +92,27 @@ app.use(
   }),
 );
 
-// ============================================
-// SECURITY MIDDLEWARE
-// ============================================
-
 app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
+  "/uploads/videoFiles",
+  express.static(path.join(process.cwd(), "uploads/videoFiles"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+    },
   }),
 );
 
-app.use(compression());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-if (env.NODE_ENV === "production") {
-  app.use(morgan("combined"));
-} else {
-  app.use(morgan("dev"));
-}
+app.use(
+  "/uploads/photos",
+  express.static(path.join(process.cwd(), "uploads/photos"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+    },
+  }),
+);
 
 // ============================================
 // ROOT ROUTES
@@ -156,72 +171,54 @@ app.get("/api-docs", (req, res) => {
 });
 
 // ============================================
-// PLATFORM STATUS CHECK
+// PLATFORM STATUS CHECK (with periodic refresh)
 // ============================================
 
 let platformStatusCache = {
   status: "active",
-  lastChecked: null,
+  lastUpdated: null,
 };
-const CACHE_TTL = 60000;
 
-const checkPlatformStatus = async (req, res, next) => {
+const REFRESH_INTERVAL = 60000; // 60 seconds
+
+async function refreshPlatformStatus() {
   try {
-    const now = Date.now();
-
-    // API Docs always accessible
-    if (req.path.includes("/api-docs") || req.path.includes("/api-docs-json")) {
-      return next();
-    }
-
-    // Webhook always accessible
-    if (req.path.includes("/webhook")) {
-      return next();
-    }
-
-    // Uploads always accessible
-    if (req.path.includes("/uploads")) {
-      return next();
-    }
-
-    // Health check always accessible
-    if (req.path.includes("/health")) {
-      return next();
-    }
-
-    // Super admin routes always accessible
-    if (req.path.includes("/super-admin")) {
-      return next();
-    }
-
-    // Check platform status
-    if (
-      platformStatusCache.lastChecked &&
-      now - platformStatusCache.lastChecked < CACHE_TTL
-    ) {
-      if (platformStatusCache.status === "paused") {
-        return res.status(403).json({
-          success: false,
-          message: "المنصة متوقفة حالياً، تواصل مع المسئول",
-          platform_status: "paused",
-          force_logout: true,
-        });
-      }
-      return next();
-    }
-
     const result = await query(
       "SELECT platform_status FROM settings WHERE id = 1",
     );
-    const platformStatus = result.rows[0]?.platform_status || "active";
+    platformStatusCache.status = result.rows[0]?.platform_status || "active";
+    platformStatusCache.lastUpdated = new Date();
+  } catch (error) {
+    console.error("Error fetching platform status:", error.message);
+  }
+}
 
-    platformStatusCache.status = platformStatus;
-    platformStatusCache.lastChecked = now;
+// Initial fetch
+refreshPlatformStatus();
 
-    if (platformStatus === "paused") {
+// Periodic refresh
+setInterval(refreshPlatformStatus, REFRESH_INTERVAL);
+
+const checkPlatformStatus = async (req, res, next) => {
+  try {
+    // Always allow these paths
+    const allowedPaths = [
+      "/api-docs",
+      "/api-docs-json",
+      "/webhook",
+      "/health",
+      "/super-admin",
+    ];
+
+    if (allowedPaths.some((path) => req.path.includes(path))) {
+      return next();
+    }
+
+    if (platformStatusCache.status === "paused") {
       return res.status(403).json({
         success: false,
-        message: "المنصة متوقفة حالياً، تواصل مع المسئول",
+        message:
+          "The platform is currently paused, please contact the administrator",
         platform_status: "paused",
         force_logout: true,
       });
@@ -253,17 +250,10 @@ app.use("/api/teacher", apiMiddelware, clientAuth, teacherAuth, teacherRoutes);
 app.use("/api/super-admin", apiMiddelware, superAdminAuth, superAdminRoutes);
 
 // ============================================
-// WHATSAPP ROUTES
+// WEBHOOK ROUTES
 // ============================================
 
 app.use("/webhook", webhookRoutes);
-app.use(
-  "/api/assistant/whatsapp",
-  apiMiddelware,
-  clientAuth,
-  assistantAuth,
-  whatsappRoutes,
-);
 
 // ============================================
 // ERROR HANDLING

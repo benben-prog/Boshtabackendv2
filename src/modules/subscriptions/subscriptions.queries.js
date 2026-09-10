@@ -31,9 +31,12 @@ SELECT
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
   ) AS paid_amount,
-  sub.required_amount - COALESCE(
-    (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-  ) AS remaining_amount
+  CASE 
+    WHEN sub.status = 'paid' THEN 0
+    ELSE sub.required_amount - COALESCE(
+      (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
+    )
+  END AS remaining_amount
 FROM subscriptions sub
 WHERE sub.student_id = $1 AND sub.deleted = 0
 ORDER BY sub.month DESC
@@ -53,9 +56,12 @@ SELECT
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
   ) AS paid_amount,
-  sub.required_amount - COALESCE(
-    (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-  ) AS remaining_amount
+  CASE 
+    WHEN sub.status = 'paid' THEN 0
+    ELSE sub.required_amount - COALESCE(
+      (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
+    )
+  END AS remaining_amount
 FROM subscriptions sub
 JOIN students s ON sub.student_id = s.id AND s.deleted = 0
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
@@ -81,7 +87,7 @@ WHERE s.deleted = 0
   AND s.id NOT IN (
     SELECT sub.student_id
     FROM subscriptions sub
-    WHERE sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+    WHERE sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
       AND sub.deleted = 0
   )
 ORDER BY s.full_name ASC
@@ -99,14 +105,14 @@ SELECT
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p 
      JOIN subscriptions sub2 ON p.subscription_id = sub2.id
-     WHERE sub2.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+     WHERE sub2.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
        AND sub2.student_id IN (SELECT id FROM students WHERE grade_id = g.id AND deleted = 0)
     ), 0
   ) AS total_paid
 FROM grades g
 LEFT JOIN students s ON g.id = s.grade_id AND s.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 WHERE g.id = $1 AND g.deleted = 0
 GROUP BY g.id, g.name, g.monthly_price
@@ -125,7 +131,7 @@ SELECT
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p 
      JOIN subscriptions sub2 ON p.subscription_id = sub2.id
-     WHERE sub2.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+     WHERE sub2.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
        AND sub2.student_id IN (SELECT id FROM students WHERE group_id = gr.id AND deleted = 0)
     ), 0
   ) AS total_paid
@@ -133,7 +139,7 @@ FROM groups gr
 JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 WHERE gr.id = $1 AND gr.deleted = 0
 GROUP BY gr.id, gr.name, g.name, g.monthly_price
@@ -148,13 +154,13 @@ SELECT
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p 
      JOIN subscriptions sub2 ON p.subscription_id = sub2.id
-     WHERE sub2.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+     WHERE sub2.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
     ), 0
   ) AS total_paid
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 WHERE s.deleted = 0
 `;

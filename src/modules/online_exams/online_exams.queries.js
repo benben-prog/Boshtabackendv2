@@ -2,12 +2,19 @@
    ONLINE EXAMS QUERIES
    ============================================ */
 
-// Create online exam
+// ============================================
+// CREATE
+// ============================================
+
 const createOnlineExam = `
 INSERT INTO online_exams (title, description, grade_id, group_id, duration_minutes, start_at, end_at, full_mark, randomize_questions, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get all online exams - 20 per page
 const getAllOnlineExams = `
@@ -121,13 +128,13 @@ SELECT
   oe.full_mark,
   oe.randomize_questions,
   CASE 
-    WHEN oe.start_at > NOW() THEN 'upcoming'
-    WHEN oe.end_at < NOW() THEN 'expired'
+    WHEN oe.start_at > NOW() AT TIME ZONE 'Africa/Cairo' THEN 'upcoming'
+    WHEN oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'expired'
     ELSE 'available'
   END AS exam_status
 FROM online_exams oe
 WHERE oe.deleted = 0
-  AND oe.end_at > NOW()
+  AND oe.end_at > NOW() AT TIME ZONE 'Africa/Cairo'
 ORDER BY oe.start_at ASC
 `;
 
@@ -145,12 +152,73 @@ SELECT
 FROM online_exams oe
 LEFT JOIN student_exams se ON oe.id = se.exam_id AND se.submitted_at IS NOT NULL
 WHERE oe.deleted = 0
-  AND oe.end_at < NOW()
+  AND oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
 GROUP BY oe.id, oe.title, oe.description, oe.duration_minutes, oe.start_at, oe.end_at, oe.full_mark
 ORDER BY oe.end_at DESC
 `;
 
-// Get online exam stats
+// Count attempts for an exam
+const countExamAttempts = `
+SELECT COUNT(*) AS count
+FROM student_exams
+WHERE exam_id = $1
+`;
+
+// ============================================
+// UPDATE
+// ============================================
+
+// Update online exam (full update)
+const updateOnlineExam = `
+UPDATE online_exams
+SET 
+  title = COALESCE($2, title),
+  description = COALESCE($3, description),
+  grade_id = COALESCE($4, grade_id),
+  group_id = COALESCE($5, group_id),
+  duration_minutes = COALESCE($6, duration_minutes),
+  start_at = COALESCE($7, start_at),
+  end_at = COALESCE($8, end_at),
+  full_mark = COALESCE($9, full_mark),
+  randomize_questions = COALESCE($10, randomize_questions),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING *
+`;
+
+// Update online exam (restricted - only title, description, end_at)
+const updateOnlineExamRestricted = `
+UPDATE online_exams
+SET 
+  title = COALESCE($2, title),
+  description = COALESCE($3, description),
+  end_at = COALESCE($4, end_at),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING *
+`;
+
+// ============================================
+// DELETE
+// ============================================
+
+const softDeleteOnlineExam = `
+UPDATE online_exams 
+SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING id
+`;
+
+const hardDeleteOnlineExam = `
+DELETE FROM online_exams
+WHERE id = $1
+RETURNING id
+`;
+
+// ============================================
+// STATISTICS
+// ============================================
+
 const getOnlineExamStats = `
 SELECT 
   oe.id,
@@ -173,7 +241,6 @@ WHERE oe.id = $1 AND oe.deleted = 0
 GROUP BY oe.id, oe.title, oe.full_mark, oe.start_at, oe.end_at, oe.grade_id
 `;
 
-// Get grade online exam stats
 const getGradeOnlineExamStats = `
 SELECT 
   g.id,
@@ -188,39 +255,6 @@ WHERE g.id = $1 AND g.deleted = 0
 GROUP BY g.id, g.name
 `;
 
-// Update online exam
-const updateOnlineExam = `
-UPDATE online_exams
-SET 
-  title = $2,
-  description = $3,
-  grade_id = $4,
-  group_id = $5,
-  duration_minutes = $6,
-  start_at = $7,
-  end_at = $8,
-  full_mark = $9,
-  randomize_questions = $10,
-  updated_at = NOW()
-WHERE id = $1 AND deleted = 0
-RETURNING *
-`;
-
-// Soft delete online exam
-const softDeleteOnlineExam = `
-UPDATE online_exams 
-SET deleted = 1, updated_at = NOW()
-WHERE id = $1 AND deleted = 0
-RETURNING id
-`;
-
-// Hard delete online exam
-const hardDeleteOnlineExam = `
-DELETE FROM online_exams
-WHERE id = $1
-RETURNING id
-`;
-
 module.exports = {
   createOnlineExam,
   getAllOnlineExams,
@@ -229,9 +263,11 @@ module.exports = {
   getOnlineExamsByGroupId,
   getAvailableOnlineExams,
   getExpiredOnlineExams,
-  getOnlineExamStats,
-  getGradeOnlineExamStats,
+  countExamAttempts,
   updateOnlineExam,
+  updateOnlineExamRestricted,
   softDeleteOnlineExam,
   hardDeleteOnlineExam,
+  getOnlineExamStats,
+  getGradeOnlineExamStats,
 };

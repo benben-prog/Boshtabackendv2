@@ -1,34 +1,32 @@
 const examResultService = require("./exam_results.service");
 const { logActivity } = require("../../utils/activityLogger");
+const { formatEgyptTime } = require("../../utils/timezone");
 
-// ✅ دالة مساعدة لتحويل التواقيت
+// ============================================
+// HELPER: Format dates
+// ============================================
+
 const formatDate = (date) => {
   if (!date) return null;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return date;
-  return d.toLocaleString('en-US', { 
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  return formatEgyptTime(date, "YYYY-MM-DD HH:mm:ss");
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في المصفوفة
 const formatDatesInArray = (items) => {
   if (!items || !Array.isArray(items)) return items;
-  return items.map(item => formatDatesInObject(item));
+  return items.map((item) => formatDatesInObject(item));
 };
 
-// ✅ دالة مساعدة لتحويل التواقيت في الكائن
 const formatDatesInObject = (obj) => {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const formatted = { ...obj };
-  const dateFields = ['created_at', 'updated_at', 'exam_date', 'date', 'submitted_at'];
-  dateFields.forEach(field => {
+  const dateFields = [
+    "created_at",
+    "updated_at",
+    "exam_date",
+    "date",
+    "submitted_at",
+  ];
+  dateFields.forEach((field) => {
     if (formatted[field] !== undefined && formatted[field] !== null) {
       formatted[field] = formatDate(formatted[field]);
     }
@@ -36,16 +34,18 @@ const formatDatesInObject = (obj) => {
   return formatted;
 };
 
-// Create exam result
+// ============================================
+// CREATE
+// ============================================
+
 const createExamResult = async (req, res, next) => {
   try {
     const result = await examResultService.createExamResult(req.body);
 
     if (!result) {
-      throw new Error("فشل تسجيل الدرجة حاول مرة أخرى!");
+      throw new Error("فشل تسجيل الدرجة حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -56,12 +56,11 @@ const createExamResult = async (req, res, next) => {
       description: `تسجيل درجة للطالب (ID: ${result.student_id}) - ${result.degree}`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedResult = formatDatesInObject(result);
 
     return res.status(201).json({
       success: true,
-      message: "تم تسجيل الدرجة بنجاح!",
+      message: "تم تسجيل الدرجة بنجاح",
       data: formattedResult,
     });
   } catch (error) {
@@ -69,16 +68,18 @@ const createExamResult = async (req, res, next) => {
   }
 };
 
-// Upsert exam result
+// ============================================
+// UPSERT
+// ============================================
+
 const upsertExamResult = async (req, res, next) => {
   try {
     const result = await examResultService.upsertExamResult(req.body);
 
     if (!result) {
-      throw new Error("فشل تسجيل الدرجة حاول مرة أخرى!");
+      throw new Error("فشل تسجيل الدرجة حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -89,12 +90,11 @@ const upsertExamResult = async (req, res, next) => {
       description: `تسجيل/تحديث درجة للطالب (ID: ${result.student_id}) - ${result.degree}`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedResult = formatDatesInObject(result);
 
     return res.status(200).json({
       success: true,
-      message: "تم تسجيل الدرجة بنجاح!",
+      message: "تم تسجيل الدرجة بنجاح",
       data: formattedResult,
     });
   } catch (error) {
@@ -102,18 +102,21 @@ const upsertExamResult = async (req, res, next) => {
   }
 };
 
-// Upsert batch exam results
+// ============================================
+// UPSERT BATCH
+// ============================================
+
 const upsertBatchExamResults = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const { records } = req.body;
 
     if (!examId) {
-      throw new Error("ID الامتحان مطلوب!");
+      throw new Error("ID الامتحان مطلوب");
     }
 
     if (!records || !Array.isArray(records) || records.length === 0) {
-      throw new Error("يجب إرسال سجلات الدرجات!");
+      throw new Error("يجب إرسال سجلات الدرجات");
     }
 
     const result = await examResultService.upsertBatchExamResults(
@@ -121,7 +124,6 @@ const upsertBatchExamResults = async (req, res, next) => {
       records,
     );
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -134,7 +136,7 @@ const upsertBatchExamResults = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: `تمت معالجة الدرجات! (نجح: ${result.success_count}, فشل: ${result.error_count})`,
+      message: `تمت معالجة الدرجات (نجح: ${result.success_count}, فشل: ${result.error_count})`,
       data: result,
     });
   } catch (error) {
@@ -142,7 +144,10 @@ const upsertBatchExamResults = async (req, res, next) => {
   }
 };
 
-// Update exam result
+// ============================================
+// UPDATE
+// ============================================
+
 const updateExamResult = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -150,10 +155,9 @@ const updateExamResult = async (req, res, next) => {
     const result = await examResultService.updateExamResult(id, req.body);
 
     if (!result) {
-      throw new Error("فشل تعديل الدرجة حاول مرة أخرى!");
+      throw new Error("فشل تعديل الدرجة حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -164,12 +168,11 @@ const updateExamResult = async (req, res, next) => {
       description: `تعديل درجة (ID: ${id})`,
     });
 
-    // ✅ تحويل التواقيت
     const formattedResult = formatDatesInObject(result);
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل الدرجة بنجاح!",
+      message: "تم تعديل الدرجة بنجاح",
       data: formattedResult,
     });
   } catch (error) {
@@ -177,7 +180,10 @@ const updateExamResult = async (req, res, next) => {
   }
 };
 
-// Delete exam result
+// ============================================
+// DELETE
+// ============================================
+
 const deleteExamResult = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -185,10 +191,9 @@ const deleteExamResult = async (req, res, next) => {
     const result = await examResultService.deleteExamResult(id);
 
     if (!result) {
-      throw new Error("فشل حذف الدرجة حاول مرة أخرى!");
+      throw new Error("فشل حذف الدرجة حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -201,7 +206,7 @@ const deleteExamResult = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الدرجة بنجاح!",
+      message: "تم حذف الدرجة بنجاح",
       data: result,
     });
   } catch (error) {
@@ -209,23 +214,21 @@ const deleteExamResult = async (req, res, next) => {
   }
 };
 
-// Get exam results
+// ============================================
+// GETTERS
+// ============================================
+
 const getExamResults = async (req, res, next) => {
   try {
     const { examId } = req.params;
 
     const results = await examResultService.getExamResults(examId);
 
-    if (!results) {
-      throw new Error("فشل تحميل الدرجات حاول مرة أخرى!");
-    }
-
-    // ✅ تحويل التواقيت
     const formattedResults = formatDatesInArray(results);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الدرجات بنجاح!",
+      message: "تم تحميل الدرجات بنجاح",
       data: formattedResults,
     });
   } catch (error) {
@@ -233,7 +236,6 @@ const getExamResults = async (req, res, next) => {
   }
 };
 
-// Get exam result stats
 const getExamResultStats = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -241,15 +243,14 @@ const getExamResultStats = async (req, res, next) => {
     const stats = await examResultService.getExamResultStats(examId);
 
     if (!stats) {
-      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
+      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى");
     }
 
-    // ✅ تحويل التواقيت
     const formattedStats = formatDatesInObject(stats);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: formattedStats,
     });
   } catch (error) {
@@ -257,23 +258,17 @@ const getExamResultStats = async (req, res, next) => {
   }
 };
 
-// Get grade exam results stats
 const getGradeExamResultsStats = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
 
     const stats = await examResultService.getGradeExamResultsStats(gradeId);
 
-    if (!stats) {
-      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
-    }
-
-    // ✅ تحويل التواقيت
-    const formattedStats = formatDatesInObject(stats);
+    const formattedStats = formatDatesInArray(stats);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: formattedStats,
     });
   } catch (error) {
@@ -281,23 +276,17 @@ const getGradeExamResultsStats = async (req, res, next) => {
   }
 };
 
-// Get group exam results stats
 const getGroupExamResultsStats = async (req, res, next) => {
   try {
     const { groupId } = req.params;
 
     const stats = await examResultService.getGroupExamResultsStats(groupId);
 
-    if (!stats) {
-      throw new Error("فشل تحميل الإحصائيات حاول مرة أخرى!");
-    }
-
-    // ✅ تحويل التواقيت
-    const formattedStats = formatDatesInObject(stats);
+    const formattedStats = formatDatesInArray(stats);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الإحصائيات بنجاح!",
+      message: "تم تحميل الإحصائيات بنجاح",
       data: formattedStats,
     });
   } catch (error) {

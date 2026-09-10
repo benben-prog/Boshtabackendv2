@@ -1,6 +1,6 @@
 const env = require("../config/env");
 
-// Custom error class
+// Custom error class for operational errors
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -10,43 +10,55 @@ class AppError extends Error {
   }
 }
 
-// Error handler middleware
+// Global error handler middleware
 const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || 500;
-  let message = err.message || "Internal Server Error";
+  let message = err.message || "حدث خطأ داخلي في السيرفر";
 
-  // PostgreSQL errors
+  // Handle PostgreSQL errors
   if (err.code === "23505") {
     statusCode = 409;
-    message = "Duplicate data";
+    message = "البيانات موجودة مسبقاً";
   } else if (err.code === "23503") {
     statusCode = 400;
-    message = "Related data not found";
+    message = "البيانات المرتبطة غير موجودة";
   } else if (err.code === "23502") {
     statusCode = 400;
-    message = "Required data missing";
+    message = "بيانات مطلوبة غير موجودة";
   } else if (err.code === "22P02") {
     statusCode = 400;
-    message = "Invalid data format";
+    message = "صيغة البيانات غير صحيحة";
   }
 
-  // Multer errors
+  // Handle Multer errors
   if (err.name === "MulterError") {
     statusCode = 400;
     if (err.code === "LIMIT_FILE_SIZE") {
-      message = "File size exceeds limit";
+      message = "حجم الملف exceeds الحد المسموح";
     } else {
-      message = "File upload error";
+      message = "حدث خطأ في رفع الملف";
     }
   }
 
-  // JWT errors
+  // Handle JWT errors
   if (err.name === "JsonWebTokenError") {
     statusCode = 401;
-    message = "Invalid token";
+    message = "توكن غير صالح";
   } else if (err.name === "TokenExpiredError") {
     statusCode = 401;
-    message = "Token expired";
+    message = "انتهت صلاحية التوكن";
+  }
+
+  // Handle JSON parse errors
+  if (err.type === "entity.parse.failed") {
+    statusCode = 400;
+    message = "صيغة JSON غير صحيحة";
+  }
+
+  // Handle Payload too large
+  if (err.type === "entity.too.large") {
+    statusCode = 413;
+    message = "حجم البيانات كبير جداً";
   }
 
   // Log error
@@ -56,6 +68,7 @@ const errorHandler = (err, req, res, next) => {
       statusCode,
       path: req.path,
       method: req.method,
+      timestamp: new Date().toISOString(),
     });
   } else {
     console.error("Error:", err);
@@ -73,7 +86,7 @@ const errorHandler = (err, req, res, next) => {
 const notFoundHandler = (req, res) => {
   res.status(404).json({
     success: false,
-    message: "Route not found",
+    message: "المسار غير موجود",
   });
 };
 

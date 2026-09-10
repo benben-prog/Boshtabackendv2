@@ -4,7 +4,12 @@ const router = express.Router();
 const validate = require("../../middlewares/validate.middleware");
 const {
   loginSchema,
+  parentAccessSchema,
 } = require("../../middlewares/validations/auth.validation");
+
+// ============================================
+// AUTH ROUTES
+// ============================================
 
 // User login (assistant/teacher/super_admin)
 router.post("/user/login", validate(loginSchema), auth.userLogin);
@@ -13,6 +18,6 @@ router.post("/user/login", validate(loginSchema), auth.userLogin);
 router.post("/student/login", validate(loginSchema), auth.StudentLogin);
 
 // Parent access by token
-router.post("/parent/access", auth.parentAccess);
+router.post("/parent/access", validate(parentAccessSchema), auth.parentAccess);
 
 module.exports = router;

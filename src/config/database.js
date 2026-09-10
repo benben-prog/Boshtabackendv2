@@ -1,34 +1,38 @@
-// src/config/database.js
 const { Pool } = require("pg");
 const env = require("./env");
 
 process.env.TZ = "Africa/Cairo";
 
 function getSslConfig() {
-  if (env.NODE_ENV === "production") {
-    const isLocalhost =
-      env.DB_HOST === "localhost" ||
-      env.DB_HOST === "127.0.0.1" ||
-      (env.DATABASE_URL &&
-        (env.DATABASE_URL.includes("localhost") ||
-          env.DATABASE_URL.includes("127.0.0.1")));
+  const isProduction = env.NODE_ENV === "production";
+  const isLocalhost =
+    env.DB_HOST === "localhost" ||
+    env.DB_HOST === "127.0.0.1" ||
+    (env.DATABASE_URL &&
+      (env.DATABASE_URL.includes("localhost") ||
+        env.DATABASE_URL.includes("127.0.0.1")));
 
-    if (isLocalhost) {
-      return false;
-    }
+  // No SSL for localhost
+  if (isLocalhost) {
+    return false;
+  }
 
+  // Production with CA certificate
+  if (isProduction && env.DATABASE_CA_CERT) {
     return {
       rejectUnauthorized: true,
-      ...(process.env.DATABASE_CA_CERT && { ca: process.env.DATABASE_CA_CERT }),
+      ca: env.DATABASE_CA_CERT,
     };
   }
 
-  if (env.DB_SSL === "true" || env.DB_SSL === "1") {
+  // Production without CA certificate or development with SSL enabled
+  if (isProduction || env.DB_SSL === "true" || env.DB_SSL === "1") {
     return {
       rejectUnauthorized: false,
     };
   }
 
+  // Default: no SSL
   return false;
 }
 
@@ -38,8 +42,6 @@ function getPoolConfig() {
     idleTimeoutMillis: env.DB_POOL_IDLE_TIMEOUT,
     max: env.DB_POOL_MAX,
     allowExitOnIdle: false,
-    statement_timeout: 30000,
-    query_timeout: 30000,
   };
 
   if (env.DATABASE_URL) {
@@ -65,6 +67,7 @@ pool.on("connect", async (client) => {
   try {
     await client.query("SET TIME ZONE 'Africa/Cairo'");
     await client.query("SET datestyle TO 'ISO, DMY'");
+
     if (env.NODE_ENV !== "production") {
       console.log("Database connected successfully");
     }
@@ -74,13 +77,12 @@ pool.on("connect", async (client) => {
 });
 
 pool.on("error", (err) => {
-  console.error("Database error:", err.message);
+  console.error("Unexpected error on idle client", err.message);
 });
 
 async function query(text, params) {
   const client = await pool.connect();
   try {
-    await client.query("SET TIME ZONE 'Africa/Cairo'");
     const result = await client.query(text, params);
     return result;
   } catch (error) {
@@ -102,7 +104,6 @@ async function transaction(callback) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SET TIME ZONE 'Africa/Cairo'");
     const result = await callback(client);
     await client.query("COMMIT");
     return result;

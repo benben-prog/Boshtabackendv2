@@ -1,16 +1,18 @@
 const userService = require("./users.service");
 const { logActivity } = require("../../utils/activityLogger");
 
-// Create user
+// ============================================
+// CREATE
+// ============================================
+
 const createUser = async (req, res, next) => {
   try {
     const user = await userService.createUser(req.body);
 
     if (!user) {
-      throw new Error("فشل إنشاء المستخدم حاول مرة أخرى!");
+      throw new Error("فشل إنشاء المستخدم حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -23,7 +25,7 @@ const createUser = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء المستخدم بنجاح!",
+      message: "تم إنشاء المستخدم بنجاح",
       data: user,
     });
   } catch (error) {
@@ -31,7 +33,10 @@ const createUser = async (req, res, next) => {
   }
 };
 
-// Get all users
+// ============================================
+// GETTERS
+// ============================================
+
 const getAllUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -39,7 +44,7 @@ const getAllUsers = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المستخدمين بنجاح!",
+      message: "تم تحميل المستخدمين بنجاح",
       data: users,
     });
   } catch (error) {
@@ -47,19 +52,18 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-// Get user by ID
 const getUserById = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await userService.getUserById(userId);
 
     if (!user) {
-      throw new Error("فشل تحميل المستخدم حاول مرة أخرى!");
+      throw new Error("المستخدم غير موجود");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المستخدم بنجاح!",
+      message: "تم تحميل المستخدم بنجاح",
       data: user,
     });
   } catch (error) {
@@ -67,14 +71,13 @@ const getUserById = async (req, res, next) => {
   }
 };
 
-// Get all assistants
 const getAllAssistants = async (req, res, next) => {
   try {
     const assistants = await userService.getAllAssistants();
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المساعدين بنجاح!",
+      message: "تم تحميل المساعدين بنجاح",
       data: assistants,
     });
   } catch (error) {
@@ -82,14 +85,13 @@ const getAllAssistants = async (req, res, next) => {
   }
 };
 
-// Get all teachers
 const getAllTeachers = async (req, res, next) => {
   try {
     const teachers = await userService.getAllTeachers();
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المدرسين بنجاح!",
+      message: "تم تحميل المدرسين بنجاح",
       data: teachers,
     });
   } catch (error) {
@@ -97,19 +99,18 @@ const getAllTeachers = async (req, res, next) => {
   }
 };
 
-// Find user by phone
 const findUserByPhone = async (req, res, next) => {
   try {
     const { phone } = req.body;
     const user = await userService.findUserByPhone(phone);
 
     if (!user) {
-      throw new Error("فشل تحميل المستخدم حاول مرة أخرى!");
+      throw new Error("المستخدم غير موجود");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المستخدم بنجاح!",
+      message: "تم تحميل المستخدم بنجاح",
       data: user,
     });
   } catch (error) {
@@ -117,17 +118,33 @@ const findUserByPhone = async (req, res, next) => {
   }
 };
 
-// Update user
+const getDeletedUsers = async (req, res, next) => {
+  try {
+    const users = await userService.getDeletedUsers();
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل المستخدمين المحذوفين بنجاح",
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// UPDATE
+// ============================================
+
 const updateUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await userService.updateUser(userId, req.body);
 
     if (!user) {
-      throw new Error("فشل تعديل المستخدم حاول مرة أخرى!");
+      throw new Error("المستخدم غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -140,7 +157,7 @@ const updateUser = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل المستخدم بنجاح!",
+      message: "تم تعديل المستخدم بنجاح",
       data: user,
     });
   } catch (error) {
@@ -148,7 +165,6 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-// Update user profile image
 const updateUserProfileImage = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.clientId;
@@ -160,12 +176,12 @@ const updateUserProfileImage = async (req, res, next) => {
     );
 
     if (!user) {
-      throw new Error("فشل تعديل الصورة الشخصية!");
+      throw new Error("فشل تعديل الصورة الشخصية");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل الصورة الشخصية بنجاح!",
+      message: "تم تعديل الصورة الشخصية بنجاح",
       data: user,
     });
   } catch (error) {
@@ -173,7 +189,6 @@ const updateUserProfileImage = async (req, res, next) => {
   }
 };
 
-// Delete user profile image
 const deleteUserProfileImage = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.clientId;
@@ -181,12 +196,12 @@ const deleteUserProfileImage = async (req, res, next) => {
     const user = await userService.deleteUserProfileImage(userId);
 
     if (!user) {
-      throw new Error("فشل حذف الصورة الشخصية!");
+      throw new Error("فشل حذف الصورة الشخصية");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الصورة الشخصية بنجاح!",
+      message: "تم حذف الصورة الشخصية بنجاح",
       data: user,
     });
   } catch (error) {
@@ -194,7 +209,6 @@ const deleteUserProfileImage = async (req, res, next) => {
   }
 };
 
-// Get user profile image
 const getUserProfileImage = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.clientId;
@@ -202,12 +216,12 @@ const getUserProfileImage = async (req, res, next) => {
     const user = await userService.getUserById(userId);
 
     if (!user) {
-      throw new Error("المستخدم غير موجود!");
+      throw new Error("المستخدم غير موجود");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الصورة بنجاح!",
+      message: "تم تحميل الصورة بنجاح",
       data: { profile_image: user.profile_image },
     });
   } catch (error) {
@@ -215,29 +229,22 @@ const getUserProfileImage = async (req, res, next) => {
   }
 };
 
-// Update user password
 const updateUserPassword = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.clientId;
     const { oldPassword, password, newPassword } = req.body;
+    const finalNewPassword = password ?? newPassword;
+
     const user = await userService.updateUserPassword(
       userId,
       oldPassword,
-      password || newPassword,
+      finalNewPassword,
     );
 
-    if (user && user.error) {
-      return res.status(400).json({
-        success: false,
-        message: user.error,
-      });
-    }
-
     if (!user) {
-      throw new Error("فشل تعديل كلمة المرور حاول مرة أخرى!");
+      throw new Error("فشل تعديل كلمة المرور حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -250,7 +257,7 @@ const updateUserPassword = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل كلمة المرور بنجاح!",
+      message: "تم تعديل كلمة المرور بنجاح",
       data: user,
     });
   } catch (error) {
@@ -258,17 +265,15 @@ const updateUserPassword = async (req, res, next) => {
   }
 };
 
-// Toggle user active
 const toggleUserActive = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await userService.toggleUserActive(userId);
 
     if (!user) {
-      throw new Error("فشل تغيير حالة المستخدم حاول مرة أخرى!");
+      throw new Error("فشل تغيير حالة المستخدم حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -281,7 +286,7 @@ const toggleUserActive = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تغيير حالة المستخدم بنجاح!",
+      message: "تم تغيير حالة المستخدم بنجاح",
       data: user,
     });
   } catch (error) {
@@ -289,100 +294,25 @@ const toggleUserActive = async (req, res, next) => {
   }
 };
 
-// Soft delete user
-const softDeleteUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const user = await userService.softDeleteUser(userId);
+// ============================================
+// PASSWORD MANAGEMENT
+// ============================================
 
-    if (!user) {
-      throw new Error("فشل حذف المستخدم حاول مرة أخرى!");
-    }
-
-    // Log activity
-    await logActivity({
-      user_id: req.clientId,
-      user_role: req.clientRole,
-      user_permissions: req.clientPermissions,
-      action: "soft_delete_user",
-      entity_type: "user",
-      entity_id: userId,
-      description: `حذف مؤقت لمستخدم (ID: ${userId})`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "تم حذف المستخدم بنجاح!",
-      data: user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Hard delete user
-const hardDeleteUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const user = await userService.hardDeleteUser(userId);
-
-    if (!user) {
-      throw new Error("فشل حذف المستخدم نهائيًا حاول مرة أخرى!");
-    }
-
-    // Log activity
-    await logActivity({
-      user_id: req.clientId,
-      user_role: req.clientRole,
-      user_permissions: req.clientPermissions,
-      action: "hard_delete_user",
-      entity_type: "user",
-      entity_id: userId,
-      description: `حذف نهائي لمستخدم (ID: ${userId})`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "تم حذف المستخدم نهائيًا بنجاح!",
-      data: user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get deleted users
-const getDeletedUsers = async (req, res, next) => {
-  try {
-    const users = await userService.getDeletedUsers();
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل المستخدمين المحذوفين بنجاح!",
-      data: users,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Reset user password
 const resetUserPassword = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const { password } = req.body;
 
     if (!password) {
-      throw new Error("كلمة المرور مطلوبة!");
+      throw new Error("كلمة المرور مطلوبة");
     }
 
     const result = await userService.resetUserPassword(userId, password);
 
     if (!result) {
-      throw new Error("المستخدم غير موجود!");
+      throw new Error("المستخدم غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -395,7 +325,7 @@ const resetUserPassword = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم إعادة تعيين الباسورد بنجاح!",
+      message: "تم إعادة تعيين الباسورد بنجاح",
       data: result,
     });
   } catch (error) {
@@ -403,17 +333,77 @@ const resetUserPassword = async (req, res, next) => {
   }
 };
 
-// Restore user
+// ============================================
+// DELETE & RESTORE
+// ============================================
+
+const softDeleteUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await userService.softDeleteUser(userId);
+
+    if (!user) {
+      throw new Error("فشل حذف المستخدم حاول مرة أخرى");
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "soft_delete_user",
+      entity_type: "user",
+      entity_id: userId,
+      description: `حذف مؤقت لمستخدم (ID: ${userId})`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "تم حذف المستخدم بنجاح",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const hardDeleteUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await userService.hardDeleteUser(userId);
+
+    if (!user) {
+      throw new Error("فشل حذف المستخدم نهائياً حاول مرة أخرى");
+    }
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "hard_delete_user",
+      entity_type: "user",
+      entity_id: userId,
+      description: `حذف نهائي لمستخدم (ID: ${userId})`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "تم حذف المستخدم نهائياً بنجاح",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const restoreUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await userService.restoreUser(userId);
 
     if (!user) {
-      throw new Error("المستخدم غير موجود!");
+      throw new Error("المستخدم غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -426,7 +416,7 @@ const restoreUser = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم استرجاع المستخدم بنجاح!",
+      message: "تم استرجاع المستخدم بنجاح",
       data: user,
     });
   } catch (error) {

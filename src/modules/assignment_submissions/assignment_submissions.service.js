@@ -1,20 +1,27 @@
 const { query } = require("../../config/database");
 const assignmentSubmissionQueries = require("./assignment_submissions.queries");
 
+// ============================================
+// SUBMIT
+// ============================================
+
 const submitAssignment = async (assignmentId, studentId, filePath) => {
   const result = await query(assignmentSubmissionQueries.submitAssignment, [
     assignmentId,
     studentId,
     filePath,
   ]);
-  
-  // لو مفيش نتيجة - يعني الواجب مغلق أو منتهي أو مكرر
+
   if (!result.rows[0]) {
     return null;
   }
-  
+
   return result.rows[0];
 };
+
+// ============================================
+// UPDATE
+// ============================================
 
 const updateSubmission = async (assignmentId, studentId, filePath) => {
   const result = await query(assignmentSubmissionQueries.updateSubmission, [
@@ -22,14 +29,17 @@ const updateSubmission = async (assignmentId, studentId, filePath) => {
     assignmentId,
     studentId,
   ]);
-  
-  // لو مفيش نتيجة - يعني الواجب مغلق أو مصحح
+
   if (!result.rows[0]) {
     return null;
   }
-  
+
   return result.rows[0];
 };
+
+// ============================================
+// GRADE
+// ============================================
 
 const gradeSubmission = async (submissionId, score, feedback, reviewedBy) => {
   const result = await query(assignmentSubmissionQueries.gradeSubmission, [
@@ -40,6 +50,10 @@ const gradeSubmission = async (submissionId, score, feedback, reviewedBy) => {
   ]);
   return result.rows[0];
 };
+
+// ============================================
+// GETTERS
+// ============================================
 
 const getSubmissionsByAssignmentId = async (assignmentId, page = 1) => {
   const result = await query(
@@ -72,6 +86,10 @@ const getNotSubmittedStudents = async (assignmentId, page = 1) => {
   );
   return result.rows;
 };
+
+// ============================================
+// STATISTICS
+// ============================================
 
 const getAssignmentSubmissionStats = async (assignmentId) => {
   const result = await query(

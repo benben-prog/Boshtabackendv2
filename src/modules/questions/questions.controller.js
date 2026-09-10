@@ -3,56 +3,40 @@ const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
 
-// Get questions by exam
-const getQuestionsByExamId = async (req, res, next) => {
+// ============================================
+// HELPER: Delete file from disk
+// ============================================
+
+const deleteFileFromDisk = (filePath) => {
+  if (!filePath) return;
+
   try {
-    const { examId } = req.params;
-    const questions = await questionService.getQuestionsByExamId(examId);
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل الأسئلة بنجاح!",
-      data: questions,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get question by ID
-const getQuestionById = async (req, res, next) => {
-  try {
-    const { questionId } = req.params;
-    const question = await questionService.getQuestionById(questionId);
-
-    if (!question) {
-      throw new Error("فشل تحميل السؤال حاول مرة أخرى!");
+    const fullPath = path.join(process.cwd(), filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
     }
-
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل السؤال بنجاح!",
-      data: question,
-    });
   } catch (error) {
-    next(error);
+    console.error("Failed to delete file:", error.message);
   }
 };
 
-// Create question
+// ============================================
+// CREATE
+// ============================================
+
 const createQuestion = async (req, res, next) => {
   try {
     const file_path = req.file ? req.file.path : null;
+
     const question = await questionService.createQuestion({
       ...req.body,
       file_path,
     });
 
     if (!question) {
-      throw new Error("فشل إنشاء السؤال حاول مرة أخرى!");
+      throw new Error("فشل إنشاء السؤال حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -65,7 +49,49 @@ const createQuestion = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء السؤال بنجاح!",
+      message: "تم إنشاء السؤال بنجاح",
+      data: question,
+    });
+  } catch (error) {
+    // Delete uploaded file if operation failed
+    if (req.file && req.file.path) {
+      deleteFileFromDisk(req.file.path);
+    }
+    next(error);
+  }
+};
+
+// ============================================
+// GETTERS
+// ============================================
+
+const getQuestionsByExamId = async (req, res, next) => {
+  try {
+    const { examId } = req.params;
+    const questions = await questionService.getQuestionsByExamId(examId);
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل الأسئلة بنجاح",
+      data: questions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getQuestionById = async (req, res, next) => {
+  try {
+    const { questionId } = req.params;
+    const question = await questionService.getQuestionById(questionId);
+
+    if (!question) {
+      throw new Error("السؤال غير موجود");
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل السؤال بنجاح",
       data: question,
     });
   } catch (error) {
@@ -73,21 +99,37 @@ const createQuestion = async (req, res, next) => {
   }
 };
 
-// Update question
+// ============================================
+// UPDATE
+// ============================================
+
 const updateQuestion = async (req, res, next) => {
   try {
     const { questionId } = req.params;
-    const file_path = req.file ? req.file.path : null;
+
+    // Get old question to know old file
+    const oldQuestion = await questionService.getQuestionById(questionId);
+
+    if (!oldQuestion) {
+      throw new Error("السؤال غير موجود");
+    }
+
+    const newFile_path = req.file ? req.file.path : null;
+
     const question = await questionService.updateQuestion(questionId, {
       ...req.body,
-      file_path,
+      file_path: newFile_path,
     });
 
     if (!question) {
-      throw new Error("فشل تعديل السؤال حاول مرة أخرى!");
+      throw new Error("فشل تعديل السؤال حاول مرة أخرى");
     }
 
-    // Log activity
+    // Delete old file if new one was uploaded
+    if (newFile_path && oldQuestion.file_path) {
+      deleteFileFromDisk(oldQuestion.file_path);
+    }
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -100,25 +142,44 @@ const updateQuestion = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل السؤال بنجاح!",
+      message: "تم تعديل السؤال بنجاح",
       data: question,
     });
   } catch (error) {
+    // Delete uploaded file if operation failed
+    if (req.file && req.file.path) {
+      deleteFileFromDisk(req.file.path);
+    }
     next(error);
   }
 };
 
-// Delete question
+// ============================================
+// DELETE
+// ============================================
+
 const deleteQuestion = async (req, res, next) => {
   try {
     const { questionId } = req.params;
+
+    // Get old question to know old file
+    const oldQuestion = await questionService.getQuestionById(questionId);
+
+    if (!oldQuestion) {
+      throw new Error("السؤال غير موجود");
+    }
+
     const question = await questionService.deleteQuestion(questionId);
 
     if (!question) {
-      throw new Error("فشل حذف السؤال حاول مرة أخرى!");
+      throw new Error("فشل حذف السؤال حاول مرة أخرى");
     }
 
-    // Log activity
+    // Delete file from disk
+    if (oldQuestion.file_path) {
+      deleteFileFromDisk(oldQuestion.file_path);
+    }
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -131,7 +192,7 @@ const deleteQuestion = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف السؤال بنجاح!",
+      message: "تم حذف السؤال بنجاح",
       data: question,
     });
   } catch (error) {
@@ -139,7 +200,10 @@ const deleteQuestion = async (req, res, next) => {
   }
 };
 
-// Download question file
+// ============================================
+// DOWNLOAD
+// ============================================
+
 const downloadQuestionFile = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -150,6 +214,11 @@ const downloadQuestionFile = async (req, res, next) => {
     }
 
     const filePath = path.join(__dirname, "../../../", question.file_path);
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error("الملف غير موجود");
+    }
+
     return res.download(filePath);
   } catch (error) {
     next(error);

@@ -11,13 +11,13 @@ const {
 } = require("../../middlewares/validations/grades.validation");
 
 // ============================================
-// BULK UPLOAD ROUTES
+// BULK UPLOAD
 // ============================================
 
-// تحميل Template للصفوف
+// Download template
 routes.get("/template", gradesBulkController.downloadGradesTemplate);
 
-// رفع ملف Excel لإضافة صفوف
+// Bulk upload
 routes.post(
   "/bulk-upload",
   excelUpload.single("file"),
@@ -25,13 +25,16 @@ routes.post(
 );
 
 // ============================================
-// REGULAR ROUTES
+// CREATE
 // ============================================
 
-// Create a new grade
 routes.post("/", validate(createGradeSchema), gradeController.createGrade);
 
-// Get all grades
+// ============================================
+// GETTERS
+// ============================================
+
+// Get all grades (with optional search)
 routes.get("/", gradeController.getAllGrades);
 
 // Get grades with groups count
@@ -50,19 +53,29 @@ routes.post(
   gradeController.findGradeByName,
 );
 
+// Get grade details (full - with groups)
+routes.get("/:id/details", gradeController.getGradeDetails);
+
 // Get grade by ID
 routes.get("/:id", gradeController.getGradeById);
 
 // Get grade stats
 routes.get("/:id/stats", gradeController.getGradeStats);
 
-// Update grade
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put("/:id", validate(updateGradeSchema), gradeController.updateGrade);
 
-// Soft delete grade
+// ============================================
+// DELETE
+// ============================================
+
+// Soft delete
 routes.delete("/:id", gradeController.softDeleteGrade);
 
-// Hard delete grade
+// Hard delete
 routes.delete("/:id/permanent", gradeController.hardDeleteGrade);
 
 module.exports = routes;

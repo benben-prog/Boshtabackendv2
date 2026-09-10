@@ -2,9 +2,11 @@ const studentAnswerService = require("./student_answers.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
-const { query } = require("../../config/database");
 
-// Submit MCQ/True-False answer
+// ============================================
+// SUBMIT MCQ/TRUE-FALSE ANSWER
+// ============================================
+
 const submitAnswer = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -46,7 +48,10 @@ const submitAnswer = async (req, res, next) => {
   }
 };
 
-// Submit essay answer with file
+// ============================================
+// SUBMIT ESSAY ANSWER WITH FILE
+// ============================================
+
 const submitEssayAnswer = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -64,8 +69,12 @@ const submitEssayAnswer = async (req, res, next) => {
       question_id,
     );
 
+    // Save old file path for cleanup after successful update
+    let oldFilePath = null;
+
     let answer;
     if (existing) {
+      // Get old answer to check for old file
       const oldAnswers = await studentAnswerService.getStudentAnswersByExam(
         examId,
         studentId,
@@ -75,20 +84,21 @@ const submitEssayAnswer = async (req, res, next) => {
       );
 
       if (oldAnswer && oldAnswer.file_path) {
-        const oldFilePath = path.join(
-          __dirname,
-          "../../../",
-          oldAnswer.file_path,
-        );
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        }
+        oldFilePath = oldAnswer.file_path;
       }
 
       answer = await studentAnswerService.updateEssayAnswer(
         existing.id,
         file_path,
       );
+
+      // Delete old file AFTER successful update
+      if (oldFilePath) {
+        const fullOldPath = path.join(__dirname, "../../../", oldFilePath);
+        if (fs.existsSync(fullOldPath)) {
+          fs.unlinkSync(fullOldPath);
+        }
+      }
     } else {
       answer = await studentAnswerService.insertEssayAnswer({
         exam_id: examId,
@@ -104,14 +114,24 @@ const submitEssayAnswer = async (req, res, next) => {
       data: answer,
     });
   } catch (error) {
+    // Delete uploaded file if operation failed
     if (req.file && req.file.path) {
-      fs.unlink(req.file.path, () => {});
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupError) {
+        console.error("Error cleaning up file:", cleanupError.message);
+      }
     }
     next(error);
   }
 };
 
-// Delete answer
+// ============================================
+// DELETE ANSWER
+// ============================================
+
 const deleteAnswer = async (req, res, next) => {
   try {
     const { answerId } = req.params;
@@ -131,11 +151,15 @@ const deleteAnswer = async (req, res, next) => {
   }
 };
 
-// Get student answers
+// ============================================
+// GET STUDENT ANSWERS
+// ============================================
+
 const getStudentAnswersByExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const studentId = req.clientId;
+
     const answers = await studentAnswerService.getStudentAnswersByExam(
       examId,
       studentId,
@@ -151,7 +175,10 @@ const getStudentAnswersByExam = async (req, res, next) => {
   }
 };
 
-// Get question stats
+// ============================================
+// GET QUESTION STATS
+// ============================================
+
 const getQuestionAnswerStats = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -171,7 +198,10 @@ const getQuestionAnswerStats = async (req, res, next) => {
   }
 };
 
-// Get most selected options
+// ============================================
+// GET MOST SELECTED OPTIONS
+// ============================================
+
 const getMostSelectedOptions = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -188,7 +218,10 @@ const getMostSelectedOptions = async (req, res, next) => {
   }
 };
 
-// Grade essay answer
+// ============================================
+// GRADE ESSAY ANSWER
+// ============================================
+
 const gradeEssayAnswer = async (req, res, next) => {
   try {
     const { answerId } = req.params;
@@ -223,7 +256,10 @@ const gradeEssayAnswer = async (req, res, next) => {
   }
 };
 
-// Get essay answers for grading
+// ============================================
+// GET ESSAY ANSWERS FOR GRADING
+// ============================================
+
 const getEssayAnswersForGrading = async (req, res, next) => {
   try {
     const answers = await studentAnswerService.getEssayAnswersForGrading();
@@ -238,7 +274,10 @@ const getEssayAnswersForGrading = async (req, res, next) => {
   }
 };
 
-// Get essay answers by exam
+// ============================================
+// GET ESSAY ANSWERS BY EXAM
+// ============================================
+
 const getEssayAnswersByExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -254,26 +293,24 @@ const getEssayAnswersByExam = async (req, res, next) => {
   }
 };
 
-// Download student answer file
+// ============================================
+// DOWNLOAD ANSWER FILE
+// ============================================
+
 const downloadAnswerFile = async (req, res, next) => {
   try {
     const { answerId } = req.params;
 
-    const answer = await query(
-      "SELECT file_path FROM student_answers WHERE id = $1",
-      [answerId],
-    );
+    const answer = await studentAnswerService.getAnswerFilePath(answerId);
 
-    const answerData = answer.rows[0];
-
-    if (!answerData || !answerData.file_path) {
+    if (!answer || !answer.file_path) {
       return res.status(404).json({
         success: false,
         message: "الملف غير موجود",
       });
     }
 
-    const filePath = path.join(__dirname, "../../../", answerData.file_path);
+    const filePath = path.join(__dirname, "../../../", answer.file_path);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({

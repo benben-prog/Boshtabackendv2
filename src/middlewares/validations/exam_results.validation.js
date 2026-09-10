@@ -1,39 +1,67 @@
 const Joi = require("joi");
 
-// Create exam result
+// Create exam result schema
 const createExamResultSchema = Joi.object({
-  exam_id: Joi.number().integer().positive().required(),
-  student_id: Joi.number().integer().positive().required(),
-  degree: Joi.number().min(0).required(),
+  exam_id: Joi.number().integer().positive().required().messages({
+    "any.required": "الامتحان مطلوب",
+  }),
+  student_id: Joi.number().integer().positive().required().messages({
+    "any.required": "الطالب مطلوب",
+  }),
+  degree: Joi.number().min(0).required().messages({
+    "any.required": "الدرجة مطلوبة",
+    "number.min": "الدرجة لا يمكن أن تكون سالبة",
+    "number.base": "الدرجة يجب أن تكون رقماً",
+  }),
   notes: Joi.string().allow("", null).max(1000),
 });
 
-// Upsert exam result
+// Upsert exam result schema
 const upsertExamResultSchema = Joi.object({
-  exam_id: Joi.number().integer().positive().required(),
-  student_id: Joi.number().integer().positive().required(),
-  degree: Joi.number().min(0).required(),
+  exam_id: Joi.number().integer().positive().required().messages({
+    "any.required": "الامتحان مطلوب",
+  }),
+  student_id: Joi.number().integer().positive().required().messages({
+    "any.required": "الطالب مطلوب",
+  }),
+  degree: Joi.number().min(0).required().messages({
+    "any.required": "الدرجة مطلوبة",
+    "number.min": "الدرجة لا يمكن أن تكون سالبة",
+    "number.base": "الدرجة يجب أن تكون رقماً",
+  }),
   notes: Joi.string().allow("", null).max(1000),
 });
 
-// Upsert batch
+// Upsert batch schema
 const upsertBatchSchema = Joi.object({
   records: Joi.array()
     .items(
       Joi.object({
-        exam_id: Joi.number().integer().positive().required(),
-        student_id: Joi.number().integer().positive().required(),
-        degree: Joi.number().min(0).required(),
+        student_id: Joi.number().integer().positive().required().messages({
+          "any.required": "الطالب مطلوب",
+        }),
+        degree: Joi.number().min(0).required().messages({
+          "any.required": "الدرجة مطلوبة",
+          "number.min": "الدرجة لا يمكن أن تكون سالبة",
+        }),
         notes: Joi.string().allow("", null).max(1000),
       }),
     )
     .min(1)
-    .required(),
+    .required()
+    .messages({
+      "array.min": "يجب إرسال سجل واحد على الأقل",
+      "any.required": "السجلات مطلوبة",
+    }),
 });
 
-// Update exam result
+// Update exam result schema
 const updateExamResultSchema = Joi.object({
-  degree: Joi.number().min(0).required(),
+  degree: Joi.number().min(0).required().messages({
+    "any.required": "الدرجة مطلوبة",
+    "number.min": "الدرجة لا يمكن أن تكون سالبة",
+    "number.base": "الدرجة يجب أن تكون رقماً",
+  }),
   notes: Joi.string().allow("", null).max(1000),
 });
 

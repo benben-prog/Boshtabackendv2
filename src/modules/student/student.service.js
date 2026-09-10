@@ -1,8 +1,12 @@
 const { query } = require("../../config/database");
 const studentQueries = require("./student.queries");
 
-// Get dashboard
+// ============================================
+// GET DASHBOARD (OPTIMIZED WITH PARALLEL QUERIES)
+// ============================================
+
 const getDashboard = async (studentId) => {
+  // Step 1: Get student info (needed for subsequent queries)
   const studentInfo = await query(studentQueries.getStudentDashboard, [
     studentId,
   ]);
@@ -10,30 +14,36 @@ const getDashboard = async (studentId) => {
 
   if (!student) return null;
 
-  const attendance = await query(studentQueries.getAttendanceSummary, [
-    studentId,
+  // Step 2: Fetch all other data in parallel
+  const [
+    attendance,
+    upcomingOnline,
+    upcomingPaper,
+    upcomingAssignments,
+    examsSummary,
+    pendingAssignments,
+  ] = await Promise.all([
+    query(studentQueries.getAttendanceSummary, [studentId]),
+    query(studentQueries.getUpcomingOnlineExams, [
+      student.grade_id,
+      student.group_id,
+    ]),
+    query(studentQueries.getUpcomingPaperExams, [
+      student.grade_id,
+      student.group_id,
+    ]),
+    query(studentQueries.getUpcomingAssignments, [studentId]),
+    query(studentQueries.getExamsSummary, [studentId]),
+    query(studentQueries.getPendingAssignmentsCount, [studentId]),
   ]);
 
-  const upcomingOnline = await query(studentQueries.getUpcomingOnlineExams, [
-    student.grade_id,
-    student.group_id,
-  ]);
-
-  const upcomingPaper = await query(studentQueries.getUpcomingPaperExams, [
-    student.grade_id,
-    student.group_id,
-  ]);
-
-  const upcomingAssignments = await query(
-    studentQueries.getUpcomingAssignments,
-    [studentId],
-  );
-
-  const examsSummary = await query(studentQueries.getExamsSummary, [studentId]);
-
-  const pendingAssignments = await query(
-    studentQueries.getPendingAssignmentsCount,
-    [studentId],
+  // Step 3: Combine upcoming exams and sort
+  const upcomingExams = [...upcomingOnline.rows, ...upcomingPaper.rows].sort(
+    (a, b) => {
+      const dateA = a.start_at || a.exam_date;
+      const dateB = b.start_at || b.exam_date;
+      return new Date(dateA) - new Date(dateB);
+    },
   );
 
   return {
@@ -53,13 +63,7 @@ const getDashboard = async (studentId) => {
       room: student.room,
     },
     attendance_summary: attendance.rows[0],
-    upcoming_exams: [...upcomingOnline.rows, ...upcomingPaper.rows].sort(
-      (a, b) => {
-        const dateA = a.start_at || a.exam_date;
-        const dateB = b.start_at || b.exam_date;
-        return new Date(dateA) - new Date(dateB);
-      },
-    ),
+    upcoming_exams: upcomingExams,
     upcoming_assignments: upcomingAssignments.rows,
     exams_summary: examsSummary.rows[0],
     pending_assignments_count: parseInt(pendingAssignments.rows[0]?.count || 0),

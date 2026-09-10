@@ -1,4 +1,6 @@
+// ============================================
 // PART 1: CRUD & SEARCH OPERATIONS
+// ============================================
 
 // Create a new student
 const createStudent = `
@@ -29,6 +31,16 @@ WHERE s.deleted = 0
   AND ($3::int IS NULL OR s.group_id = $3::int)
 ORDER BY s.full_name ASC
 LIMIT 20 OFFSET (($4::int - 1) * 20)
+`;
+
+// Get students count with filters
+const getStudentsCount = `
+SELECT COUNT(*) AS count
+FROM students s
+WHERE s.deleted = 0
+  AND ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
+  AND ($2::int IS NULL OR s.grade_id = $2::int)
+  AND ($3::int IS NULL OR s.group_id = $3::int)
 `;
 
 // Get a single student by ID
@@ -178,7 +190,7 @@ SET
   grade_id = $5,
   group_id = $6,
   notes = $7,
-  updated_at = NOW()
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $8 AND deleted = 0
 RETURNING *
 `;
@@ -186,7 +198,7 @@ RETURNING *
 // Update student's profile image
 const updateStudentProfileImage = `
 UPDATE students 
-SET profile_image = $1, updated_at = NOW()
+SET profile_image = $1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $2 AND deleted = 0
 RETURNING id, profile_image
 `;
@@ -194,7 +206,7 @@ RETURNING id, profile_image
 // Delete student's profile image (set to NULL)
 const deleteStudentProfileImage = `
 UPDATE students 
-SET profile_image = NULL, updated_at = NOW()
+SET profile_image = NULL, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
 RETURNING id, profile_image
 `;
@@ -209,7 +221,7 @@ WHERE id = $1 AND deleted = 0
 // Update student's password
 const updateStudentPassword = `
 UPDATE students 
-SET password = $1, updated_at = NOW()
+SET password = $1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $2 AND deleted = 0
 RETURNING id
 `;
@@ -217,7 +229,7 @@ RETURNING id
 // Soft delete a student (set deleted = 1)
 const softDeleteStudent = `
 UPDATE students 
-SET deleted = 1, updated_at = NOW()
+SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
 RETURNING id, deleted
 `;
@@ -232,22 +244,14 @@ RETURNING id
 // Restore a soft-deleted student
 const restoreStudent = `
 UPDATE students 
-SET deleted = 0, updated_at = NOW()
+SET deleted = 0, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 1
 RETURNING id, deleted
 `;
 
-// Get students count with filters
-const getStudentsCount = `
-SELECT COUNT(*) AS count
-FROM students s
-WHERE s.deleted = 0
-  AND ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
-  AND ($2::int IS NULL OR s.grade_id = $2::int)
-  AND ($3::int IS NULL OR s.group_id = $3::int)
-`;
-
+// ============================================
 // PART 2: PROFILE & STATISTICS
+// ============================================
 
 // Get student full profile with all details
 const getStudentProfile = `
@@ -417,10 +421,12 @@ SELECT
 FROM subscriptions sub
 WHERE sub.student_id = $1 
   AND sub.deleted = 0
-  AND sub.month = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
 `;
 
+// ============================================
 // PART 3: EXAMS, ASSIGNMENTS & CONTENT
+// ============================================
 
 // Get all paper exams with student status - month filter - 20 per page
 const getStudentPaperExams = `
@@ -447,7 +453,7 @@ ORDER BY e.exam_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
-// ✅ Get student exam results - paper + online combined
+// Get student exam results - paper + online combined
 const getStudentExamResults = `
 SELECT 
   'paper' AS exam_type,
@@ -499,8 +505,8 @@ SELECT
   oe.randomize_questions,
   (SELECT COUNT(*) FROM questions q WHERE q.exam_id = oe.id) AS questions_count,
   CASE 
-    WHEN oe.start_at > NOW() THEN 'upcoming'
-    WHEN oe.end_at < NOW() THEN 'expired'
+    WHEN oe.start_at > NOW() AT TIME ZONE 'Africa/Cairo' THEN 'upcoming'
+    WHEN oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'expired'
     ELSE 'available'
   END AS exam_status,
   CASE 
@@ -574,7 +580,7 @@ SELECT
   CASE 
     WHEN asub.score IS NOT NULL THEN 'graded'
     WHEN asub.id IS NOT NULL THEN 'submitted'
-    WHEN a.deadline < NOW() THEN 'overdue'
+    WHEN a.deadline < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'overdue'
     ELSE 'pending'
   END AS assignment_status
 FROM assignments a
@@ -610,7 +616,7 @@ ORDER BY asub.submitted_at DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
-// ✅ Get student playlists - with correct thumbnail
+// Get student playlists
 const getStudentPlaylists = `
 SELECT 
   p.id AS playlist_id,
@@ -741,6 +747,10 @@ JOIN grades g ON a.grade_id = g.id
 WHERE asub.id = $1 AND asub.student_id = $2
 `;
 
+// ============================================
+// PASSWORD MANAGEMENT
+// ============================================
+
 // Get students without password
 const getStudentsWithoutPassword = `
 SELECT 
@@ -760,21 +770,7 @@ WHERE s.deleted = 0 AND s.password IS NULL
 ORDER BY s.full_name ASC
 `;
 
-// Reset student password
-const resetStudentPassword = `
-UPDATE students 
-SET password = $1, updated_at = NOW()
-WHERE id = $2 AND deleted = 0
-RETURNING id, barcode, full_name
-`;
-
-// Generate passwords for all students without password
-const generatePasswordsForAllStudents = `
-UPDATE students 
-SET password = $1, updated_at = NOW()
-WHERE id = $2 AND deleted = 0 AND password IS NULL
-RETURNING id, barcode, full_name
-`;
+// Get students without password by grade
 const getStudentsWithoutPasswordByGrade = `
 SELECT 
   s.id,
@@ -795,10 +791,62 @@ WHERE s.deleted = 0
 ORDER BY s.full_name ASC
 `;
 
+// Reset student password
+const resetStudentPassword = `
+UPDATE students 
+SET password = $1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $2 AND deleted = 0
+RETURNING id, barcode, full_name
+`;
+
+// Bulk update passwords (single query)
+const bulkUpdatePasswords = `
+UPDATE students AS s
+SET password = data.password,
+    updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+FROM (SELECT unnest($1::int[]) AS id, unnest($2::text[]) AS password) AS data
+WHERE s.id = data.id AND s.deleted = 0
+RETURNING s.id, s.barcode, s.full_name
+`;
+
+// ============================================
+// BULK OPERATIONS
+// ============================================
+
+// Check existing barcodes (single query)
+const checkExistingBarcodes = `
+SELECT barcode FROM students WHERE barcode = ANY($1) AND deleted = 0
+`;
+
+// Get grades by names (single query)
+const getGradesByNames = `
+SELECT id, name FROM grades WHERE name = ANY($1) AND deleted = 0
+`;
+
+// Get groups by names and grade_ids (single query)
+const getGroupsByNamesAndGrades = `
+SELECT id, name, grade_id FROM groups 
+WHERE name = ANY($1) AND grade_id = ANY($2) AND deleted = 0
+`;
+
+// Check existing parent tokens (single query)
+const checkExistingParentTokens = `
+SELECT parent_token FROM students WHERE parent_token = ANY($1)
+`;
+
+// Bulk insert students
+const bulkInsertStudents = `
+INSERT INTO students (barcode, full_name, phone, parent_phone, parent_token, grade_id, group_id, notes)
+SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), 
+       unnest($5::text[]), unnest($6::int[]), unnest($7::int[]), unnest($8::text[])
+RETURNING id, barcode, full_name, phone, parent_phone, parent_token
+`;
+
 module.exports = {
+  // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
-  getStudentsWithoutPasswordByGrade,
+  getStudentsCount,
   getStudentById,
   getStudentByBarcode,
   findStudentByPhone,
@@ -814,7 +862,7 @@ module.exports = {
   softDeleteStudent,
   hardDeleteStudent,
   restoreStudent,
-  getStudentsCount,
+  // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,
   getAttendanceHistory,
@@ -824,6 +872,7 @@ module.exports = {
   getPaymentHistory,
   getRemainingBalance,
   getCurrentSubscription,
+  // Part 3: Exams, Assignments & Content
   getStudentPaperExams,
   getStudentExamResults,
   getAvailableOnlineExams,
@@ -837,7 +886,15 @@ module.exports = {
   getStudentOnlineExamById,
   getStudentAssignmentById,
   getStudentSubmissionById,
+  // Password Management
   getStudentsWithoutPassword,
+  getStudentsWithoutPasswordByGrade,
   resetStudentPassword,
-  generatePasswordsForAllStudents,
+  bulkUpdatePasswords,
+  // Bulk Operations
+  checkExistingBarcodes,
+  getGradesByNames,
+  getGroupsByNamesAndGrades,
+  checkExistingParentTokens,
+  bulkInsertStudents,
 };

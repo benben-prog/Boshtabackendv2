@@ -3,6 +3,10 @@ const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
 
+// ============================================
+// SUBMIT
+// ============================================
+
 const submitAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
@@ -23,7 +27,7 @@ const submitAssignment = async (req, res, next) => {
     );
 
     if (!submission) {
-      // حذف الملف المرفوع لو فشل التسليم
+      // Delete uploaded file if submission failed
       if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -33,7 +37,6 @@ const submitAssignment = async (req, res, next) => {
       });
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -53,6 +56,10 @@ const submitAssignment = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// UPDATE
+// ============================================
 
 const updateSubmission = async (req, res, next) => {
   try {
@@ -74,7 +81,7 @@ const updateSubmission = async (req, res, next) => {
       );
 
     if (!oldSubmission) {
-      // حذف الملف المرفوع
+      // Delete uploaded file
       if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -91,7 +98,7 @@ const updateSubmission = async (req, res, next) => {
     );
 
     if (!submission) {
-      // حذف الملف المرفوع
+      // Delete uploaded file
       if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -101,7 +108,7 @@ const updateSubmission = async (req, res, next) => {
       });
     }
 
-    // حذف الملف القديم
+    // Delete old file after successful update
     if (oldSubmission.file_path) {
       const oldFilePath = path.join(
         __dirname,
@@ -113,7 +120,6 @@ const updateSubmission = async (req, res, next) => {
       }
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -134,30 +140,40 @@ const updateSubmission = async (req, res, next) => {
   }
 };
 
+// ============================================
+// DOWNLOAD
+// ============================================
+
 const downloadSubmission = async (req, res, next) => {
   try {
-    const { assignmentId } = req.params;
-    const studentId = req.clientId;
+    const { assignmentId, studentId } = req.params;
+
+    // Determine which student ID to use
+    // - If studentId provided in params (teacher/assistant viewing), use it
+    // - Otherwise, use logged-in user's ID (student viewing own)
+    const targetStudentId = studentId || req.clientId;
+
+    // Students can only view their own submissions
+    if (
+      req.clientRole === "student" &&
+      Number(targetStudentId) !== Number(req.clientId)
+    ) {
+      throw new Error("غير مصرح لك بالوصول");
+    }
 
     const submission = await assignmentSubmissionService.getStudentSubmission(
       assignmentId,
-      studentId,
+      targetStudentId,
     );
 
     if (!submission) {
-      return res.status(404).json({
-        success: false,
-        message: "التسليم غير موجود",
-      });
+      throw new Error("التسليم غير موجود");
     }
 
     const filePath = path.join(__dirname, "../../../", submission.file_path);
 
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        success: false,
-        message: "الملف غير موجود",
-      });
+      throw new Error("الملف غير موجود");
     }
 
     return res.download(filePath);
@@ -165,6 +181,10 @@ const downloadSubmission = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// GETTERS
+// ============================================
 
 const getSubmissionsByAssignmentId = async (req, res, next) => {
   try {
@@ -197,10 +217,7 @@ const getStudentSubmission = async (req, res, next) => {
     );
 
     if (!submission) {
-      return res.status(404).json({
-        success: false,
-        message: "التسليم غير موجود",
-      });
+      throw new Error("التسليم غير موجود");
     }
 
     return res.status(200).json({
@@ -253,6 +270,10 @@ const getNotSubmittedStudents = async (req, res, next) => {
   }
 };
 
+// ============================================
+// GRADE
+// ============================================
+
 const gradeSubmission = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
@@ -267,13 +288,9 @@ const gradeSubmission = async (req, res, next) => {
     );
 
     if (!submission) {
-      return res.status(400).json({
-        success: false,
-        message: "التسليم غير موجود أو تم تصحيحه مسبقاً",
-      });
+      throw new Error("التسليم غير موجود أو تم تصحيحه مسبقاً");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -294,6 +311,10 @@ const gradeSubmission = async (req, res, next) => {
   }
 };
 
+// ============================================
+// STATISTICS
+// ============================================
+
 const getAssignmentSubmissionStats = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
@@ -304,10 +325,7 @@ const getAssignmentSubmissionStats = async (req, res, next) => {
       );
 
     if (!stats) {
-      return res.status(404).json({
-        success: false,
-        message: "الواجب غير موجود",
-      });
+      throw new Error("الواجب غير موجود");
     }
 
     return res.status(200).json({

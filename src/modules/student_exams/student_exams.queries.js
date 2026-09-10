@@ -5,13 +5,13 @@
 // Create exam attempt (student starts exam)
 const createExamAttempt = `
 INSERT INTO student_exams (exam_id, student_id, started_at)
-VALUES ($1, $2, NOW())
+VALUES ($1, $2, NOW() AT TIME ZONE 'Africa/Cairo')
 RETURNING *
 `;
 
 // Check if student already attempted exam
 const checkExistingAttempt = `
-SELECT id, submitted_at
+SELECT id, submitted_at, started_at
 FROM student_exams
 WHERE exam_id = $1 AND student_id = $2
 `;
@@ -96,12 +96,102 @@ GROUP BY oe.id, oe.title, oe.full_mark, oe.start_at, oe.end_at
 ORDER BY oe.title ASC
 `;
 
-// Submit exam (manual or auto)
+// Get exam with questions for student (single query - no N+1)
+const getExamWithQuestions = `
+SELECT 
+  oe.id AS exam_id,
+  oe.title,
+  oe.description,
+  oe.full_mark,
+  oe.duration_minutes,
+  oe.start_at,
+  oe.end_at,
+  oe.randomize_questions,
+  oe.grade_id,
+  oe.group_id,
+  se.id AS attempt_id,
+  se.score,
+  se.started_at,
+  se.submitted_at
+FROM online_exams oe
+JOIN student_exams se ON oe.id = se.exam_id
+WHERE se.id = $1 AND se.student_id = $2 AND se.submitted_at IS NULL
+`;
+
+// Get all questions with options for an exam (single query)
+const getQuestionsWithOptions = `
+SELECT 
+  q.id AS question_id,
+  q.question_text,
+  q.type,
+  q.file_path,
+  q."order",
+  o.id AS option_id,
+  o.option_text,
+  o."order" AS option_order
+FROM questions q
+LEFT JOIN options o ON q.id = o.question_id
+WHERE q.exam_id = $1
+ORDER BY q."order" ASC, o."order" ASC
+`;
+
+// Get student answers for an exam
+const getStudentAnswersForExam = `
+SELECT 
+  question_id,
+  selected_option_id,
+  file_path,
+  is_correct
+FROM student_answers
+WHERE exam_id = $1 AND student_id = $2
+`;
+
+// Get exam review data (single query)
+const getExamReviewData = `
+SELECT 
+  se.id AS attempt_id,
+  se.exam_id,
+  se.score,
+  se.started_at,
+  se.submitted_at,
+  oe.title AS exam_title,
+  oe.full_mark,
+  oe.duration_minutes
+FROM student_exams se
+JOIN online_exams oe ON se.exam_id = oe.id
+WHERE se.id = $1 AND se.student_id = $2 AND se.submitted_at IS NOT NULL
+`;
+
+// Get exam questions with options and student answers for review (single query)
+const getExamReviewDetails = `
+SELECT 
+  q.id AS question_id,
+  q.question_text,
+  q.type,
+  q.file_path,
+  q."order",
+  o.id AS option_id,
+  o.option_text,
+  o.is_correct AS option_is_correct,
+  o."order" AS option_order,
+  sa.selected_option_id,
+  sa.file_path AS student_file_path,
+  sa.is_correct AS student_is_correct
+FROM questions q
+LEFT JOIN options o ON q.id = o.question_id
+LEFT JOIN student_answers sa ON q.id = sa.question_id 
+  AND sa.exam_id = $1 
+  AND sa.student_id = $2
+WHERE q.exam_id = $1
+ORDER BY q."order" ASC, o."order" ASC
+`;
+
+// Submit exam (with score)
 const submitExam = `
 UPDATE student_exams
 SET 
   score = $3,
-  submitted_at = NOW()
+  submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND student_id = $2 AND submitted_at IS NULL
 RETURNING *
 `;
@@ -109,7 +199,7 @@ RETURNING *
 // Auto submit expired exams
 const autoSubmitExpiredExams = `
 UPDATE student_exams se
-SET submitted_at = NOW(),
+SET submitted_at = NOW() AT TIME ZONE 'Africa/Cairo',
     score = COALESCE(
       (SELECT 
         ROUND(
@@ -128,7 +218,8 @@ SET submitted_at = NOW(),
     )
 WHERE se.submitted_at IS NULL
   AND se.exam_id IN (
-    SELECT id FROM online_exams WHERE end_at < NOW()
+    SELECT id FROM online_exams 
+    WHERE end_at < NOW() AT TIME ZONE 'Africa/Cairo'
   )
 RETURNING se.id, se.student_id, se.exam_id
 `;
@@ -140,11 +231,11 @@ SELECT
   oe.id,
   s.id,
   0,
-  NOW(),
-  NOW()
+  NOW() AT TIME ZONE 'Africa/Cairo',
+  NOW() AT TIME ZONE 'Africa/Cairo'
 FROM online_exams oe
 CROSS JOIN students s
-WHERE oe.end_at < NOW()
+WHERE oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
   AND oe.deleted = 0
   AND s.deleted = 0
   AND (
@@ -159,6 +250,56 @@ WHERE oe.end_at < NOW()
 RETURNING id, student_id, exam_id
 `;
 
+// Get exam questions for student (without options - for exam page)
+const getExamQuestionsForStudent = `
+SELECT 
+  id,
+  exam_id,
+  question_text,
+  type,
+  file_path,
+  "order"
+FROM questions
+WHERE exam_id = $1
+ORDER BY "order" ASC
+`;
+
+// Get options for multiple questions (single query)
+const getOptionsForQuestions = `
+SELECT 
+  id,
+  question_id,
+  option_text,
+  "order"
+FROM options
+WHERE question_id = ANY($1)
+ORDER BY question_id, "order" ASC
+`;
+
+// Get single question
+const getQuestionById = `
+SELECT 
+  id,
+  exam_id,
+  question_text,
+  type,
+  file_path,
+  "order"
+FROM questions
+WHERE id = $1
+`;
+
+// Get options for single question
+const getOptionsByQuestionId = `
+SELECT 
+  id,
+  option_text,
+  "order"
+FROM options
+WHERE question_id = $1
+ORDER BY "order" ASC
+`;
+
 module.exports = {
   createExamAttempt,
   checkExistingAttempt,
@@ -166,7 +307,16 @@ module.exports = {
   getExamAttemptStats,
   getGradeExamAttemptsStats,
   getGroupExamAttemptsStats,
+  getExamWithQuestions,
+  getQuestionsWithOptions,
+  getStudentAnswersForExam,
+  getExamReviewData,
+  getExamReviewDetails,
   submitExam,
   autoSubmitExpiredExams,
   markAbsentStudents,
+  getExamQuestionsForStudent,
+  getOptionsForQuestions,
+  getQuestionById,
+  getOptionsByQuestionId,
 };

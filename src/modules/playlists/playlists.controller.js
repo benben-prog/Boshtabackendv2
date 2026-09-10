@@ -3,12 +3,30 @@ const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
 
-// Create playlist
+// ============================================
+// HELPER: Delete file from disk
+// ============================================
+
+const deleteFileFromDisk = (filePath) => {
+  if (!filePath) return;
+
+  try {
+    const fullPath = path.join(process.cwd(), filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  } catch (error) {
+    console.error("Failed to delete file:", error.message);
+  }
+};
+
+// ============================================
+// CREATE
+// ============================================
+
 const createPlaylist = async (req, res, next) => {
   try {
-    const thumbnail_url = req.file
-      ? req.file.path
-      : req.body.thumbnail_url || null;
+    const thumbnail_url = req.file ? req.file.path : null;
 
     const playlist = await playlistService.createPlaylist({
       ...req.body,
@@ -40,7 +58,10 @@ const createPlaylist = async (req, res, next) => {
   }
 };
 
-// Get all playlists
+// ============================================
+// GETTERS
+// ============================================
+
 const getAllPlaylists = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -56,7 +77,6 @@ const getAllPlaylists = async (req, res, next) => {
   }
 };
 
-// Get playlist by ID
 const getPlaylistById = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
@@ -76,7 +96,6 @@ const getPlaylistById = async (req, res, next) => {
   }
 };
 
-// Get playlists by grade
 const getPlaylistsByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
@@ -96,22 +115,35 @@ const getPlaylistsByGradeId = async (req, res, next) => {
   }
 };
 
-// Update playlist
+// ============================================
+// UPDATE
+// ============================================
+
 const updatePlaylist = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
 
-    const thumbnail_url = req.file
-      ? req.file.path
-      : req.body.thumbnail_url || null;
+    // Get old playlist to know old thumbnail
+    const oldPlaylist = await playlistService.getPlaylistById(playlistId);
+
+    if (!oldPlaylist) {
+      throw new Error("قائمة التشغيل غير موجودة");
+    }
+
+    const newThumbnailUrl = req.file ? req.file.path : null;
 
     const playlist = await playlistService.updatePlaylist(playlistId, {
       ...req.body,
-      thumbnail_url,
+      thumbnail_url: newThumbnailUrl,
     });
 
     if (!playlist) {
       throw new Error("فشل تعديل قائمة التشغيل");
+    }
+
+    // Delete old thumbnail if new one was uploaded
+    if (newThumbnailUrl && oldPlaylist.thumbnail_url) {
+      deleteFileFromDisk(oldPlaylist.thumbnail_url);
     }
 
     await logActivity({
@@ -134,31 +166,24 @@ const updatePlaylist = async (req, res, next) => {
   }
 };
 
-// Hard delete playlist
+// ============================================
+// DELETE
+// ============================================
+
 const hardDeletePlaylist = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
 
-    // Store thumbnail before deletion
-    const oldPlaylist = await playlistService.getPlaylistById(playlistId);
-    const thumbnailUrl = oldPlaylist?.thumbnail_url;
-
+    // Delete playlist (returns thumbnail_url)
     const playlist = await playlistService.hardDeletePlaylist(playlistId);
 
     if (!playlist) {
-      throw new Error("فشل حذف قائمة التشغيل");
+      throw new Error("قائمة التشغيل غير موجودة");
     }
 
-    // Delete thumbnail file after deletion
-    if (thumbnailUrl) {
-      const filePath = path.join(process.cwd(), thumbnailUrl);
-      try {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      } catch (e) {
-        console.error("Failed to delete thumbnail:", e.message);
-      }
+    // Delete thumbnail from disk
+    if (playlist.thumbnail_url) {
+      deleteFileFromDisk(playlist.thumbnail_url);
     }
 
     await logActivity({

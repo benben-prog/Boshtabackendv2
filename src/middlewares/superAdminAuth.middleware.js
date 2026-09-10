@@ -1,9 +1,11 @@
 const env = require("../config/env");
 const { verifyToken } = require("../utils/jwt");
 
+// Middleware to authenticate super admin (JWT or Basic Auth)
 const superAdminAuth = (req, res, next) => {
-  // ✅ First: Check JWT token from x-client-key (for logged-in super admin)
+  // First: Check JWT token from x-client-key
   const clientToken = req.headers["x-client-key"];
+
   if (clientToken) {
     try {
       const decoded = verifyToken(clientToken);
@@ -18,12 +20,13 @@ const superAdminAuth = (req, res, next) => {
     }
   }
 
-  // ✅ Second: Check Basic Auth from x-super-admin-key (for API access)
+  // Second: Check Basic Auth from x-super-admin-key
   const authHeader = req.headers["x-super-admin-key"];
+
   if (!authHeader) {
     return res.status(401).json({
       success: false,
-      message: "Super admin authentication required",
+      message: "مطلوب توثيق المدير العام",
     });
   }
 
@@ -32,27 +35,38 @@ const superAdminAuth = (req, res, next) => {
   if (type !== "Basic" || !token) {
     return res.status(401).json({
       success: false,
-      message: "Invalid key format",
+      message: "صيغة المفتاح غير صحيحة",
     });
   }
 
+  // Use indexOf to handle passwords with ":"
   const decodedToken = Buffer.from(token, "base64").toString("utf-8");
-  const [username, password] = decodedToken.split(":");
+  const firstColonIndex = decodedToken.indexOf(":");
 
-  const SUPER_ADMIN_USERNAME = env.SUPER_ADMIN_USERNAME;
-  const SUPER_ADMIN_PASSWORD = env.SUPER_ADMIN_PASSWORD;
-
-  if (!SUPER_ADMIN_USERNAME || !SUPER_ADMIN_PASSWORD) {
-    return res.status(500).json({
-      success: false,
-      message: "Super admin credentials not configured",
-    });
-  }
-
-  if (username !== SUPER_ADMIN_USERNAME || password !== SUPER_ADMIN_PASSWORD) {
+  if (firstColonIndex === -1) {
     return res.status(401).json({
       success: false,
-      message: "Invalid super admin key",
+      message: "صيغة المفتاح غير صحيحة",
+    });
+  }
+
+  const username = decodedToken.substring(0, firstColonIndex);
+  const password = decodedToken.substring(firstColonIndex + 1);
+
+  const superAdminUsername = env.SUPER_ADMIN_USERNAME;
+  const superAdminPassword = env.SUPER_ADMIN_PASSWORD;
+
+  if (!superAdminUsername || !superAdminPassword) {
+    return res.status(500).json({
+      success: false,
+      message: "بيانات المدير العام غير مكتملة",
+    });
+  }
+
+  if (username !== superAdminUsername || password !== superAdminPassword) {
+    return res.status(401).json({
+      success: false,
+      message: "مفتاح المدير العام غير صحيح",
     });
   }
 

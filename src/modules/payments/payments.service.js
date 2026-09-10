@@ -2,22 +2,18 @@ const { query } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
-// Helper function to format month and year separately for WhatsApp template
-// WhatsApp payment template expects: {{1}} = name, {{2}} = month, {{3}} = year, {{4}} = amount
-function formatPaymentData(monthStr) {
-  console.log("[WhatsApp] formatPaymentData input:", monthStr);
+// ============================================
+// HELPER: Format payment data for WhatsApp
+// ============================================
 
+function formatPaymentData(monthStr) {
   if (!monthStr) {
-    console.log("[WhatsApp] monthStr is empty, using defaults");
     return { month: "غير محدد", year: new Date().getFullYear() };
   }
 
-  // monthStr format: "2026-09"
   const parts = String(monthStr).split("-");
-  console.log("[WhatsApp] monthStr parts:", parts);
 
   if (parts.length !== 2) {
-    console.log("[WhatsApp] monthStr invalid format, using as is");
     return { month: monthStr, year: new Date().getFullYear() };
   }
 
@@ -34,50 +30,84 @@ function formatPaymentData(monthStr) {
     "07": "يوليو",
     "08": "أغسطس",
     "09": "سبتمبر",
-    "10": "أكتوبر",
-    "11": "نوفمبر",
-    "12": "ديسمبر",
+    10: "أكتوبر",
+    11: "نوفمبر",
+    12: "ديسمبر",
   };
 
-  const result = {
+  return {
     month: monthNames[month] || month,
     year: year,
   };
-
-  console.log("[WhatsApp] formatPaymentData result:", result);
-  return result;
 }
 
-const createPayment = async (paymentData) => {
-  const { subscription_id, student_id, amount, payment_date, notes } =
-    paymentData;
+// ============================================
+// CREATE PAYMENT (with payment_mode support)
+// ============================================
 
+const createPayment = async (paymentData) => {
+  const {
+    subscription_id,
+    student_id,
+    amount,
+    payment_date,
+    payment_mode = "normal",
+    notes,
+  } = paymentData;
+
+  // Get subscription
   const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
     subscription_id,
   ]);
 
   if (!subscriptionResult.rows[0]) {
-    throw new Error("Subscription not found");
+    throw new Error("الاشتراك غير موجود");
   }
 
   const { required_amount, status, month } = subscriptionResult.rows[0];
 
   if (status === "paid") {
-    throw new Error("Subscription already paid");
+    throw new Error("الاشتراك مدفوع مسبقاً");
   }
 
+  // ============================================
+  // Determine final amount based on payment mode
+  // ============================================
+
+  let finalAmount;
+
+  if (payment_mode === "custom") {
+    // Custom mode: accept any amount (discount, special case, etc.)
+    if (!amount || amount <= 0) {
+      throw new Error("المبلغ مطلوب في الوضع المخصص");
+    }
+    finalAmount = amount;
+  } else {
+    // Normal mode: must match required_amount exactly
+    if (amount !== undefined && amount !== null) {
+      if (Number(amount) !== Number(required_amount)) {
+        throw new Error(`المبلغ المطلوب ${required_amount} جنيه بالظبط`);
+      }
+    }
+    finalAmount = required_amount;
+  }
+
+  // Create payment
   const paymentResult = await query(paymentQueries.createPayment, [
     subscription_id,
     student_id,
-    amount,
+    finalAmount,
     payment_date,
+    payment_mode,
     notes,
   ]);
 
+  // Mark subscription as paid
   await query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
 
   const payment = paymentResult.rows[0];
 
+  // Send WhatsApp notification (fire and forget)
   if (payment) {
     try {
       const studentResult = await query(
@@ -88,7 +118,7 @@ const createPayment = async (paymentData) => {
 
       if (student) {
         const { month: monthName, year } = formatPaymentData(month);
-        const paymentAmount = Number(amount) || 0;
+        const paymentAmount = Number(finalAmount) || 0;
 
         const paymentInfo = {
           month: monthName,
@@ -111,12 +141,16 @@ const createPayment = async (paymentData) => {
         );
       }
     } catch (error) {
-      console.error("Error enqueueing payment message:", error);
+      console.error("Error enqueueing payment message:", error.message);
     }
   }
 
   return payment;
 };
+
+// ============================================
+// CRUD OPERATIONS
+// ============================================
 
 const getAllPayments = async (filters) => {
   const { search = "", grade_id = null, group_id = null, page = 1 } = filters;
@@ -129,21 +163,95 @@ const getAllPayments = async (filters) => {
   return result.rows;
 };
 
+const getPaymentsCount = async (filters) => {
+  const { search = "", grade_id = null, group_id = null } = filters;
+  const result = await query(paymentQueries.getPaymentsCount, [
+    search,
+    grade_id,
+    group_id,
+  ]);
+  return result.rows[0];
+};
+
 const getPaymentById = async (id) => {
   const result = await query(paymentQueries.getPaymentById, [id]);
   return result.rows[0];
 };
 
+// ============================================
+// UPDATE PAYMENT (flexible)
+// ============================================
+
 const updatePayment = async (id, paymentData) => {
-  const { amount, payment_date, notes } = paymentData;
+  const { amount, payment_date, payment_mode, notes } = paymentData;
+
+  // Get existing payment
+  const existingResult = await query(
+    "SELECT id, subscription_id, payment_mode, amount, payment_date, notes FROM payments WHERE id = $1",
+    [id],
+  );
+
+  const existing = existingResult.rows[0];
+
+  if (!existing) {
+    return null;
+  }
+
+  // Get subscription to know required_amount
+  const subscriptionResult = await query(paymentQueries.getSubscriptionAmount, [
+    existing.subscription_id,
+  ]);
+
+  const subscription = subscriptionResult.rows[0];
+
+  // Determine final payment_mode
+  const finalMode = payment_mode ?? existing.payment_mode;
+
+  // Determine final amount based on mode
+  let finalAmount;
+
+  if (finalMode === "custom") {
+    // Custom mode: use provided amount or existing
+    const customAmount = amount ?? existing.amount;
+    if (!customAmount || customAmount <= 0) {
+      throw new Error("المبلغ مطلوب في الوضع المخصص");
+    }
+    finalAmount = customAmount;
+  } else {
+    // Normal mode: use required_amount from subscription
+    if (!subscription) {
+      throw new Error("الاشتراك غير موجود");
+    }
+
+    // If amount is provided, it must match required_amount exactly
+    if (amount !== undefined && amount !== null) {
+      if (Number(amount) !== Number(subscription.required_amount)) {
+        throw new Error(
+          `المبلغ المطلوب ${subscription.required_amount} جنيه بالظبط`,
+        );
+      }
+    }
+
+    finalAmount = subscription.required_amount;
+  }
+
+  const finalPaymentDate = payment_date ?? existing.payment_date;
+  const finalNotes = notes ?? existing.notes;
+
   const result = await query(paymentQueries.updatePayment, [
-    amount,
-    payment_date,
-    notes,
+    finalAmount,
+    finalPaymentDate,
+    finalMode,
+    finalNotes,
     id,
   ]);
+
   return result.rows[0];
 };
+
+// ============================================
+// DELETE PAYMENT
+// ============================================
 
 const deletePayment = async (id) => {
   const paymentInfo = await query(paymentQueries.getPaymentSubscriptionId, [
@@ -151,7 +259,7 @@ const deletePayment = async (id) => {
   ]);
 
   if (!paymentInfo.rows[0]) {
-    throw new Error("الدفعة غير موجودة!");
+    throw new Error("الدفعة غير موجودة");
   }
 
   const subscription_id = paymentInfo.rows[0].subscription_id;
@@ -169,6 +277,10 @@ const deletePayment = async (id) => {
 
   return result.rows[0];
 };
+
+// ============================================
+// STATISTICS
+// ============================================
 
 const getPaymentsByGradeAndMonth = async (gradeId, month) => {
   const result = await query(paymentQueries.getPaymentsByGradeAndMonth, [
@@ -216,19 +328,10 @@ const getAllStudentsPaymentStatus = async () => {
   return result.rows;
 };
 
-const getPaymentsCount = async (filters) => {
-  const { search = "", grade_id = null, group_id = null } = filters;
-  const result = await query(paymentQueries.getPaymentsCount, [
-    search,
-    grade_id,
-    group_id,
-  ]);
-  return result.rows[0];
-};
-
 module.exports = {
   createPayment,
   getAllPayments,
+  getPaymentsCount,
   getPaymentById,
   updatePayment,
   deletePayment,
@@ -240,5 +343,4 @@ module.exports = {
   getGroupPaymentStats,
   getOverallPaymentStats,
   getAllStudentsPaymentStatus,
-  getPaymentsCount,
 };

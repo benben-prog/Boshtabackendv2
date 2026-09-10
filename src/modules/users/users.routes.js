@@ -9,6 +9,10 @@ const {
   findUserByPhoneSchema,
 } = require("../../middlewares/validations/users.validation");
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get all users
 routes.get("/", userController.getAllUsers);
 
@@ -28,8 +32,15 @@ routes.post(
 // Get user by ID
 routes.get("/:userId", userController.getUserById);
 
-// Create user
+// ============================================
+// CREATE
+// ============================================
+
 routes.post("/", validate(createUserSchema), userController.createUser);
+
+// ============================================
+// UPDATE
+// ============================================
 
 // Update user
 routes.put("/:userId", validate(updateUserSchema), userController.updateUser);
@@ -43,6 +54,10 @@ routes.put(
 
 // Toggle user active
 routes.put("/:userId/toggle-active", userController.toggleUserActive);
+
+// ============================================
+// DELETE
+// ============================================
 
 // Soft delete user
 routes.delete("/:userId", userController.softDeleteUser);

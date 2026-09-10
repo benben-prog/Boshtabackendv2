@@ -4,36 +4,41 @@ const assignmentSubmissionController = require("./assignment_submissions.control
 const validate = require("../../middlewares/validate.middleware");
 const assignmentUpload = require("../../middlewares/uploads/assignmentUpload");
 const {
-  submitAssignmentSchema,
-  updateSubmissionSchema,
   gradeSubmissionSchema,
 } = require("../../middlewares/validations/assignmentSubmission.validation");
 
-// routes.post("/upload-test", assignmentUpload.single("file"), (req, res) => {
-//   return res.status(200).json({
-//     success: true,
-//     message: "تم رفع الملف بنجاح",
-//     file: req.file,
-//   });
-// });
+// ============================================
+// STUDENT ROUTES
+// ============================================
 
-// Submit a new assignment (student)
+// Submit assignment (student)
 routes.post(
   "/homeWorkSubmission/:assignmentId/submit",
   assignmentUpload.single("file"),
   assignmentSubmissionController.submitAssignment,
 );
-// Download File From server using file path from DB
+
+// Update submission (student)
+routes.put(
+  "/homeWorkSubmission/:assignmentId/update",
+  assignmentUpload.single("file"),
+  assignmentSubmissionController.updateSubmission,
+);
+
+// Download own submission
 routes.get(
   "/homeWorkSubmission/:assignmentId/download",
   assignmentSubmissionController.downloadSubmission,
 );
 
-// Update submission before deadline (student)
-routes.put(
-  "/homeWorkSubmission/:assignmentId/update",
-  assignmentUpload.single("file"),
-  assignmentSubmissionController.updateSubmission,
+// ============================================
+// TEACHER/ASSISTANT ROUTES
+// ============================================
+
+// Download student submission (teacher/assistant)
+routes.get(
+  "/homeWorkSubmission/:assignmentId/student/:studentId/download",
+  assignmentSubmissionController.downloadSubmission,
 );
 
 // Get all submissions for assignment

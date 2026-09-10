@@ -1,3 +1,4 @@
+// src/database/migrations/tables/attendance.table.js
 const { query } = require("../../../config/database");
 
 async function createAttendanceTable() {
@@ -9,7 +10,7 @@ async function createAttendanceTable() {
       grade_id INTEGER NOT NULL REFERENCES grades(id) ON DELETE CASCADE,
       attendance_date DATE NOT NULL,
       status TEXT NOT NULL CHECK (status IN ('present', 'absent')),
-      attendance_time TIME DEFAULT CURRENT_TIME,
+      attendance_time TIME DEFAULT (NOW() AT TIME ZONE 'Africa/Cairo')::TIME,
       method TEXT DEFAULT 'manual' CHECK (method IN ('manual', 'barcode')),
       is_makeup INTEGER DEFAULT 0,
       makeup_group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL,
@@ -17,6 +18,13 @@ async function createAttendanceTable() {
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(student_id, attendance_date)
     )
+  `);
+
+  // Alter existing column default to use Egypt timezone
+  await query(`
+    ALTER TABLE attendance
+    ALTER COLUMN attendance_time 
+    SET DEFAULT (NOW() AT TIME ZONE 'Africa/Cairo')::TIME
   `);
 
   await query(

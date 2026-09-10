@@ -9,7 +9,7 @@ async function createMessagesTable() {
       message TEXT NOT NULL,
       type VARCHAR(50) DEFAULT 'custom',
       recipient VARCHAR(20) DEFAULT 'parent',
-      status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'delivered')),
+      status TEXT DEFAULT 'pending',
       params JSONB,
       ref_key VARCHAR(100) UNIQUE,
       template_id INTEGER REFERENCES whatsapp_messages(id) ON DELETE SET NULL,
@@ -22,6 +22,28 @@ async function createMessagesTable() {
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
+  `);
+
+  // Update status check constraint to include scheduled and read
+  await query(`
+    DO $$
+    BEGIN
+      -- Drop old constraint if exists
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'messages_status_check'
+      ) THEN
+        ALTER TABLE messages DROP CONSTRAINT messages_status_check;
+      END IF;
+      
+      -- Add new constraint with all statuses
+      ALTER TABLE messages 
+      ADD CONSTRAINT messages_status_check 
+      CHECK (status IN ('pending', 'scheduled', 'sent', 'failed', 'delivered', 'read'));
+    EXCEPTION
+      WHEN others THEN
+        RAISE NOTICE 'Could not update status constraint: %', SQLERRM;
+    END $$;
   `);
 
   await query(

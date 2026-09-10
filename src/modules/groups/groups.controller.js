@@ -1,16 +1,18 @@
 const groupService = require("./groups.service");
 const { logActivity } = require("../../utils/activityLogger");
 
-// Create a new group
+// ============================================
+// CREATE
+// ============================================
+
 const createGroup = async (req, res, next) => {
   try {
     const group = await groupService.createGroup(req.body);
 
     if (!group) {
-      throw new Error("فشل إنشاء المجموعة حاول مرة أخرى!");
+      throw new Error("فشل إنشاء المجموعة حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -23,7 +25,7 @@ const createGroup = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء المجموعة بنجاح!",
+      message: "تم إنشاء المجموعة بنجاح",
       data: group,
     });
   } catch (error) {
@@ -31,18 +33,24 @@ const createGroup = async (req, res, next) => {
   }
 };
 
-// Get all groups
+// ============================================
+// GETTERS
+// ============================================
+
 const getAllGroups = async (req, res, next) => {
   try {
-    const groups = await groupService.getAllGroups();
+    const { grade_id = null, search = "" } = req.query;
 
-    if (!groups) {
-      throw new Error("فشل تحميل المجموعات حاول مرة أخرى!");
-    }
+    const filters = {
+      grade_id: grade_id ? parseInt(grade_id) : null,
+      search,
+    };
+
+    const groups = await groupService.getAllGroups(filters);
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعات بنجاح!",
+      message: "تم تحميل المجموعات بنجاح",
       data: groups,
     });
   } catch (error) {
@@ -50,20 +58,18 @@ const getAllGroups = async (req, res, next) => {
   }
 };
 
-// Get group by ID
 const getGroupById = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const group = await groupService.getGroupById(id);
 
     if (!group) {
-      throw new Error("فشل تحميل المجموعة حاول مرة أخرى!");
+      throw new Error("المجموعة غير موجودة");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعة بنجاح!",
+      message: "تم تحميل المجموعة بنجاح",
       data: group,
     });
   } catch (error) {
@@ -71,20 +77,18 @@ const getGroupById = async (req, res, next) => {
   }
 };
 
-// Find group by name
 const findGroupByName = async (req, res, next) => {
   try {
     const { name, grade_id } = req.body;
-
     const group = await groupService.findGroupByName(name, grade_id);
 
     if (!group) {
-      throw new Error("فشل تحميل المجموعة حاول مرة أخرى!");
+      throw new Error("المجموعة غير موجودة");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعة بنجاح!",
+      message: "تم تحميل المجموعة بنجاح",
       data: group,
     });
   } catch (error) {
@@ -92,20 +96,14 @@ const findGroupByName = async (req, res, next) => {
   }
 };
 
-// Get groups by grade
 const getGroupsByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
-
     const groups = await groupService.getGroupsByGradeId(gradeId);
-
-    if (!groups) {
-      throw new Error("فشل تحميل المجموعات حاول مرة أخرى!");
-    }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعات بنجاح!",
+      message: "تم تحميل المجموعات بنجاح",
       data: groups,
     });
   } catch (error) {
@@ -113,18 +111,19 @@ const getGroupsByGradeId = async (req, res, next) => {
   }
 };
 
-// Update group
+// ============================================
+// UPDATE
+// ============================================
+
 const updateGroup = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const group = await groupService.updateGroup(id, req.body);
 
     if (!group) {
-      throw new Error("فشل تعديل المجموعة حاول مرة أخرى!");
+      throw new Error("المجموعة غير موجودة");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -137,7 +136,7 @@ const updateGroup = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل المجموعة بنجاح!",
+      message: "تم تعديل المجموعة بنجاح",
       data: group,
     });
   } catch (error) {
@@ -145,18 +144,19 @@ const updateGroup = async (req, res, next) => {
   }
 };
 
-// Soft delete group
+// ============================================
+// DELETE
+// ============================================
+
 const softDeleteGroup = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const group = await groupService.softDeleteGroup(id);
 
     if (!group) {
-      throw new Error("فشل حذف المجموعة حاول مرة أخرى!");
+      throw new Error("المجموعة غير موجودة");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -169,7 +169,7 @@ const softDeleteGroup = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف المجموعة بنجاح!",
+      message: "تم حذف المجموعة بنجاح",
       data: group,
     });
   } catch (error) {
@@ -177,18 +177,15 @@ const softDeleteGroup = async (req, res, next) => {
   }
 };
 
-// Hard delete group
 const hardDeleteGroup = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const group = await groupService.hardDeleteGroup(id);
 
     if (!group) {
-      throw new Error("فشل حذف المجموعة نهائيًا حاول مرة أخرى!");
+      throw new Error("المجموعة غير موجودة");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -201,7 +198,7 @@ const hardDeleteGroup = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف المجموعة نهائيًا بنجاح!",
+      message: "تم حذف المجموعة نهائياً بنجاح",
       data: group,
     });
   } catch (error) {
@@ -209,20 +206,22 @@ const hardDeleteGroup = async (req, res, next) => {
   }
 };
 
-// Get group stats
+// ============================================
+// STATISTICS
+// ============================================
+
 const getGroupStats = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const stats = await groupService.getGroupStats(id);
 
     if (!stats) {
-      throw new Error("فشل تحميل إحصائيات المجموعة حاول مرة أخرى!");
+      throw new Error("فشل تحميل إحصائيات المجموعة حاول مرة أخرى");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل إحصائيات المجموعة بنجاح!",
+      message: "تم تحميل إحصائيات المجموعة بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -230,18 +229,13 @@ const getGroupStats = async (req, res, next) => {
   }
 };
 
-// Get all groups stats
 const getAllGroupsStats = async (req, res, next) => {
   try {
     const stats = await groupService.getAllGroupsStats();
 
-    if (!stats) {
-      throw new Error("فشل تحميل إحصائيات المجموعات حاول مرة أخرى!");
-    }
-
     return res.status(200).json({
       success: true,
-      message: "تم تحميل إحصائيات المجموعات بنجاح!",
+      message: "تم تحميل إحصائيات المجموعات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -249,18 +243,13 @@ const getAllGroupsStats = async (req, res, next) => {
   }
 };
 
-// Get groups with students count
 const getGroupsWithStudentsCount = async (req, res, next) => {
   try {
     const groups = await groupService.getGroupsWithStudentsCount();
 
-    if (!groups) {
-      throw new Error("فشل تحميل المجموعات حاول مرة أخرى!");
-    }
-
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعات بنجاح!",
+      message: "تم تحميل المجموعات بنجاح",
       data: groups,
     });
   } catch (error) {
@@ -268,18 +257,13 @@ const getGroupsWithStudentsCount = async (req, res, next) => {
   }
 };
 
-// Get groups with grade name
 const getGroupsWithGradeName = async (req, res, next) => {
   try {
     const groups = await groupService.getGroupsWithGradeName();
 
-    if (!groups) {
-      throw new Error("فشل تحميل المجموعات حاول مرة أخرى!");
-    }
-
     return res.status(200).json({
       success: true,
-      message: "تم تحميل المجموعات بنجاح!",
+      message: "تم تحميل المجموعات بنجاح",
       data: groups,
     });
   } catch (error) {
@@ -287,19 +271,18 @@ const getGroupsWithGradeName = async (req, res, next) => {
   }
 };
 
-// Get group full stats
 const getGroupFullStats = async (req, res, next) => {
   try {
     const { id } = req.params;
     const stats = await groupService.getGroupFullStats(id);
 
     if (!stats || !stats.id) {
-      throw new Error("المجموعة غير موجودة!");
+      throw new Error("المجموعة غير موجودة");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل إحصائيات المجموعة بنجاح!",
+      message: "تم تحميل إحصائيات المجموعة بنجاح",
       data: stats,
     });
   } catch (error) {

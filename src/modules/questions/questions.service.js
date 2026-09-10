@@ -1,7 +1,33 @@
 const { query } = require("../../config/database");
 const questionQueries = require("./questions.queries");
+const { getNowEgypt } = require("../../utils/timezone");
 
-// Create question
+// ============================================
+// HELPER: Check if exam has started
+// ============================================
+
+const checkExamNotStarted = async (examId) => {
+  const result = await query(questionQueries.getExamStartAt, [examId]);
+  const exam = result.rows[0];
+
+  if (!exam) {
+    throw new Error("الامتحان غير موجود");
+  }
+
+  const now = getNowEgypt();
+  const startAt = new Date(exam.start_at);
+
+  if (now >= startAt) {
+    throw new Error("لا يمكن تعديل الأسئلة بعد بدء الامتحان");
+  }
+
+  return exam;
+};
+
+// ============================================
+// CREATE
+// ============================================
+
 const createQuestion = async (questionData) => {
   const {
     exam_id,
@@ -10,6 +36,10 @@ const createQuestion = async (questionData) => {
     file_path = null,
     order,
   } = questionData;
+
+  // Check exam not started
+  await checkExamNotStarted(exam_id);
+
   const result = await query(questionQueries.createQuestion, [
     exam_id,
     question_text,
@@ -17,52 +47,93 @@ const createQuestion = async (questionData) => {
     file_path,
     order,
   ]);
+
   return result.rows[0];
 };
 
-// Get questions by exam ID
+// ============================================
+// GETTERS
+// ============================================
+
 const getQuestionsByExamId = async (examId) => {
   const result = await query(questionQueries.getQuestionsByExamId, [examId]);
   return result.rows;
 };
 
-// Get question by ID
 const getQuestionById = async (questionId) => {
   const result = await query(questionQueries.getQuestionById, [questionId]);
   return result.rows[0];
 };
 
-// Update question
+// ============================================
+// UPDATE
+// ============================================
+
 const updateQuestion = async (questionId, questionData) => {
-  const existing = await query("SELECT * FROM questions WHERE id = $1", [
+  const { question_text, type, file_path, order } = questionData;
+
+  // Get question with exam info
+  const questionResult = await query(questionQueries.getQuestionWithExam, [
     questionId,
   ]);
-  if (!existing.rows[0]) return null;
+  const question = questionResult.rows[0];
 
-  const updated = {
-    question_text: questionData.question_text ?? existing.rows[0].question_text,
-    type: questionData.type ?? existing.rows[0].type,
-    file_path: questionData.file_path ?? existing.rows[0].file_path,
-    order: questionData.order ?? existing.rows[0].order,
-  };
+  if (!question) {
+    return null;
+  }
 
+  // Check if exam has started
+  const now = getNowEgypt();
+  const examStart = new Date(question.exam_start_at);
+
+  if (now >= examStart) {
+    throw new Error("لا يمكن تعديل الأسئلة بعد بدء الامتحان");
+  }
+
+  // Update
   const result = await query(questionQueries.updateQuestion, [
     questionId,
-    updated.question_text,
-    updated.type,
-    updated.file_path,
-    updated.order,
+    question_text ?? null,
+    type ?? null,
+    file_path ?? null,
+    order ?? null,
   ]);
+
   return result.rows[0];
 };
 
-// Delete question
+// ============================================
+// DELETE
+// ============================================
+
 const deleteQuestion = async (questionId) => {
+  // Get question with exam info
+  const questionResult = await query(questionQueries.getQuestionWithExam, [
+    questionId,
+  ]);
+  const question = questionResult.rows[0];
+
+  if (!question) {
+    return null;
+  }
+
+  // Check if exam has started
+  const now = getNowEgypt();
+  const examStart = new Date(question.exam_start_at);
+
+  if (now >= examStart) {
+    throw new Error("لا يمكن حذف الأسئلة بعد بدء الامتحان");
+  }
+
+  // Delete
   const result = await query(questionQueries.deleteQuestion, [questionId]);
   return result.rows[0];
 };
 
-// Get questions count by exam
+// ============================================
+// STATS
+// ============================================
+
 const getQuestionsCountByExam = async (examId) => {
   const result = await query(questionQueries.getQuestionsCountByExam, [examId]);
   return result.rows[0];

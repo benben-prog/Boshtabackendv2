@@ -7,23 +7,36 @@ const {
   updateOptionSchema,
 } = require("../../middlewares/validations/option.validation");
 
+// ============================================
+// GETTERS
+// ============================================
+
 // Get options by question
 routes.get("/question/:questionId", optionController.getOptionsByQuestionId);
 
 // Get option by ID
 routes.get("/:optionId", optionController.getOptionById);
 
-// Create option
+// ============================================
+// CREATE
+// ============================================
+
 routes.post("/", validate(createOptionSchema), optionController.createOption);
 
-// Update option
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put(
   "/:optionId",
   validate(updateOptionSchema),
   optionController.updateOption,
 );
 
-// Delete option
+// ============================================
+// DELETE
+// ============================================
+
 routes.delete("/:optionId", optionController.deleteOption);
 
 module.exports = routes;

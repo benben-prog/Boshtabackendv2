@@ -11,13 +11,13 @@ const {
 } = require("../../middlewares/validations/groups.validation");
 
 // ============================================
-// BULK UPLOAD ROUTES
+// BULK UPLOAD
 // ============================================
 
-// تحميل Template للمجموعات
+// Download template
 routes.get("/template", groupsBulkController.downloadGroupsTemplate);
 
-// رفع ملف Excel لإضافة مجموعات
+// Bulk upload
 routes.post(
   "/bulk-upload",
   excelUpload.single("file"),
@@ -25,13 +25,16 @@ routes.post(
 );
 
 // ============================================
-// REGULAR ROUTES
+// CREATE
 // ============================================
 
-// Create a new group
 routes.post("/", validate(createGroupSchema), groupController.createGroup);
 
-// Get all groups
+// ============================================
+// GETTERS
+// ============================================
+
+// Get all groups (with filters)
 routes.get("/", groupController.getAllGroups);
 
 // Get groups with grade name
@@ -59,13 +62,23 @@ routes.get("/:id", groupController.getGroupById);
 // Get group stats
 routes.get("/:id/stats", groupController.getGroupStats);
 
-// Update group
+// Get group full stats
+routes.get("/:id/full-stats", groupController.getGroupFullStats);
+
+// ============================================
+// UPDATE
+// ============================================
+
 routes.put("/:id", validate(updateGroupSchema), groupController.updateGroup);
 
-// Soft delete group
+// ============================================
+// DELETE
+// ============================================
+
+// Soft delete
 routes.delete("/:id", groupController.softDeleteGroup);
 
-// Hard delete group
+// Hard delete
 routes.delete("/:id/permanent", groupController.hardDeleteGroup);
 
 module.exports = routes;

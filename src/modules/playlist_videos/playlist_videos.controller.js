@@ -1,7 +1,10 @@
 const playlistVideoService = require("./playlist_videos.service");
 const { logActivity } = require("../../utils/activityLogger");
 
-// Get playlist videos
+// ============================================
+// GETTERS
+// ============================================
+
 const getPlaylistVideos = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
@@ -9,7 +12,7 @@ const getPlaylistVideos = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الفيديوهات بنجاح!",
+      message: "تم تحميل الفيديوهات بنجاح",
       data: videos,
     });
   } catch (error) {
@@ -17,7 +20,10 @@ const getPlaylistVideos = async (req, res, next) => {
   }
 };
 
-// Add video to playlist
+// ============================================
+// ADD
+// ============================================
+
 const addVideoToPlaylist = async (req, res, next) => {
   try {
     const { playlist_id, video_id } = req.body;
@@ -28,10 +34,13 @@ const addVideoToPlaylist = async (req, res, next) => {
     );
 
     if (!playlistVideo) {
-      throw new Error("فشل إضافة الفيديو للقائمة حاول مرة أخرى!");
+      return res.status(200).json({
+        success: true,
+        message: "الفيديو موجود بالفعل في قائمة التشغيل",
+        data: null,
+      });
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -44,7 +53,7 @@ const addVideoToPlaylist = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إضافة الفيديو للقائمة بنجاح!",
+      message: "تم إضافة الفيديو للقائمة بنجاح",
       data: playlistVideo,
     });
   } catch (error) {
@@ -52,17 +61,19 @@ const addVideoToPlaylist = async (req, res, next) => {
   }
 };
 
-// Remove video from playlist
+// ============================================
+// REMOVE
+// ============================================
+
 const removeVideoFromPlaylist = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await playlistVideoService.removeVideoFromPlaylist(id);
 
     if (!result) {
-      throw new Error("فشل حذف الفيديو من القائمة حاول مرة أخرى!");
+      throw new Error("الفيديو غير موجود في القائمة");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -75,7 +86,7 @@ const removeVideoFromPlaylist = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الفيديو من القائمة بنجاح!",
+      message: "تم حذف الفيديو من القائمة بنجاح",
       data: result,
     });
   } catch (error) {

@@ -1,14 +1,14 @@
 const studentService = require("./students.service");
 const { logActivity } = require("../../utils/activityLogger");
 
-//PART 1: CRUD & SEARCH OPERATIONS
+// ============================================
+// PART 1: CRUD & SEARCH
+// ============================================
 
-// Create a new student
 const createStudent = async (req, res, next) => {
   try {
     const student = await studentService.createStudent(req.body);
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -21,7 +21,7 @@ const createStudent = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Student created successfully",
+      message: "تم إنشاء الطالب بنجاح",
       data: student,
     });
   } catch (error) {
@@ -29,28 +29,24 @@ const createStudent = async (req, res, next) => {
   }
 };
 
-// Get all students with filters
 const getAllStudents = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null } = req.query;
     const page = parseInt(req.query.page) || 1;
 
-    const students = await studentService.getAllStudents({
+    const filters = {
       search,
       grade_id: grade_id ? parseInt(grade_id) : null,
       group_id: group_id ? parseInt(group_id) : null,
       page,
-    });
+    };
 
-    const { count } = await studentService.getStudentsCount({
-      search,
-      grade_id: grade_id ? parseInt(grade_id) : null,
-      group_id: group_id ? parseInt(group_id) : null,
-    });
+    const students = await studentService.getAllStudents(filters);
+    const { count } = await studentService.getStudentsCount(filters);
 
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: students,
       pagination: {
         page,
@@ -64,16 +60,16 @@ const getAllStudents = async (req, res, next) => {
   }
 };
 
-// Get a single student by ID
 const getStudentById = async (req, res, next) => {
   try {
     const student = await studentService.getStudentById(
       req.params.studentId || req.clientId,
     );
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: student,
     });
   } catch (error) {
@@ -81,14 +77,14 @@ const getStudentById = async (req, res, next) => {
   }
 };
 
-// Get a student by barcode
 const getStudentByBarcode = async (req, res, next) => {
   try {
     const student = await studentService.getStudentByBarcode(req.query.barcode);
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: student,
     });
   } catch (error) {
@@ -96,14 +92,14 @@ const getStudentByBarcode = async (req, res, next) => {
   }
 };
 
-// Find a student by phone number
 const findStudentByPhone = async (req, res, next) => {
   try {
     const student = await studentService.findStudentByPhone(req.query.phone);
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: student,
     });
   } catch (error) {
@@ -111,15 +107,15 @@ const findStudentByPhone = async (req, res, next) => {
   }
 };
 
-// Find students by parent phone number
 const findStudentByParentPhone = async (req, res, next) => {
   try {
     const students = await studentService.findStudentByParentPhone(
       req.query.parent_phone,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: students,
     });
   } catch (error) {
@@ -127,7 +123,6 @@ const findStudentByParentPhone = async (req, res, next) => {
   }
 };
 
-// Get all students in a specific grade
 const getStudentsByGradeId = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -135,9 +130,10 @@ const getStudentsByGradeId = async (req, res, next) => {
       req.params.gradeId,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: students,
     });
   } catch (error) {
@@ -145,7 +141,6 @@ const getStudentsByGradeId = async (req, res, next) => {
   }
 };
 
-// Get all students in a specific group
 const getStudentsByGroupId = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -153,9 +148,10 @@ const getStudentsByGroupId = async (req, res, next) => {
       req.params.groupId,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: students,
     });
   } catch (error) {
@@ -163,14 +159,14 @@ const getStudentsByGroupId = async (req, res, next) => {
   }
 };
 
-// Get all deleted students
 const getDeletedStudents = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const students = await studentService.getDeletedStudents(page);
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: students,
     });
   } catch (error) {
@@ -178,16 +174,14 @@ const getDeletedStudents = async (req, res, next) => {
   }
 };
 
-// Update a student's full information
 const updateStudent = async (req, res, next) => {
   try {
     const student = await studentService.updateStudent(
       req.params.studentId,
       req.body,
     );
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -200,7 +194,7 @@ const updateStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Student updated successfully",
+      message: "تم تعديل الطالب بنجاح",
       data: student,
     });
   } catch (error) {
@@ -208,15 +202,15 @@ const updateStudent = async (req, res, next) => {
   }
 };
 
-// Update student's profile image
 const updateStudentProfileImage = async (req, res, next) => {
   try {
+    const profileImage = req.file ? req.file.path : req.body.profile_image;
+
     const student = await studentService.updateStudentProfileImage(
       req.clientId,
-      req.body.profile_image,
+      profileImage,
     );
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -229,7 +223,7 @@ const updateStudentProfileImage = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Profile image updated successfully",
+      message: "تم تعديل الصورة الشخصية بنجاح",
       data: student,
     });
   } catch (error) {
@@ -237,15 +231,15 @@ const updateStudentProfileImage = async (req, res, next) => {
   }
 };
 
-// Delete student's profile image
 const deleteStudentProfileImage = async (req, res, next) => {
   try {
     const student = await studentService.deleteStudentProfileImage(
       req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Profile image deleted successfully",
+      message: "تم حذف الصورة الشخصية بنجاح",
       data: student,
     });
   } catch (error) {
@@ -253,15 +247,15 @@ const deleteStudentProfileImage = async (req, res, next) => {
   }
 };
 
-// Get student's profile image
 const getStudentProfileImage = async (req, res, next) => {
   try {
     const image = await studentService.getStudentProfileImage(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: image,
     });
   } catch (error) {
@@ -280,10 +274,9 @@ const updateStudentPassword = async (req, res, next) => {
     );
 
     if (!student) {
-      throw new Error("فشل تعديل كلمة المرور - الطالب غير موجود!");
+      throw new Error("فشل تعديل كلمة المرور - الطالب غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -296,7 +289,7 @@ const updateStudentPassword = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل كلمة المرور بنجاح!",
+      message: "تم تعديل كلمة المرور بنجاح",
       data: student,
     });
   } catch (error) {
@@ -304,15 +297,13 @@ const updateStudentPassword = async (req, res, next) => {
   }
 };
 
-// Soft delete a student
 const softDeleteStudent = async (req, res, next) => {
   try {
     const student = await studentService.softDeleteStudent(
       req.params.studentId,
     );
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -325,7 +316,7 @@ const softDeleteStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Student deleted successfully",
+      message: "تم حذف الطالب بنجاح",
       data: student,
     });
   } catch (error) {
@@ -333,15 +324,13 @@ const softDeleteStudent = async (req, res, next) => {
   }
 };
 
-// Hard delete a student
 const hardDeleteStudent = async (req, res, next) => {
   try {
     const student = await studentService.hardDeleteStudent(
       req.params.studentId,
     );
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -354,7 +343,7 @@ const hardDeleteStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Student permanently deleted",
+      message: "تم حذف الطالب نهائياً بنجاح",
       data: student,
     });
   } catch (error) {
@@ -362,13 +351,11 @@ const hardDeleteStudent = async (req, res, next) => {
   }
 };
 
-// Restore a soft-deleted student
 const restoreStudent = async (req, res, next) => {
   try {
     const student = await studentService.restoreStudent(req.params.studentId);
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -381,7 +368,7 @@ const restoreStudent = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Student restored successfully",
+      message: "تم استرجاع الطالب بنجاح",
       data: student,
     });
   } catch (error) {
@@ -389,19 +376,20 @@ const restoreStudent = async (req, res, next) => {
   }
 };
 
+// ============================================
 // PART 2: PROFILE & STATISTICS
-// (بدون تعديل - عمليات قراءة فقط)
+// ============================================
 
-// Get student full profile
 const getStudentProfile = async (req, res, next) => {
   try {
     const student = await studentService.getStudentProfile(
       req.params.studentId || req.clientId,
     );
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error("الطالب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: student,
     });
   } catch (error) {
@@ -409,16 +397,16 @@ const getStudentProfile = async (req, res, next) => {
   }
 };
 
-// Get student quick stats
 const getStudentQuickStats = async (req, res, next) => {
   try {
     const stats = await studentService.getStudentQuickStats(
       req.params.studentId || req.clientId,
     );
-    if (!stats) throw new Error("Student not found");
+    if (!stats) throw new Error("الطالب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -426,7 +414,6 @@ const getStudentQuickStats = async (req, res, next) => {
   }
 };
 
-// Get attendance history with month filter
 const getAttendanceHistory = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -436,9 +423,10 @@ const getAttendanceHistory = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: attendance,
     });
   } catch (error) {
@@ -446,15 +434,15 @@ const getAttendanceHistory = async (req, res, next) => {
   }
 };
 
-// Get monthly attendance stats
 const getMonthlyAttendanceStats = async (req, res, next) => {
   try {
     const stats = await studentService.getMonthlyAttendanceStats(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -462,18 +450,19 @@ const getMonthlyAttendanceStats = async (req, res, next) => {
   }
 };
 
-// Get total attendance for a specific month
 const getStudentTotalAttendance = async (req, res, next) => {
   try {
     const { month } = req.query;
-    if (!month) throw new Error("Month is required");
+    if (!month) throw new Error("الشهر مطلوب");
+
     const stats = await studentService.getStudentTotalAttendance(
       req.params.studentId || req.clientId,
       month,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: stats,
     });
   } catch (error) {
@@ -481,15 +470,15 @@ const getStudentTotalAttendance = async (req, res, next) => {
   }
 };
 
-// Get consecutive absences
 const getConsecutiveAbsences = async (req, res, next) => {
   try {
     const absences = await studentService.getConsecutiveAbsences(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: absences,
     });
   } catch (error) {
@@ -497,7 +486,6 @@ const getConsecutiveAbsences = async (req, res, next) => {
   }
 };
 
-// Get payment history with month filter
 const getPaymentHistory = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -507,9 +495,10 @@ const getPaymentHistory = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: payments,
     });
   } catch (error) {
@@ -517,15 +506,15 @@ const getPaymentHistory = async (req, res, next) => {
   }
 };
 
-// Get remaining balance
 const getRemainingBalance = async (req, res, next) => {
   try {
     const balance = await studentService.getRemainingBalance(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: balance,
     });
   } catch (error) {
@@ -533,15 +522,15 @@ const getRemainingBalance = async (req, res, next) => {
   }
 };
 
-// Get current month subscription
 const getCurrentSubscription = async (req, res, next) => {
   try {
     const subscription = await studentService.getCurrentSubscription(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: subscription,
     });
   } catch (error) {
@@ -549,10 +538,10 @@ const getCurrentSubscription = async (req, res, next) => {
   }
 };
 
-//PART 3: EXAMS, ASSIGNMENTS & CONTENT
-// (بدون تعديل - عمليات قراءة فقط)
+// ============================================
+// PART 3: EXAMS, ASSIGNMENTS & CONTENT
+// ============================================
 
-// Get all paper exams with student status
 const getStudentPaperExams = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -562,9 +551,10 @@ const getStudentPaperExams = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: exams,
     });
   } catch (error) {
@@ -572,7 +562,6 @@ const getStudentPaperExams = async (req, res, next) => {
   }
 };
 
-// Get student exam results
 const getStudentExamResults = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -582,9 +571,10 @@ const getStudentExamResults = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: results,
     });
   } catch (error) {
@@ -592,7 +582,6 @@ const getStudentExamResults = async (req, res, next) => {
   }
 };
 
-// Get available online exams
 const getAvailableOnlineExams = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -600,9 +589,10 @@ const getAvailableOnlineExams = async (req, res, next) => {
       req.clientId,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: exams,
     });
   } catch (error) {
@@ -610,7 +600,6 @@ const getAvailableOnlineExams = async (req, res, next) => {
   }
 };
 
-// Get student's submitted online exams
 const getStudentOnlineExams = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -620,9 +609,10 @@ const getStudentOnlineExams = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: exams,
     });
   } catch (error) {
@@ -630,16 +620,16 @@ const getStudentOnlineExams = async (req, res, next) => {
   }
 };
 
-// Get student answers for a specific exam
 const getStudentExamAnswers = async (req, res, next) => {
   try {
     const answers = await studentService.getStudentExamAnswers(
       req.params.examId,
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: answers,
     });
   } catch (error) {
@@ -647,7 +637,6 @@ const getStudentExamAnswers = async (req, res, next) => {
   }
 };
 
-// Get student assignments
 const getStudentAssignments = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -657,9 +646,10 @@ const getStudentAssignments = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: assignments,
     });
   } catch (error) {
@@ -667,7 +657,6 @@ const getStudentAssignments = async (req, res, next) => {
   }
 };
 
-// Get student submissions
 const getStudentSubmissions = async (req, res, next) => {
   try {
     const { month = "" } = req.query;
@@ -677,9 +666,10 @@ const getStudentSubmissions = async (req, res, next) => {
       month,
       page,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: submissions,
     });
   } catch (error) {
@@ -687,15 +677,15 @@ const getStudentSubmissions = async (req, res, next) => {
   }
 };
 
-// Get student playlists
 const getStudentPlaylists = async (req, res, next) => {
   try {
     const playlists = await studentService.getStudentPlaylists(
       req.params.studentId || req.clientId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: playlists,
     });
   } catch (error) {
@@ -703,15 +693,15 @@ const getStudentPlaylists = async (req, res, next) => {
   }
 };
 
-// Get videos in a playlist
 const getPlaylistVideos = async (req, res, next) => {
   try {
     const videos = await studentService.getPlaylistVideos(
       req.params.playlistId,
     );
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: videos,
     });
   } catch (error) {
@@ -719,17 +709,17 @@ const getPlaylistVideos = async (req, res, next) => {
   }
 };
 
-// Get specific paper exam details
 const getStudentPaperExamById = async (req, res, next) => {
   try {
     const exam = await studentService.getStudentPaperExamById(
       req.params.studentId || req.clientId,
       req.params.examId,
     );
-    if (!exam) throw new Error("Exam not found");
+    if (!exam) throw new Error("الامتحان غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: exam,
     });
   } catch (error) {
@@ -737,17 +727,17 @@ const getStudentPaperExamById = async (req, res, next) => {
   }
 };
 
-// Get specific online exam details
 const getStudentOnlineExamById = async (req, res, next) => {
   try {
     const exam = await studentService.getStudentOnlineExamById(
       req.params.studentId || req.clientId,
       req.params.attemptId,
     );
-    if (!exam) throw new Error("Exam attempt not found");
+    if (!exam) throw new Error("محاولة الامتحان غير موجودة");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: exam,
     });
   } catch (error) {
@@ -755,17 +745,17 @@ const getStudentOnlineExamById = async (req, res, next) => {
   }
 };
 
-// Get specific assignment details
 const getStudentAssignmentById = async (req, res, next) => {
   try {
     const assignment = await studentService.getStudentAssignmentById(
       req.params.studentId || req.clientId,
       req.params.assignmentId,
     );
-    if (!assignment) throw new Error("Assignment not found");
+    if (!assignment) throw new Error("الواجب غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: assignment,
     });
   } catch (error) {
@@ -773,17 +763,17 @@ const getStudentAssignmentById = async (req, res, next) => {
   }
 };
 
-// Get specific submission details
 const getStudentSubmissionById = async (req, res, next) => {
   try {
     const submission = await studentService.getStudentSubmissionById(
       req.params.submissionId,
       req.params.studentId || req.clientId,
     );
-    if (!submission) throw new Error("Submission not found");
+    if (!submission) throw new Error("التسليم غير موجود");
+
     return res.status(200).json({
       success: true,
-      message: "Data loaded successfully",
+      message: "تم تحميل البيانات بنجاح",
       data: submission,
     });
   } catch (error) {
@@ -791,14 +781,17 @@ const getStudentSubmissionById = async (req, res, next) => {
   }
 };
 
-// Get students without password
+// ============================================
+// PASSWORD MANAGEMENT
+// ============================================
+
 const getStudentsWithoutPassword = async (req, res, next) => {
   try {
     const students = await studentService.getStudentsWithoutPassword();
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الطلاب بدون باسورد بنجاح!",
+      message: "تم تحميل الطلاب بدون باسورد بنجاح",
       data: students,
     });
   } catch (error) {
@@ -806,14 +799,13 @@ const getStudentsWithoutPassword = async (req, res, next) => {
   }
 };
 
-// Reset student password (فردي)
 const resetStudentPassword = async (req, res, next) => {
   try {
     const { studentId } = req.params;
     const { password } = req.body;
 
     if (!password) {
-      throw new Error("كلمة المرور مطلوبة!");
+      throw new Error("كلمة المرور مطلوبة");
     }
 
     const result = await studentService.resetStudentPassword(
@@ -822,10 +814,9 @@ const resetStudentPassword = async (req, res, next) => {
     );
 
     if (!result) {
-      throw new Error("الطالب غير موجود!");
+      throw new Error("الطالب غير موجود");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -838,7 +829,7 @@ const resetStudentPassword = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعيين الباسورد بنجاح!",
+      message: "تم تعيين الباسورد بنجاح",
       data: result,
     });
   } catch (error) {
@@ -846,12 +837,10 @@ const resetStudentPassword = async (req, res, next) => {
   }
 };
 
-// Generate passwords for all students without password (جماعي)
 const generatePasswordsForAllStudents = async (req, res, next) => {
   try {
     const result = await studentService.generatePasswordsForAllStudents();
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -864,7 +853,7 @@ const generatePasswordsForAllStudents = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: `تم توليد ${result.generated_count} باسورد بنجاح!`,
+      message: `تم توليد ${result.generated_count} باسورد بنجاح`,
       data: result,
     });
   } catch (error) {
@@ -877,7 +866,7 @@ const generatePasswordsForGrade = async (req, res, next) => {
     const { gradeId } = req.params;
 
     if (!gradeId) {
-      throw new Error("معرف الصف مطلوب!");
+      throw new Error("معرف الصف مطلوب");
     }
 
     const result = await studentService.generatePasswordsForGrade(gradeId);
@@ -894,7 +883,7 @@ const generatePasswordsForGrade = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: `تم توليد ${result.generated_count} باسورد بنجاح!`,
+      message: `تم توليد ${result.generated_count} باسورد بنجاح`,
       data: result,
     });
   } catch (error) {
@@ -902,13 +891,15 @@ const generatePasswordsForGrade = async (req, res, next) => {
   }
 };
 
+// ============================================
+// EXPORTS
+// ============================================
+
 module.exports = {
   // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
   getStudentById,
-  generatePasswordsForGrade,
-
   getStudentByBarcode,
   findStudentByPhone,
   findStudentByParentPhone,
@@ -947,7 +938,9 @@ module.exports = {
   getStudentOnlineExamById,
   getStudentAssignmentById,
   getStudentSubmissionById,
+  // Password Management
   getStudentsWithoutPassword,
   resetStudentPassword,
   generatePasswordsForAllStudents,
+  generatePasswordsForGrade,
 };

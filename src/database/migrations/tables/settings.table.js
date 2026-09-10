@@ -28,6 +28,17 @@ async function createSettingsTable() {
     ADD COLUMN IF NOT EXISTS whatsapp_delay_seconds INTEGER DEFAULT 45
   `);
 
+  // Ensure settings row exists (idempotent)
+  await query(`
+    INSERT INTO settings (
+      id, center_name, phone, address, 
+      default_lock_minutes, academic_year_status, platform_status,
+      whatsapp_daily_limit, whatsapp_delay_seconds
+    )
+    VALUES (1, '', '', '', 30, 'active', 'active', 250, 45)
+    ON CONFLICT (id) DO NOTHING
+  `);
+
   console.log("settings table created");
 }
 

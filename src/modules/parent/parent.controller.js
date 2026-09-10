@@ -1,6 +1,9 @@
 const parentService = require("./parent.service");
 
-// Get parent dashboard
+// ============================================
+// GET PARENT DASHBOARD
+// ============================================
+
 const getParentDashboard = async (req, res, next) => {
   try {
     const { token } = req.params;
@@ -16,6 +19,7 @@ const getParentDashboard = async (req, res, next) => {
 
     const studentId = student.id;
 
+    // Fetch all data in parallel
     const [
       attendance,
       attendanceHistory,

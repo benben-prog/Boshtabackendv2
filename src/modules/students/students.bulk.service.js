@@ -1,24 +1,69 @@
 // src/modules/students/students.bulk.service.js
 const { query } = require("../../config/database");
-const crypto = require("crypto");
-const bcrypt = require("bcryptjs");
 const {
   validateEgyptianPhone,
   cleanPhone,
 } = require("../../utils/excelValidator");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
+const stdQr = require("./students.queries");
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+const PARENT_TOKEN_LENGTH = 10;
+const PARENT_TOKEN_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const PARENT_TOKEN_MAX_RETRIES = 3;
+
+// ============================================
+// HELPER: Generate parent token
+// ============================================
 
 const generateParentToken = () => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let token = "";
-  for (let i = 0; i < 10; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < PARENT_TOKEN_LENGTH; i++) {
+    token += PARENT_TOKEN_CHARS.charAt(
+      Math.floor(Math.random() * PARENT_TOKEN_CHARS.length),
+    );
   }
   return token;
 };
 
+// ============================================
+// HELPER: Generate unique tokens for multiple students
+// ============================================
+
+const generateUniqueTokens = (count, existingTokens = new Set()) => {
+  const tokens = [];
+  const usedTokens = new Set(existingTokens);
+
+  for (let i = 0; i < count; i++) {
+    let token;
+    let attempts = 0;
+
+    do {
+      token = generateParentToken();
+      attempts++;
+    } while (usedTokens.has(token) && attempts < PARENT_TOKEN_MAX_RETRIES);
+
+    tokens.push(token);
+    usedTokens.add(token);
+  }
+
+  return tokens;
+};
+
+// ============================================
+// PROCESS BULK STUDENTS (OPTIMIZED)
+// ============================================
+
 const processStudentsBulk = async (data) => {
-  // Column mapping from Arabic to English (double protection)
+  const results = [];
+  const errors = [];
+  let successCount = 0;
+  let errorCount = 0;
+
+  // Column mapping (Arabic to English)
   const columnMapping = {
     "الاسم الكامل": "full_name",
     الباركود: "barcode",
@@ -29,6 +74,7 @@ const processStudentsBulk = async (data) => {
     ملاحظات: "notes",
   };
 
+  // Step 1: Map all columns first
   const mappedData = data.map((row) => {
     const newRow = {};
     Object.keys(row).forEach((key) => {
@@ -38,19 +84,71 @@ const processStudentsBulk = async (data) => {
     return newRow;
   });
 
-  const results = [];
-  const errors = [];
-  let successCount = 0;
-  let errorCount = 0;
+  // Step 2: Extract all unique lookups
+  const allBarcodes = [];
+  const allGradeNames = new Set();
+  const allGroupKeys = new Set();
 
-  const barcodes = [];
-  const fullNames = [];
-  const phones = [];
-  const parentPhones = [];
-  const parentTokens = [];
-  const gradeIds = [];
-  const groupIds = [];
-  const notesList = [];
+  mappedData.forEach((row, index) => {
+    const barcode = String(row.barcode || "").trim();
+    const gradeName = String(row.grade_name || "").trim();
+    const groupName = String(row.group_name || "").trim();
+
+    if (barcode) allBarcodes.push(barcode);
+    if (gradeName) allGradeNames.add(gradeName);
+    if (gradeName && groupName) allGroupKeys.add(`${gradeName}||${groupName}`);
+  });
+
+  // Step 3: Fetch all lookups in parallel
+  const [existingBarcodesResult, gradesResult, existingTokensResult] =
+    await Promise.all([
+      allBarcodes.length > 0
+        ? query(stdQr.checkExistingBarcodes, [allBarcodes])
+        : Promise.resolve({ rows: [] }),
+      allGradeNames.size > 0
+        ? query(stdQr.getGradesByNames, [Array.from(allGradeNames)])
+        : Promise.resolve({ rows: [] }),
+      query(stdQr.checkExistingParentTokens, [
+        // Generate a batch of candidate tokens
+        Array.from({ length: mappedData.length * 2 }, generateParentToken),
+      ]),
+    ]);
+
+  // Build lookup maps
+  const existingBarcodes = new Set(
+    existingBarcodesResult.rows.map((r) => r.barcode),
+  );
+  const existingTokens = new Set(
+    existingTokensResult.rows.map((r) => r.parent_token),
+  );
+  const gradesMap = new Map(gradesResult.rows.map((g) => [g.name, g.id]));
+
+  // Fetch groups by grade (only if we have grades)
+  let groupsMap = new Map();
+  if (gradesResult.rows.length > 0) {
+    const gradeIds = gradesResult.rows.map((g) => g.id);
+    const groupNames = Array.from(
+      new Set(
+        mappedData
+          .map((r) => String(r.group_name || "").trim())
+          .filter(Boolean),
+      ),
+    );
+
+    if (groupNames.length > 0) {
+      const groupsResult = await query(stdQr.getGroupsByNamesAndGrades, [
+        groupNames,
+        gradeIds,
+      ]);
+      groupsMap = new Map(
+        groupsResult.rows.map((g) => [`${g.name}||${g.grade_id}`, g.id]),
+      );
+    }
+  }
+
+  // Step 4: Validate and prepare data
+  const validRows = [];
+  const barcodesSeen = new Set();
 
   for (let i = 0; i < mappedData.length; i++) {
     const row = mappedData[i];
@@ -62,77 +160,58 @@ const processStudentsBulk = async (data) => {
       const grade_name = String(row.grade_name || "").trim();
       const group_name = String(row.group_name || "").trim();
 
-      if (!barcode) throw new Error("Barcode required");
-      if (!full_name) throw new Error("Student name required");
-      if (!grade_name) throw new Error("Grade name required");
-      if (!group_name) throw new Error("Group name required");
+      // Validate required fields
+      if (!barcode) throw new Error("الباركود مطلوب");
+      if (!full_name) throw new Error("اسم الطالب مطلوب");
+      if (!grade_name) throw new Error("المرحلة الدراسية مطلوبة");
+      if (!group_name) throw new Error("المجموعة مطلوبة");
 
+      // Validate phones
       const phone = cleanPhone(row.phone);
       if (phone && !validateEgyptianPhone(phone)) {
-        throw new Error(`Invalid phone: ${row.phone}`);
+        throw new Error(`رقم الهاتف غير صحيح: ${row.phone}`);
       }
 
       const parent_phone = cleanPhone(row.parent_phone);
       if (parent_phone && !validateEgyptianPhone(parent_phone)) {
-        throw new Error(`Invalid parent phone: ${row.parent_phone}`);
+        throw new Error(`رقم ولي الأمر غير صحيح: ${row.parent_phone}`);
       }
 
-      if (barcodes.includes(barcode)) {
-        throw new Error(`Duplicate barcode: ${barcode}`);
+      // Check duplicate in file
+      if (barcodesSeen.has(barcode)) {
+        throw new Error(`الباركود مكرر في الملف: ${barcode}`);
+      }
+      barcodesSeen.add(barcode);
+
+      // Check existing barcode in DB
+      if (existingBarcodes.has(barcode)) {
+        throw new Error(`الباركود موجود مسبقاً: ${barcode}`);
       }
 
-      const existingBarcode = await query(
-        "SELECT id FROM students WHERE barcode = $1 AND deleted = 0",
-        [barcode],
-      );
-      if (existingBarcode.rows[0]) {
-        throw new Error(`Barcode exists: ${barcode}`);
+      // Check grade exists
+      const gradeId = gradesMap.get(grade_name);
+      if (!gradeId) {
+        throw new Error(`المرحلة الدراسية غير موجودة: ${grade_name}`);
       }
 
-      const gradeResult = await query(
-        "SELECT id FROM grades WHERE name = $1 AND deleted = 0",
-        [grade_name],
-      );
-      const grade = gradeResult.rows[0];
-      if (!grade) throw new Error(`Grade not found: ${grade_name}`);
-
-      const groupResult = await query(
-        "SELECT id FROM groups WHERE name = $1 AND grade_id = $2 AND deleted = 0",
-        [group_name, grade.id],
-      );
-      const group = groupResult.rows[0];
-      if (!group) throw new Error(`Group not found: ${group_name}`);
-
-      // Ensure unique parent token
-      let parentToken = generateParentToken();
-      let exists = await query(
-        "SELECT id FROM students WHERE parent_token = $1",
-        [parentToken],
-      );
-      while (exists.rows[0]) {
-        parentToken = generateParentToken();
-        exists = await query(
-          "SELECT id FROM students WHERE parent_token = $1",
-          [parentToken],
-        );
+      // Check group exists
+      const groupId = groupsMap.get(`${group_name}||${gradeId}`);
+      if (!groupId) {
+        throw new Error(`المجموعة غير موجودة: ${group_name} في ${grade_name}`);
       }
 
-      barcodes.push(barcode);
-      fullNames.push(full_name);
-      phones.push(phone);
-      parentPhones.push(parent_phone);
-      parentTokens.push(parentToken);
-      gradeIds.push(grade.id);
-      groupIds.push(group.id);
-      notesList.push(row.notes ? String(row.notes).trim() : null);
-
-      results.push({
+      validRows.push({
         row_number: rowNumber,
         barcode,
         full_name,
-        status: "success",
+        phone,
+        parent_phone,
+        grade_id: gradeId,
+        group_id: groupId,
+        grade_name,
+        group_name,
+        notes: row.notes ? String(row.notes).trim() : null,
       });
-      successCount++;
     } catch (error) {
       errors.push({
         row_number: rowNumber,
@@ -144,26 +223,54 @@ const processStudentsBulk = async (data) => {
     }
   }
 
-  if (barcodes.length > 0) {
+  // Step 5: Bulk insert valid rows
+  if (validRows.length > 0) {
     try {
-      const insertResult = await query(
-        `INSERT INTO students (barcode, full_name, phone, parent_phone, parent_token, grade_id, group_id, notes)
-         SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), unnest($5::text[]), unnest($6::int[]), unnest($7::int[]), unnest($8::text[])
-         RETURNING id, barcode, full_name, phone, parent_phone, parent_token`,
-        [
-          barcodes,
-          fullNames,
-          phones,
-          parentPhones,
-          parentTokens,
-          gradeIds,
-          groupIds,
-          notesList,
-        ],
-      );
+      // Generate unique tokens for all valid rows
+      const tokens = generateUniqueTokens(validRows.length, existingTokens);
+
+      // Attach tokens
+      validRows.forEach((row, index) => {
+        row.parent_token = tokens[index];
+      });
+
+      // Prepare arrays for bulk insert
+      const barcodes = validRows.map((r) => r.barcode);
+      const fullNames = validRows.map((r) => r.full_name);
+      const phones = validRows.map((r) => r.phone);
+      const parentPhones = validRows.map((r) => r.parent_phone);
+      const parentTokens = validRows.map((r) => r.parent_token);
+      const gradeIds = validRows.map((r) => r.grade_id);
+      const groupIds = validRows.map((r) => r.group_id);
+      const notesList = validRows.map((r) => r.notes);
+
+      const insertResult = await query(stdQr.bulkInsertStudents, [
+        barcodes,
+        fullNames,
+        phones,
+        parentPhones,
+        parentTokens,
+        gradeIds,
+        groupIds,
+        notesList,
+      ]);
 
       const insertedStudents = insertResult.rows;
 
+      // Add success records
+      insertedStudents.forEach((student) => {
+        const rowData = validRows.find((r) => r.barcode === student.barcode);
+        results.push({
+          row_number: rowData?.row_number,
+          student_id: student.id,
+          barcode: student.barcode,
+          full_name: student.full_name,
+          status: "success",
+        });
+        successCount++;
+      });
+
+      // Enqueue welcome messages for all inserted students
       for (const student of insertedStudents) {
         try {
           const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
@@ -178,21 +285,15 @@ const processStudentsBulk = async (data) => {
             { message: welcomeMessage },
           );
         } catch (error) {
-          console.error("Error enqueueing welcome message:", error);
+          console.error(
+            `Error enqueueing welcome for ${student.barcode}:`,
+            error.message,
+          );
         }
       }
-
-      results.forEach((result) => {
-        const inserted = insertedStudents.find(
-          (s) => s.barcode === result.barcode,
-        );
-        if (inserted) {
-          result.student_id = inserted.id;
-        }
-      });
     } catch (error) {
       console.error("Bulk insert error:", error);
-      throw new Error(`Failed to insert data: ${error.message}`);
+      throw new Error(`فشل إدخال البيانات: ${error.message}`);
     }
   }
 

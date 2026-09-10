@@ -1,6 +1,26 @@
 const studentExamService = require("./student_exams.service");
 
-// Check active attempt
+// ============================================
+// HELPER: Map error messages to Arabic
+// ============================================
+
+const ERROR_MESSAGES = {
+  "You have already completed this exam": "لقد قمت بحل هذا الامتحان من قبل",
+  "Exam time has ended": "انتهى وقت الامتحان",
+  "Exam has not started yet": "لم يبدأ الامتحان بعد",
+  "This exam is not available for your grade":
+    "هذا الامتحان غير متاح لصفك الدراسي",
+  "This exam is not available for your group": "هذا الامتحان غير متاح لمجموعتك",
+};
+
+const getArabicMessage = (englishMessage) => {
+  return ERROR_MESSAGES[englishMessage] || englishMessage;
+};
+
+// ============================================
+// CHECK ACTIVE ATTEMPT
+// ============================================
+
 const checkActiveAttempt = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -49,7 +69,10 @@ const checkActiveAttempt = async (req, res, next) => {
   }
 };
 
-// Resume exam
+// ============================================
+// RESUME EXAM
+// ============================================
+
 const resumeExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -86,7 +109,10 @@ const resumeExam = async (req, res, next) => {
   }
 };
 
-// Start exam
+// ============================================
+// START EXAM
+// ============================================
+
 const createExamAttempt = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -114,41 +140,24 @@ const createExamAttempt = async (req, res, next) => {
       },
     });
   } catch (error) {
-    if (
-      error.message === "You have already completed this exam" ||
-      error.message === "Exam time has ended" ||
-      error.message === "Exam has not started yet" ||
-      error.message === "This exam is not available for your grade" ||
-      error.message === "This exam is not available for your group"
-    ) {
-      let arabicMessage = error.message;
+    // Check if error message needs translation
+    const arabicMessage = getArabicMessage(error.message);
 
-      if (error.message === "You have already completed this exam") {
-        arabicMessage = "لقد قمت بحل هذا الامتحان من قبل";
-      } else if (error.message === "Exam time has ended") {
-        arabicMessage = "انتهى وقت الامتحان";
-      } else if (error.message === "Exam has not started yet") {
-        arabicMessage = "لم يبدأ الامتحان بعد";
-      } else if (
-        error.message === "This exam is not available for your grade"
-      ) {
-        arabicMessage = "هذا الامتحان غير متاح لصفك الدراسي";
-      } else if (
-        error.message === "This exam is not available for your group"
-      ) {
-        arabicMessage = "هذا الامتحان غير متاح لمجموعتك";
-      }
-
+    if (Object.values(ERROR_MESSAGES).includes(arabicMessage)) {
       return res.status(400).json({
         success: false,
         message: arabicMessage,
       });
     }
+
     next(error);
   }
 };
 
-// Submit exam
+// ============================================
+// SUBMIT EXAM
+// ============================================
+
 const submitExam = async (req, res, next) => {
   try {
     const { attemptId } = req.params;
@@ -166,7 +175,10 @@ const submitExam = async (req, res, next) => {
   }
 };
 
-// Get exam review after submission
+// ============================================
+// GET EXAM REVIEW
+// ============================================
+
 const getExamReview = async (req, res, next) => {
   try {
     const { attemptId } = req.params;
@@ -184,7 +196,10 @@ const getExamReview = async (req, res, next) => {
   }
 };
 
-// Get exam questions for student
+// ============================================
+// GET EXAM QUESTIONS FOR STUDENT
+// ============================================
+
 const getExamQuestionsForStudent = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -205,7 +220,10 @@ const getExamQuestionsForStudent = async (req, res, next) => {
   }
 };
 
-// Get single question
+// ============================================
+// GET SINGLE QUESTION
+// ============================================
+
 const getQuestionForStudent = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -222,7 +240,10 @@ const getQuestionForStudent = async (req, res, next) => {
   }
 };
 
-// Get options for student
+// ============================================
+// GET OPTIONS FOR STUDENT
+// ============================================
+
 const getOptionsForStudent = async (req, res, next) => {
   try {
     const { questionId } = req.params;
@@ -239,11 +260,15 @@ const getOptionsForStudent = async (req, res, next) => {
   }
 };
 
-// Get students by exam
+// ============================================
+// GETTERS FOR ASSISTANT/TEACHER
+// ============================================
+
 const getStudentExamsByExamId = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const page = parseInt(req.query.page) || 1;
+
     const attempts = await studentExamService.getStudentExamsByExamId(
       examId,
       page,
@@ -259,7 +284,6 @@ const getStudentExamsByExamId = async (req, res, next) => {
   }
 };
 
-// Get exam stats
 const getExamAttemptStats = async (req, res, next) => {
   try {
     const { examId } = req.params;
@@ -279,7 +303,6 @@ const getExamAttemptStats = async (req, res, next) => {
   }
 };
 
-// Get grade stats
 const getGradeExamAttemptsStats = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
@@ -295,7 +318,6 @@ const getGradeExamAttemptsStats = async (req, res, next) => {
   }
 };
 
-// Get group stats
 const getGroupExamAttemptsStats = async (req, res, next) => {
   try {
     const { groupId } = req.params;

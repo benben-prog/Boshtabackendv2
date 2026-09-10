@@ -2,12 +2,19 @@
    ASSIGNMENTS QUERIES
    ============================================ */
 
-// Create assignment
+// ============================================
+// CREATE
+// ============================================
+
 const createAssignment = `
 INSERT INTO assignments (title, description, grade_id, group_id, file_path, full_mark, deadline, created_by, is_closed)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get all assignments - 20 per page
 const getAllAssignments = `
@@ -105,32 +112,55 @@ ORDER BY a.deadline DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Update assignment
+// Count submissions for an assignment
+const countSubmissionsByAssignmentId = `
+SELECT COUNT(*) AS count
+FROM assignment_submissions
+WHERE assignment_id = $1
+`;
+
+// ============================================
+// UPDATE
+// ============================================
+
+// Update assignment (full update)
 const updateAssignment = `
 UPDATE assignments
 SET 
-  title = $2,
-  description = $3,
-  grade_id = $4,
-  group_id = $5,
-  file_path = $6,
-  full_mark = $7,
-  deadline = $8,
-  is_closed = $9,
-  updated_at = NOW()
+  title = COALESCE($2, title),
+  description = COALESCE($3, description),
+  deadline = COALESCE($4, deadline),
+  full_mark = COALESCE($5, full_mark),
+  file_path = COALESCE($6, file_path),
+  is_closed = COALESCE($7, is_closed),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
 RETURNING *
 `;
 
-// Soft delete assignment
+// Update assignment (restricted - only title, description, deadline)
+const updateAssignmentRestricted = `
+UPDATE assignments
+SET 
+  title = COALESCE($2, title),
+  description = COALESCE($3, description),
+  deadline = COALESCE($4, deadline),
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING *
+`;
+
+// ============================================
+// DELETE
+// ============================================
+
 const softDeleteAssignment = `
 UPDATE assignments
-SET deleted = 1, updated_at = NOW()
+SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
 RETURNING id
 `;
 
-// Hard delete assignment
 const hardDeleteAssignment = `
 DELETE FROM assignments
 WHERE id = $1
@@ -143,7 +173,9 @@ module.exports = {
   getAssignmentById,
   getAssignmentsByGradeId,
   getAssignmentsByGroupId,
+  countSubmissionsByAssignmentId,
   updateAssignment,
+  updateAssignmentRestricted,
   softDeleteAssignment,
   hardDeleteAssignment,
 };

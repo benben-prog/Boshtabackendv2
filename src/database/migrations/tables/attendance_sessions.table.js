@@ -12,9 +12,27 @@ async function createAttendanceSessionsTable() {
       lock_at TIMESTAMP,
       ended_at TIMESTAMP,
       is_makeup_enabled INTEGER DEFAULT 0,
+      attendance_locked INTEGER DEFAULT 0,
       status TEXT DEFAULT 'active' CHECK (status IN ('active', 'locked', 'closed')),
       created_at TIMESTAMP DEFAULT NOW()
     )
+  `);
+
+  // Add attendance_locked column for existing tables
+  await query(`
+    ALTER TABLE attendance_sessions
+    ADD COLUMN IF NOT EXISTS attendance_locked INTEGER DEFAULT 0
+  `);
+
+  // Drop old unique index if exists
+  await query(`
+    DROP INDEX IF EXISTS unique_session_per_group_day
+  `);
+
+  // Create new unique index with Egypt timezone
+  await query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS unique_session_per_group_day
+    ON attendance_sessions(group_id, DATE(started_at AT TIME ZONE 'Africa/Cairo'))
   `);
 
   await query(
@@ -25,6 +43,9 @@ async function createAttendanceSessionsTable() {
   );
   await query(
     `CREATE INDEX IF NOT EXISTS idx_sessions_lock ON attendance_sessions(lock_at)`,
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_sessions_date ON attendance_sessions(DATE(started_at))`,
   );
 
   console.log("attendance_sessions table created");

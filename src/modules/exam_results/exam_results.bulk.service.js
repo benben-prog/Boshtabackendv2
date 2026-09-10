@@ -3,16 +3,67 @@ const { query } = require("../../config/database");
 const { cleanNumber } = require("../../utils/excelValidator");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 const { formatEgyptTime } = require("../../utils/timezone");
+const examResultQueries = require("./exam_results.queries");
+
+// ============================================
+// HELPER: Format exam date
+// ============================================
+
+function formatExamDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    return formatEgyptTime(date, "DD/MM/YYYY");
+  } catch {
+    return "";
+  }
+}
+
+// ============================================
+// HELPER: Format exam day
+// ============================================
+
+function formatExamDay(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+
+    const egyptDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "Africa/Cairo" }),
+    );
+
+    const days = [
+      "الأحد",
+      "الاثنين",
+      "الثلاثاء",
+      "الأربعاء",
+      "الخميس",
+      "الجمعة",
+      "السبت",
+    ];
+
+    return days[egyptDate.getDay()];
+  } catch {
+    return "";
+  }
+}
+
+// ============================================
+// PROCESS EXAM RESULTS BULK (OPTIMIZED)
+// ============================================
 
 const processExamResultsBulk = async (examId, data) => {
-  const examResult = await query(
-    "SELECT id, title, total_degree, grade_id, group_id, exam_date FROM exams WHERE id = $1 AND deleted = 0",
-    [examId],
-  );
+  // ============================================
+  // Get exam details
+  // ============================================
+
+  const examResult = await query(examResultQueries.getExamById, [examId]);
   const exam = examResult.rows[0];
 
   if (!exam) {
-    throw new Error("الامتحان غير موجود!");
+    throw new Error("الامتحان غير موجود");
   }
 
   const results = [];
@@ -20,13 +71,47 @@ const processExamResultsBulk = async (examId, data) => {
   let successCount = 0;
   let errorCount = 0;
 
-  const barcodes = [];
-  const examIds = [];
-  const studentIds = [];
-  const degrees = [];
-  const notesList = [];
+  // ============================================
+  // Batch fetch students by barcodes AND names
+  // ============================================
 
-  const enrolledStudents = [];
+  const barcodes = data
+    .map((row) => String(row.barcode || "").trim())
+    .filter(Boolean);
+
+  const studentNames = data
+    .map((row) =>
+      String(row.student_name || row.full_name || row.name || "").trim(),
+    )
+    .filter(Boolean);
+
+  const [studentsByBarcodeResult, studentsByNameResult] = await Promise.all([
+    barcodes.length > 0
+      ? query(examResultQueries.getStudentsByBarcodes, [barcodes])
+      : Promise.resolve({ rows: [] }),
+    studentNames.length > 0
+      ? query(examResultQueries.getStudentsByNames, [studentNames])
+      : Promise.resolve({ rows: [] }),
+  ]);
+
+  const studentsByBarcode = new Map(
+    studentsByBarcodeResult.rows.map((s) => [s.barcode, s]),
+  );
+
+  const studentsByName = new Map(
+    studentsByNameResult.rows.map((s) => [s.full_name, s]),
+  );
+
+  // ============================================
+  // Prepare bulk insert data
+  // ============================================
+
+  const validRows = [];
+  const usedBarcodes = new Set();
+
+  // ============================================
+  // Process each row
+  // ============================================
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -34,9 +119,15 @@ const processExamResultsBulk = async (examId, data) => {
 
     try {
       const barcode = String(row.barcode || "").trim();
-      const studentName = row.student_name || row.full_name || row.name || "";
+      const studentName = String(
+        row.student_name || row.full_name || row.name || "",
+      ).trim();
       const degree = cleanNumber(row.degree);
       const notes = row.notes ? String(row.notes).trim() : null;
+
+      // ============================================
+      // Validation
+      // ============================================
 
       if (!barcode) {
         throw new Error("الباركود مطلوب");
@@ -50,72 +141,36 @@ const processExamResultsBulk = async (examId, data) => {
         throw new Error(`الدرجة لا يمكن أن تكون سالبة: ${degree}`);
       }
 
-      if (degree > exam.total_degree) {
+      // ✅ Validation: Check against exam total
+      if (Number(degree) > Number(exam.total_degree)) {
         throw new Error(
           `الدرجة (${degree}) تتجاوز الدرجة الكلية (${exam.total_degree})`,
         );
       }
 
-      if (barcodes.includes(barcode)) {
+      if (usedBarcodes.has(barcode)) {
         throw new Error(`الباركود مكرر في الملف: ${barcode}`);
       }
 
-      const studentResult = await query(
-        "SELECT id, full_name, grade_id, group_id, phone, parent_phone, parent_token FROM students WHERE barcode = $1 AND deleted = 0",
-        [barcode],
-      );
-      const student = studentResult.rows[0];
+      // ============================================
+      // Find student
+      // ============================================
+
+      let student = studentsByBarcode.get(barcode);
+      let matchedBy = "barcode";
+
+      if (!student && studentName) {
+        student = studentsByName.get(studentName);
+        matchedBy = "name";
+      }
 
       if (!student) {
-        if (studentName) {
-          const studentByName = await query(
-            "SELECT id, full_name, grade_id, group_id, phone, parent_phone, parent_token FROM students WHERE full_name = $1 AND deleted = 0",
-            [String(studentName).trim()],
-          );
-
-          if (studentByName.rows[0]) {
-            const foundStudent = studentByName.rows[0];
-
-            if (exam.grade_id && foundStudent.grade_id !== exam.grade_id) {
-              throw new Error(
-                `الطالب ${foundStudent.full_name} ليس في صف الامتحان`,
-              );
-            }
-
-            if (exam.group_id && foundStudent.group_id !== exam.group_id) {
-              throw new Error(
-                `الطالب ${foundStudent.full_name} ليس في مجموعة الامتحان`,
-              );
-            }
-
-            barcodes.push(barcode);
-            examIds.push(examId);
-            studentIds.push(foundStudent.id);
-            degrees.push(degree);
-            notesList.push(notes);
-            enrolledStudents.push(foundStudent);
-
-            results.push({
-              row_number: rowNumber,
-              barcode,
-              student_name: foundStudent.full_name,
-              degree,
-              status: "success",
-              matched_by: "name",
-            });
-            successCount++;
-            continue;
-          }
-        }
-
         throw new Error(`الطالب غير موجود: ${barcode}`);
       }
 
-      if (studentName && student.full_name !== String(studentName).trim()) {
-        throw new Error(
-          `الباركود (${barcode}) لا يطابق الاسم (${studentName}) - الاسم الصحيح: ${student.full_name}`,
-        );
-      }
+      // ============================================
+      // Validate student belongs to exam
+      // ============================================
 
       if (exam.grade_id && student.grade_id !== exam.grade_id) {
         throw new Error(`الطالب ${student.full_name} ليس في صف الامتحان`);
@@ -125,22 +180,35 @@ const processExamResultsBulk = async (examId, data) => {
         throw new Error(`الطالب ${student.full_name} ليس في مجموعة الامتحان`);
       }
 
-      barcodes.push(barcode);
-      examIds.push(examId);
-      studentIds.push(student.id);
-      degrees.push(degree);
-      notesList.push(notes);
-      enrolledStudents.push(student);
+      // ============================================
+      // Validate name match (if provided)
+      // ============================================
 
-      results.push({
+      if (
+        studentName &&
+        student.full_name !== studentName &&
+        matchedBy === "barcode"
+      ) {
+        throw new Error(
+          `الباركود (${barcode}) لا يطابق الاسم (${studentName}) - الاسم الصحيح: ${student.full_name}`,
+        );
+      }
+
+      // ============================================
+      // Add to valid rows
+      // ============================================
+
+      usedBarcodes.add(barcode);
+
+      validRows.push({
         row_number: rowNumber,
         barcode,
-        student_name: student.full_name,
+        student_id: student.id,
+        student,
         degree,
-        status: "success",
-        matched_by: "barcode",
+        notes,
+        matched_by: matchedBy,
       });
-      successCount++;
     } catch (error) {
       errors.push({
         row_number: rowNumber,
@@ -153,66 +221,79 @@ const processExamResultsBulk = async (examId, data) => {
     }
   }
 
-  if (studentIds.length > 0) {
-    try {
-      const examDate = exam.exam_date
-        ? formatEgyptTime(exam.exam_date, "DD/MM/YYYY")
-        : "غير محدد";
+  // ============================================
+  // Bulk insert valid rows
+  // ============================================
 
-      const dayName = exam.exam_date
-        ? new Date(exam.exam_date).toLocaleString("en-US", {
-            timeZone: "Africa/Cairo",
-            weekday: "long",
-          })
-        : "غير محدد";
+  if (validRows.length > 0) {
+    try {
+      const examIdsArr = validRows.map(() => examId);
+      const studentIdsArr = validRows.map((r) => r.student_id);
+      const degreesArr = validRows.map((r) => r.degree);
+      const notesArr = validRows.map((r) => r.notes);
 
       const insertResult = await query(
-        `INSERT INTO exam_results (exam_id, student_id, degree, notes)
-         SELECT unnest($1::int[]), unnest($2::int[]), unnest($3::numeric[]), unnest($4::text[])
-         ON CONFLICT (exam_id, student_id)
-         DO UPDATE SET
-           degree = EXCLUDED.degree,
-           notes = EXCLUDED.notes,
-           updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-         RETURNING id, student_id, degree`,
-        [examIds, studentIds, degrees, notesList],
+        examResultQueries.bulkUpsertExamResults,
+        [examIdsArr, studentIdsArr, degreesArr, notesArr],
       );
 
       const insertedResults = insertResult.rows;
 
-      results.forEach((result) => {
-        const inserted = insertedResults.find(
-          (r) => r.degree === result.degree,
-        );
-        if (inserted) {
-          result.exam_result_id = inserted.id;
-        }
-      });
+      // Map by student_id
+      const insertedMap = new Map(
+        insertedResults.map((r) => [r.student_id, r]),
+      );
 
+      // Build success records
+      for (const row of validRows) {
+        const inserted = insertedMap.get(row.student_id);
+
+        results.push({
+          row_number: row.row_number,
+          barcode: row.barcode,
+          student_id: row.student_id,
+          student_name: row.student.full_name,
+          degree: row.degree,
+          exam_result_id: inserted?.id || null,
+          status: "success",
+          matched_by: row.matched_by,
+        });
+        successCount++;
+      }
+
+      // ============================================
       // Send WhatsApp notifications
-      for (let i = 0; i < enrolledStudents.length; i++) {
-        try {
-          const student = enrolledStudents[i];
-          const degree = degrees[i];
+      // ============================================
 
+      const examDate = exam.exam_date
+        ? formatEgyptTime(exam.exam_date, "DD/MM/YYYY")
+        : "غير محدد";
+      const dayName = formatExamDay(exam.exam_date) || "غير محدد";
+
+      for (const row of validRows) {
+        try {
           const examData = {
-            score: Number(degree) || 0,
+            score: Number(row.degree) || 0,
             fullMark: Number(exam.total_degree) || 100,
             date: examDate,
             day: dayName,
           };
 
           const examMessage = whatsappDispatcher.generateExamMessage(
-            student,
+            row.student,
             examData,
           );
 
-          await whatsappDispatcher.enqueueForStudentAndParent(student, "exam", {
-            message: examMessage,
-            examData,
-          });
+          await whatsappDispatcher.enqueueForStudentAndParent(
+            row.student,
+            "exam",
+            {
+              message: examMessage,
+              examData,
+            },
+          );
         } catch (error) {
-          console.error("Error enqueueing exam result message:", error);
+          console.error("Error enqueueing exam result message:", error.message);
         }
       }
     } catch (error) {

@@ -1,19 +1,22 @@
 const getApiAuth = require("../utils/apiAuth");
 
-const apiMiddelware = (req, res, next) => {
+// Middleware to validate API credentials
+const apiAuthMiddleware = (req, res, next) => {
   try {
-    const apiHeaders = req.headers.authorization;
-    const validAuth = getApiAuth(apiHeaders);
-    if (!validAuth) {
+    const authHeader = req.headers.authorization;
+    const isValid = getApiAuth(authHeader);
+
+    if (!isValid) {
       return res.status(401).json({
         success: false,
-        message: "Invalid API credentials",
+        message: "بيانات API غير صحيحة",
       });
     }
+
     next();
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = apiMiddelware;
+module.exports = apiAuthMiddleware;

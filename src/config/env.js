@@ -19,6 +19,8 @@ module.exports = {
   DB_USER: process.env.DB_USER || "postgres",
   DB_PASSWORD: process.env.DB_PASSWORD,
   DATABASE_URL: process.env.DATABASE_URL,
+  DB_SSL: process.env.DB_SSL || "false",
+  DATABASE_CA_CERT: process.env.DATABASE_CA_CERT,
 
   // JWT
   JWT_SECRET: process.env.JWT_SECRET,
@@ -32,23 +34,20 @@ module.exports = {
   SUPER_ADMIN_USERNAME: process.env.SUPER_ADMIN_USERNAME,
   SUPER_ADMIN_PASSWORD: process.env.SUPER_ADMIN_PASSWORD,
 
-  // CORS
-  CORS_ORIGINS: (process.env.CORS_ORIGINS || "*").split(","),
-
-  // Rate Limit
-  RATE_LIMIT_WINDOW_MS:
-    Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
-  RATE_LIMIT_AUTH_MAX: Number(process.env.RATE_LIMIT_AUTH_MAX) || 5,
-
   // Database Pool
   DB_POOL_MAX: Number(process.env.DB_POOL_MAX) || 20,
   DB_POOL_IDLE_TIMEOUT: Number(process.env.DB_POOL_IDLE_TIMEOUT) || 30000,
   DB_POOL_CONNECTION_TIMEOUT:
     Number(process.env.DB_POOL_CONNECTION_TIMEOUT) || 5000,
 
-  // Whatsapp Configuration
+  // WhatsApp Configuration
   WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN,
   WHATSAPP_PHONE_ID: process.env.WHATSAPP_PHONE_ID,
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+
+  // WhatsApp Templates
+  WHATSAPP_TEMPLATE_WELCOME: process.env.WHATSAPP_TEMPLATE_WELCOME || "welcome",
+  WHATSAPP_TEMPLATE_ABSENCE: process.env.WHATSAPP_TEMPLATE_ABSENCE || "absent",
+  WHATSAPP_TEMPLATE_PAYMENT: process.env.WHATSAPP_TEMPLATE_PAYMENT || "payment",
+  WHATSAPP_TEMPLATE_EXAM: process.env.WHATSAPP_TEMPLATE_EXAM || "exam",
 };

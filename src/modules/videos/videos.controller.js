@@ -3,7 +3,27 @@ const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
 
-// Create video
+// ============================================
+// HELPER: Delete file from disk
+// ============================================
+
+const deleteFileFromDisk = (filePath) => {
+  if (!filePath) return;
+
+  try {
+    const fullPath = path.join(process.cwd(), filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  } catch (error) {
+    console.error("Failed to delete file:", error.message);
+  }
+};
+
+// ============================================
+// CREATE
+// ============================================
+
 const createVideo = async (req, res, next) => {
   try {
     const video_url = req.body.video_url;
@@ -23,10 +43,9 @@ const createVideo = async (req, res, next) => {
     });
 
     if (!video) {
-      throw new Error("فشل إنشاء الفيديو حاول مرة أخرى!");
+      throw new Error("فشل إنشاء الفيديو حاول مرة أخرى");
     }
 
-    // Log activity
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -39,7 +58,7 @@ const createVideo = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "تم إنشاء الفيديو بنجاح!",
+      message: "تم إنشاء الفيديو بنجاح",
       data: video,
     });
   } catch (error) {
@@ -47,19 +66,18 @@ const createVideo = async (req, res, next) => {
   }
 };
 
-// Get all videos
+// ============================================
+// GETTERS
+// ============================================
+
 const getAllVideos = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const videos = await videoService.getAllVideos(page);
 
-    if (!videos) {
-      throw new Error("فشل تحميل الفيديوهات حاول مرة أخرى!");
-    }
-
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الفيديوهات بنجاح!",
+      message: "تم تحميل الفيديوهات بنجاح",
       data: videos,
     });
   } catch (error) {
@@ -67,19 +85,18 @@ const getAllVideos = async (req, res, next) => {
   }
 };
 
-// Get video by ID
 const getVideoById = async (req, res, next) => {
   try {
     const { videoId } = req.params;
     const video = await videoService.getVideoById(videoId);
 
     if (!video) {
-      throw new Error("فشل تحميل الفيديو حاول مرة أخرى!");
+      throw new Error("الفيديو غير موجود");
     }
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الفيديو بنجاح!",
+      message: "تم تحميل الفيديو بنجاح",
       data: video,
     });
   } catch (error) {
@@ -87,7 +104,6 @@ const getVideoById = async (req, res, next) => {
   }
 };
 
-// Get videos by grade
 const getVideosByGradeId = async (req, res, next) => {
   try {
     const { gradeId } = req.params;
@@ -96,7 +112,7 @@ const getVideosByGradeId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تحميل الفيديوهات بنجاح!",
+      message: "تم تحميل الفيديوهات بنجاح",
       data: videos,
     });
   } catch (error) {
@@ -104,28 +120,46 @@ const getVideosByGradeId = async (req, res, next) => {
   }
 };
 
-// Update video
+// ============================================
+// UPDATE
+// ============================================
+
 const updateVideo = async (req, res, next) => {
   try {
     const { videoId } = req.params;
-    const file_url =
+
+    // Get old video to know old file paths
+    const oldVideo = await videoService.getVideoById(videoId);
+
+    if (!oldVideo) {
+      throw new Error("الفيديو غير موجود");
+    }
+
+    const newFileUrl =
       req.files && req.files["file"] ? req.files["file"][0].path : null;
-    const thumbnail_url =
+    const newThumbnailUrl =
       req.files && req.files["thumbnail"]
         ? req.files["thumbnail"][0].path
         : null;
 
     const video = await videoService.updateVideo(videoId, {
       ...req.body,
-      file_url,
-      thumbnail_url,
+      file_url: newFileUrl,
+      thumbnail_url: newThumbnailUrl,
     });
 
     if (!video) {
-      throw new Error("فشل تعديل الفيديو حاول مرة أخرى!");
+      throw new Error("فشل تعديل الفيديو حاول مرة أخرى");
     }
 
-    // Log activity
+    // Delete old files if new ones were uploaded
+    if (newFileUrl && oldVideo.file_url) {
+      deleteFileFromDisk(oldVideo.file_url);
+    }
+    if (newThumbnailUrl && oldVideo.thumbnail_url) {
+      deleteFileFromDisk(oldVideo.thumbnail_url);
+    }
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -138,7 +172,7 @@ const updateVideo = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم تعديل الفيديو بنجاح!",
+      message: "تم تعديل الفيديو بنجاح",
       data: video,
     });
   } catch (error) {
@@ -146,7 +180,10 @@ const updateVideo = async (req, res, next) => {
   }
 };
 
-// Download video file
+// ============================================
+// DOWNLOAD
+// ============================================
+
 const downloadVideoFile = async (req, res, next) => {
   try {
     const { videoId } = req.params;
@@ -157,23 +194,36 @@ const downloadVideoFile = async (req, res, next) => {
     }
 
     const filePath = path.join(__dirname, "../../../", video.file_url);
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error("الملف غير موجود");
+    }
+
     return res.download(filePath);
   } catch (error) {
     next(error);
   }
 };
 
-// Hard delete video
+// ============================================
+// DELETE
+// ============================================
+
 const hardDeleteVideo = async (req, res, next) => {
   try {
     const { videoId } = req.params;
+
+    // Delete video (returns file paths)
     const video = await videoService.hardDeleteVideo(videoId);
 
     if (!video) {
-      throw new Error("فشل حذف الفيديو حاول مرة أخرى!");
+      throw new Error("الفيديو غير موجود");
     }
 
-    // Log activity
+    // Delete files from disk
+    deleteFileFromDisk(video.file_url);
+    deleteFileFromDisk(video.thumbnail_url);
+
     await logActivity({
       user_id: req.clientId,
       user_role: req.clientRole,
@@ -186,7 +236,7 @@ const hardDeleteVideo = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الفيديو بنجاح!",
+      message: "تم حذف الفيديو بنجاح",
       data: video,
     });
   } catch (error) {

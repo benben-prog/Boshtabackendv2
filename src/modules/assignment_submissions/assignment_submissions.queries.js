@@ -2,7 +2,11 @@
    ASSIGNMENT SUBMISSIONS QUERIES
    ============================================ */
 
-// Submit a new assignment - مع تحقق من حالة الواجب
+// ============================================
+// SUBMIT
+// ============================================
+
+// Submit a new assignment
 const submitAssignment = `
 INSERT INTO assignment_submissions (assignment_id, student_id, file_path)
 SELECT a.id, $2, $3
@@ -10,7 +14,7 @@ FROM assignments a
 WHERE a.id = $1
   AND a.deleted = 0
   AND a.is_closed = 0
-  AND a.deadline > NOW()
+  AND a.deadline > NOW() AT TIME ZONE 'Africa/Cairo'
   AND NOT EXISTS (
     SELECT 1 FROM assignment_submissions asub 
     WHERE asub.assignment_id = a.id 
@@ -19,27 +23,47 @@ WHERE a.id = $1
 RETURNING *
 `;
 
-// Update submission - مع تحقق من حالة الواجب
+// ============================================
+// UPDATE
+// ============================================
+
+// Update submission (before deadline and not graded)
 const updateSubmission = `
 UPDATE assignment_submissions asub
-SET file_path = $1, updated_at = NOW(), score = NULL, feedback = NULL
+SET 
+  file_path = $1, 
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo', 
+  score = NULL, 
+  feedback = NULL
 FROM assignments a
 WHERE asub.assignment_id = a.id
   AND asub.assignment_id = $2 
   AND asub.student_id = $3 
   AND asub.score IS NULL
-  AND a.deadline > NOW()
+  AND a.deadline > NOW() AT TIME ZONE 'Africa/Cairo'
   AND a.is_closed = 0
 RETURNING asub.*
 `;
 
-// Grade a submission (teacher/assistant - once only)
+// ============================================
+// GRADE
+// ============================================
+
+// Grade a submission (once only)
 const gradeSubmission = `
 UPDATE assignment_submissions
-SET score = $1, feedback = $2, reviewed_by = $3, reviewed_at = NOW()
+SET 
+  score = $1, 
+  feedback = $2, 
+  reviewed_by = $3, 
+  reviewed_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $4 AND score IS NULL
 RETURNING *
 `;
+
+// ============================================
+// GETTERS
+// ============================================
 
 // Get all submissions for a specific assignment - 20 per page
 const getSubmissionsByAssignmentId = `
@@ -98,7 +122,7 @@ ORDER BY asub.submitted_at ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// ✅ Get students who have not submitted - مع فلترة المجموعة
+// Get students who have not submitted
 const getNotSubmittedStudents = `
 SELECT 
   s.id,
@@ -118,7 +142,11 @@ ORDER BY s.full_name ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// ✅ Get assignment submission statistics - مع COUNT(DISTINCT)
+// ============================================
+// STATISTICS
+// ============================================
+
+// Get assignment submission statistics
 const getAssignmentSubmissionStats = `
 SELECT 
   a.id,
@@ -140,7 +168,7 @@ WHERE a.id = $1 AND a.deleted = 0
 GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 `;
 
-// ✅ Get grade assignment submissions statistics - مع فلترة المجموعة
+// Get grade assignment submissions statistics
 const getGradeAssignmentSubmissionStats = `
 SELECT 
   a.id,
@@ -161,7 +189,7 @@ GROUP BY a.id, a.title, a.full_mark, a.deadline, a.is_closed
 ORDER BY a.deadline DESC
 `;
 
-// ✅ Get group assignment submissions statistics - مع COUNT(DISTINCT)
+// Get group assignment submissions statistics
 const getGroupAssignmentSubmissionStats = `
 SELECT 
   a.id,

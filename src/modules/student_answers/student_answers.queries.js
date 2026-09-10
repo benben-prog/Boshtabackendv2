@@ -22,7 +22,7 @@ UPDATE student_answers
 SET 
   selected_option_id = $2,
   is_correct = $3,
-  submitted_at = NOW()
+  submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1
 RETURNING *
 `;
@@ -32,7 +32,7 @@ const updateEssayAnswer = `
 UPDATE student_answers
 SET 
   file_path = $2,
-  submitted_at = NOW()
+  submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1
 RETURNING *
 `;
@@ -46,9 +46,39 @@ RETURNING id
 
 // Check if answer exists
 const checkExistingAnswer = `
-SELECT id
+SELECT id, question_id
 FROM student_answers
 WHERE exam_id = $1 AND student_id = $2 AND question_id = $3
+`;
+
+// Get question with exam info (for validation)
+const getQuestionWithExam = `
+SELECT 
+  q.id AS question_id,
+  q.type AS question_type,
+  q.exam_id,
+  oe.id AS online_exam_id,
+  oe.end_at AS exam_end_at,
+  oe.duration_minutes,
+  oe.grade_id AS exam_grade_id,
+  oe.group_id AS exam_group_id
+FROM questions q
+JOIN online_exams oe ON q.exam_id = oe.id
+WHERE q.id = $1 AND q.exam_id = $2 AND oe.deleted = 0
+`;
+
+// Get option with correctness
+const getOptionWithCorrectness = `
+SELECT id, is_correct
+FROM options
+WHERE id = $1 AND question_id = $2
+`;
+
+// Get active attempt
+const getActiveAttempt = `
+SELECT id, started_at, submitted_at
+FROM student_exams
+WHERE exam_id = $1 AND student_id = $2 AND submitted_at IS NULL
 `;
 
 // Get question answer stats
@@ -102,13 +132,14 @@ LEFT JOIN options o ON sa.selected_option_id = o.id
 WHERE sa.exam_id = $1 AND sa.student_id = $2
 ORDER BY q."order" ASC
 `;
+
+// Grade essay answer
 const gradeEssayAnswer = `
 UPDATE student_answers
-SET is_correct = $1, submitted_at = submitted_at
+SET is_correct = $1
 WHERE id = $2 AND is_correct IS NULL
 RETURNING *
 `;
-
 
 // Get essay answers for grading
 const getEssayAnswersForGrading = `
@@ -153,10 +184,15 @@ JOIN students s ON sa.student_id = s.id
 WHERE sa.exam_id = $1
   AND q.type = 'essay'
   AND sa.file_path IS NOT NULL
-  AND sa.is_correct IS NULL
 ORDER BY sa.submitted_at ASC
 `;
 
+// Get answer file path (for download)
+const getAnswerFilePath = `
+SELECT file_path
+FROM student_answers
+WHERE id = $1
+`;
 
 module.exports = {
   insertAnswer,
@@ -165,10 +201,14 @@ module.exports = {
   updateEssayAnswer,
   deleteAnswer,
   checkExistingAnswer,
+  getQuestionWithExam,
+  getOptionWithCorrectness,
+  getActiveAttempt,
   getQuestionAnswerStats,
   getMostSelectedOptions,
   getStudentAnswersByExam,
   gradeEssayAnswer,
   getEssayAnswersForGrading,
   getEssayAnswersByExam,
+  getAnswerFilePath,
 };
