@@ -315,6 +315,7 @@ routes.get(
 );
 routes.get("/grades/stats", gradesController.getAllGradesStats);
 routes.post("/grades/find", gradesController.findGradeByName);
+routes.get("/grades/:id/details", gradesController.getGradeDetails);
 routes.get("/grades/:id", gradesController.getGradeById);
 routes.get("/grades/:id/stats", gradesController.getGradeStats);
 routes.post("/grades", gradesController.createGrade);
@@ -617,6 +618,10 @@ routes.put(
   studentAnswerController.gradeEssayAnswer,
 );
 
+/* ============================================
+   WHATSAPP - TEMPLATES
+   ============================================ */
+
 routes.get("/whatsapp-messages", whatsappController.getAllTemplates);
 routes.get(
   "/whatsapp-messages/:templateId",
@@ -627,6 +632,30 @@ routes.put("/whatsapp-messages/:templateId", whatsappController.updateTemplate);
 routes.put(
   "/whatsapp-messages/:templateId/toggle",
   whatsappController.toggleTemplateActive,
+);
+
+/* ============================================
+   WHATSAPP - DASHBOARD, QUEUE & MESSAGES
+   ============================================ */
+
+// Dashboard
+routes.get("/whatsapp/dashboard", whatsappController.getDashboard);
+
+// Queue management
+routes.get("/whatsapp/queue/stats", whatsappController.getQueueStats);
+routes.post("/whatsapp/queue/force-process", whatsappController.forceProcess);
+routes.post("/whatsapp/queue/send", whatsappController.sendQueue);
+routes.post("/whatsapp/queue/reset-failed", whatsappController.resetFailed);
+
+// Settings
+routes.put("/whatsapp/settings", whatsappController.updateSettings);
+
+// Messages
+routes.get("/whatsapp/messages", whatsappController.getMessages);
+routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
+routes.delete(
+  "/whatsapp/messages/:messageId",
+  whatsappController.deleteMessage,
 );
 
 module.exports = routes;
