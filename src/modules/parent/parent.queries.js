@@ -81,6 +81,7 @@ SELECT
   p.id,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes,
   sub.month AS subscription_month
 FROM payments p

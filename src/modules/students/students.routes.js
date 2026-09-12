@@ -126,9 +126,6 @@ routes.get(
 // Get payment history
 routes.get("/:studentId/payments", stdController.getPaymentHistory);
 
-// Get remaining balance
-routes.get("/:studentId/payments/balance", stdController.getRemainingBalance);
-
 // Get current subscription
 routes.get(
   "/:studentId/payments/current-subscription",

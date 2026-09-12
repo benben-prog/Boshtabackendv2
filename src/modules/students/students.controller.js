@@ -506,21 +506,7 @@ const getPaymentHistory = async (req, res, next) => {
   }
 };
 
-const getRemainingBalance = async (req, res, next) => {
-  try {
-    const balance = await studentService.getRemainingBalance(
-      req.params.studentId || req.clientId,
-    );
 
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل البيانات بنجاح",
-      data: balance,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 const getCurrentSubscription = async (req, res, next) => {
   try {
@@ -922,7 +908,6 @@ module.exports = {
   getStudentTotalAttendance,
   getConsecutiveAbsences,
   getPaymentHistory,
-  getRemainingBalance,
   getCurrentSubscription,
   // Part 3: Exams, Assignments & Content
   getStudentPaperExams,

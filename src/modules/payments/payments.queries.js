@@ -216,7 +216,6 @@ SELECT
   COUNT(DISTINCT s.id) AS total_students,
   COALESCE(SUM(g.monthly_price), 0) AS total_required,
   COALESCE(SUM(p.amount), 0) AS total_paid,
-  COALESCE(SUM(g.monthly_price), 0) - COALESCE(SUM(p.amount), 0) AS total_remaining,
   COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS fully_paid,
   COUNT(DISTINCT CASE WHEN sub.id IS NULL OR sub.status = 'unpaid' THEN s.id END) AS not_paid
 FROM grades g
@@ -239,7 +238,6 @@ SELECT
   COUNT(DISTINCT s.id) AS total_students,
   COALESCE(SUM(g.monthly_price), 0) AS total_required,
   COALESCE(SUM(p.amount), 0) AS total_paid,
-  COALESCE(SUM(g.monthly_price), 0) - COALESCE(SUM(p.amount), 0) AS total_remaining,
   COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS fully_paid,
   COUNT(DISTINCT CASE WHEN sub.id IS NULL OR sub.status = 'unpaid' THEN s.id END) AS not_paid
 FROM groups gr
@@ -259,7 +257,6 @@ SELECT
   COUNT(DISTINCT s.id) AS total_students,
   COALESCE(SUM(g.monthly_price), 0) AS total_required,
   COALESCE(SUM(p.amount), 0) AS total_paid,
-  COALESCE(SUM(g.monthly_price), 0) - COALESCE(SUM(p.amount), 0) AS total_remaining,
   COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS fully_paid,
   COUNT(DISTINCT CASE WHEN sub.id IS NULL OR sub.status = 'unpaid' THEN s.id END) AS not_paid
 FROM students s

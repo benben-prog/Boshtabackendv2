@@ -296,10 +296,12 @@ SELECT
   (SELECT MIN(er.degree) FROM exam_results er WHERE er.student_id = $1) AS lowest_paper_degree,
   (SELECT COUNT(*) FROM student_exams se WHERE se.student_id = $1 AND se.submitted_at IS NOT NULL) AS total_online_exams,
   (SELECT ROUND(AVG(se.score)::numeric, 2) FROM student_exams se WHERE se.student_id = $1 AND se.submitted_at IS NOT NULL) AS avg_online_score,
-  (SELECT COALESCE(SUM(sub.required_amount), 0) FROM subscriptions sub WHERE sub.student_id = $1 AND sub.deleted = 0) AS total_required,
-  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.student_id = $1) AS total_paid,
-  (SELECT COALESCE(SUM(sub.required_amount), 0) FROM subscriptions sub WHERE sub.student_id = $1 AND sub.deleted = 0) - 
-  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.student_id = $1) AS remaining_balance
+  (SELECT COALESCE(SUM(sub.required_amount), 0) 
+   FROM subscriptions sub 
+   WHERE sub.student_id = $1 
+     AND sub.deleted = 0 
+     AND sub.status = 'paid') AS total_required,
+  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.student_id = $1) AS total_paid
 `;
 
 // Get student attendance history with month filter - 20 per page
@@ -389,6 +391,7 @@ SELECT
   p.id,
   p.amount,
   p.payment_date,
+  p.payment_mode,
   p.notes,
   sub.month AS subscription_month,
   sub.required_amount
@@ -400,14 +403,6 @@ ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
-// Get remaining balance for a student
-const getRemainingBalance = `
-SELECT 
-  (SELECT COALESCE(SUM(sub.required_amount), 0) FROM subscriptions sub WHERE sub.student_id = $1 AND sub.deleted = 0) AS total_required,
-  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.student_id = $1) AS total_paid,
-  (SELECT COALESCE(SUM(sub.required_amount), 0) FROM subscriptions sub WHERE sub.student_id = $1 AND sub.deleted = 0) - 
-  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.student_id = $1) AS remaining_balance
-`;
 
 // Get current month subscription
 const getCurrentSubscription = `
@@ -416,8 +411,7 @@ SELECT
   sub.month,
   sub.required_amount,
   sub.status,
-  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.subscription_id = sub.id) AS paid_amount,
-  sub.required_amount - (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.subscription_id = sub.id) AS remaining_amount
+  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.subscription_id = sub.id) AS paid_amount
 FROM subscriptions sub
 WHERE sub.student_id = $1 
   AND sub.deleted = 0
@@ -870,7 +864,6 @@ module.exports = {
   getStudentTotalAttendance,
   getConsecutiveAbsences,
   getPaymentHistory,
-  getRemainingBalance,
   getCurrentSubscription,
   // Part 3: Exams, Assignments & Content
   getStudentPaperExams,

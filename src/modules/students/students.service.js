@@ -253,10 +253,7 @@ const getPaymentHistory = async (id, month = "", page = 1) => {
   return result.rows;
 };
 
-const getRemainingBalance = async (id) => {
-  const result = await query(stdQr.getRemainingBalance, [id]);
-  return result.rows[0];
-};
+
 
 const getCurrentSubscription = async (id) => {
   const result = await query(stdQr.getCurrentSubscription, [id]);
@@ -493,7 +490,6 @@ module.exports = {
   getStudentTotalAttendance,
   getConsecutiveAbsences,
   getPaymentHistory,
-  getRemainingBalance,
   getCurrentSubscription,
   // Part 3: Exams, Assignments & Content
   getStudentPaperExams,

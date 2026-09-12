@@ -146,10 +146,7 @@ routes.get(
   "/students/:studentId/payments",
   studentsController.getPaymentHistory,
 );
-routes.get(
-  "/students/:studentId/payments/balance",
-  studentsController.getRemainingBalance,
-);
+
 routes.get(
   "/students/:studentId/payments/current-subscription",
   studentsController.getCurrentSubscription,

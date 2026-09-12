@@ -30,13 +30,7 @@ SELECT
   sub.created_at,
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-  ) AS paid_amount,
-  CASE 
-    WHEN sub.status = 'paid' THEN 0
-    ELSE sub.required_amount - COALESCE(
-      (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-    )
-  END AS remaining_amount
+  ) AS paid_amount
 FROM subscriptions sub
 WHERE sub.student_id = $1 AND sub.deleted = 0
 ORDER BY sub.month DESC
@@ -55,13 +49,7 @@ SELECT
   sub.status,
   COALESCE(
     (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-  ) AS paid_amount,
-  CASE 
-    WHEN sub.status = 'paid' THEN 0
-    ELSE sub.required_amount - COALESCE(
-      (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
-    )
-  END AS remaining_amount
+  ) AS paid_amount
 FROM subscriptions sub
 JOIN students s ON sub.student_id = s.id AND s.deleted = 0
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
