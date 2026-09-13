@@ -24,7 +24,8 @@ async function createMessagesTable() {
     )
   `);
 
-  // Update status check constraint to include scheduled and read
+  // Ensure status check constraint allows only: pending, sent, failed, delivered, read
+  // NOTE: "scheduled" status has been removed — all messages stay "pending" until sent.
   await query(`
     DO $$
     BEGIN
@@ -36,14 +37,21 @@ async function createMessagesTable() {
         ALTER TABLE messages DROP CONSTRAINT messages_status_check;
       END IF;
       
-      -- Add new constraint with all statuses
+      -- Add new constraint with all statuses (excluding "scheduled")
       ALTER TABLE messages 
       ADD CONSTRAINT messages_status_check 
-      CHECK (status IN ('pending', 'scheduled', 'sent', 'failed', 'delivered', 'read'));
+      CHECK (status IN ('pending', 'sent', 'failed', 'delivered', 'read'));
     EXCEPTION
       WHEN others THEN
         RAISE NOTICE 'Could not update status constraint: %', SQLERRM;
     END $$;
+  `);
+
+  // Migrate any existing "scheduled" rows to "pending"
+  await query(`
+    UPDATE messages
+    SET status = 'pending', updated_at = NOW()
+    WHERE status = 'scheduled'
   `);
 
   await query(
@@ -62,6 +70,21 @@ async function createMessagesTable() {
   await query(
     `CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient)`,
   );
+
+  // Priority ordering index: absence first, then exam, payment, welcome, custom
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_messages_queue_priority 
+    ON messages(status, 
+      CASE 
+        WHEN type = 'absence' THEN 1
+        WHEN type = 'exam' THEN 2
+        WHEN type = 'payment' THEN 3
+        WHEN type = 'welcome' THEN 4
+        ELSE 5
+      END,
+      created_at ASC
+    )
+  `);
 
   console.log("messages table created");
 }

@@ -20,6 +20,18 @@ const PROCESS_INTERVAL_MS = 60 * 1000;
 const LOAD_BATCH_SIZE = 50;
 const MAX_QUEUE_SIZE = 500;
 
+// Priority order for message types (lower = higher priority)
+// absence > exam > payment > welcome > custom
+const TYPE_PRIORITY_SQL = `
+  CASE 
+    WHEN type = 'absence' THEN 1
+    WHEN type = 'exam' THEN 2
+    WHEN type = 'payment' THEN 3
+    WHEN type = 'welcome' THEN 4
+    ELSE 5
+  END
+`;
+
 // ============================================
 // STATE
 // ============================================
@@ -177,14 +189,14 @@ function generateExamMessage(student, examData) {
 }
 
 // ============================================
-// QUEUE: Load pending messages from DB
+// QUEUE: Load pending messages from DB (with priority ordering)
 // ============================================
 
 async function loadPendingMessages(limit = LOAD_BATCH_SIZE) {
   const result = await query(
     `SELECT id FROM messages
      WHERE status = 'pending'
-     ORDER BY created_at ASC
+     ORDER BY ${TYPE_PRIORITY_SQL} ASC, created_at ASC
      LIMIT $1`,
     [limit],
   );
@@ -246,11 +258,6 @@ async function processQueueWithDelay() {
     return;
   }
 
-  if (dailyLimitReached) {
-    console.log("[WhatsApp Queue] Daily limit reached flag is set, skipping");
-    return;
-  }
-
   processingQueue = true;
   lastProcessingStart = Date.now();
 
@@ -265,17 +272,9 @@ async function processQueueWithDelay() {
     while (messageQueue.length > 0) {
       // Check sending hours
       if (!isWithinSendingHours()) {
-        console.log("[WhatsApp Queue] Outside sending hours, rescheduling");
-
-        if (messageQueue.length > 0) {
-          await query(
-            `UPDATE messages SET status = 'scheduled', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-             WHERE id = ANY($1)`,
-            [messageQueue],
-          );
-          messageQueue = [];
-        }
-
+        console.log(
+          "[WhatsApp Queue] Outside sending hours, stopping processing (messages remain pending)",
+        );
         break;
       }
 
@@ -284,20 +283,10 @@ async function processQueueWithDelay() {
 
       if (sentToday >= settings.whatsapp_daily_limit) {
         console.log(
-          `[WhatsApp Queue] Daily limit reached (${sentToday}/${settings.whatsapp_daily_limit}), rescheduling`,
+          `[WhatsApp Queue] Daily limit reached (${sentToday}/${settings.whatsapp_daily_limit}), stopping processing (messages remain pending)`,
         );
 
         dailyLimitReached = true;
-
-        if (messageQueue.length > 0) {
-          await query(
-            `UPDATE messages SET status = 'scheduled', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-             WHERE id = ANY($1)`,
-            [messageQueue],
-          );
-          messageQueue = [];
-        }
-
         break;
       }
 
@@ -327,52 +316,19 @@ async function processQueueWithDelay() {
 }
 
 // ============================================
-// QUEUE: Process scheduled messages
+// QUEUE: Reset daily limit flag when day changes
 // ============================================
 
-async function processScheduledMessages() {
-  if (!isWithinSendingHours()) {
-    return;
+function checkAndResetDailyLimit() {
+  resetDailyCounterIfNeeded();
+
+  if (dailyLimitReached) {
+    const sentToday = getSentTodayCount();
+    // This will be re-checked against settings in the caller
+    return sentToday;
   }
 
-  const sentToday = getSentTodayCount();
-  const settings = await getWhatsappSettings();
-
-  if (sentToday >= settings.whatsapp_daily_limit) {
-    dailyLimitReached = true;
-    return;
-  }
-
-  const available = settings.whatsapp_daily_limit - sentToday;
-
-  const result = await query(
-    `UPDATE messages 
-     SET status = 'pending', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE id IN (
-       SELECT id FROM messages 
-       WHERE status = 'scheduled'
-       ORDER BY created_at ASC
-       LIMIT $1
-     )
-     RETURNING id`,
-    [available],
-  );
-
-  if (result.rows.length > 0) {
-    console.log(
-      `[WhatsApp Queue] Moved ${result.rows.length} scheduled messages to pending`,
-    );
-
-    result.rows.forEach((row) => {
-      if (!messageQueue.includes(row.id)) {
-        messageQueue.push(row.id);
-      }
-    });
-
-    if (!processingQueue) {
-      processQueueWithDelay();
-    }
-  }
+  return null;
 }
 
 // ============================================
@@ -405,37 +361,30 @@ async function enqueueMessage(messageData) {
     }
   }
 
-  const settings = await getWhatsappSettings();
-  const sentToday = getSentTodayCount();
-
-  const status =
-    sentToday >= settings.whatsapp_daily_limit ? "scheduled" : "pending";
-
+  // All messages are always enqueued as 'pending' — no more 'scheduled' status.
   const paramsJson = params ? JSON.stringify(params) : null;
 
   const result = await query(
     `INSERT INTO messages 
      (student_id, phone, message, type, recipient, ref_key, status, params, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, 
        NOW() AT TIME ZONE 'Africa/Cairo', 
        NOW() AT TIME ZONE 'Africa/Cairo')
      RETURNING id, status`,
-    [student_id, phone, message, type, recipient, ref_key, status, paramsJson],
+    [student_id, phone, message, type, recipient, ref_key, paramsJson],
   );
 
-  if (status === "pending") {
-    if (!messageQueue.includes(result.rows[0].id)) {
-      messageQueue.push(result.rows[0].id);
-    }
-    if (!processingQueue && !dailyLimitReached) {
-      processQueueWithDelay();
-    }
+  // Push to in-memory queue and try to process if not already
+  if (!messageQueue.includes(result.rows[0].id)) {
+    messageQueue.push(result.rows[0].id);
+  }
+  if (!processingQueue) {
+    processQueueWithDelay();
   }
 
   return {
     inserted: true,
     id: result.rows[0].id,
-    scheduled: status === "scheduled",
   };
 }
 
@@ -673,22 +622,11 @@ async function sendQueue({ limit = 5 } = {}) {
   const availableSlots = dailyLimit - sentToday;
   const maxToSend = Math.min(limit, availableSlots);
 
-  await query(
-    `UPDATE messages 
-     SET status = 'pending', updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE id IN (
-       SELECT id FROM messages 
-       WHERE status = 'scheduled'
-       ORDER BY created_at ASC
-       LIMIT $1
-     )`,
-    [maxToSend],
-  );
-
+  // Load pending messages ordered by priority (absence first)
   const result = await query(
     `SELECT id FROM messages 
      WHERE status = 'pending'
-     ORDER BY created_at ASC
+     ORDER BY ${TYPE_PRIORITY_SQL} ASC, created_at ASC
      LIMIT $1`,
     [maxToSend],
   );
@@ -727,7 +665,6 @@ async function getStats() {
     SELECT 
       COUNT(*) AS total,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-      SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled,
       SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
@@ -788,7 +725,7 @@ async function resetFailed() {
       }
     });
 
-    if (!processingQueue && !dailyLimitReached) {
+    if (!processingQueue) {
       processQueueWithDelay();
     }
   }
@@ -803,8 +740,17 @@ async function resetFailed() {
 async function forceProcess() {
   console.log("[WhatsApp Queue] Force process triggered");
 
+  // Reset daily limit flag if the day has changed
+  resetDailyCounterIfNeeded();
+
+  const settings = await getWhatsappSettings();
+  const sentToday = getSentTodayCount();
+
+  if (sentToday < settings.whatsapp_daily_limit) {
+    dailyLimitReached = false;
+  }
+
   await refreshQueueFromDB();
-  await processScheduledMessages();
 
   if (messageQueue.length > 0 && !processingQueue && !dailyLimitReached) {
     await processQueueWithDelay();
@@ -837,6 +783,9 @@ async function startSystem() {
   );
   console.log(`[WhatsApp] Max retry attempts: ${MAX_RETRY_ATTEMPTS}`);
   console.log(`[WhatsApp] Process interval: ${PROCESS_INTERVAL_MS / 1000}s`);
+  console.log(
+    `[WhatsApp] Priority: absence > exam > payment > welcome > custom`,
+  );
   console.log("============================================");
 
   // Load today's sent count from DB
@@ -859,7 +808,6 @@ async function startSystem() {
     console.log(
       `[WhatsApp] Daily limit already reached (${sentTodayCounter}/${settings.whatsapp_daily_limit})`,
     );
-    console.log("[WhatsApp] Will NOT send any messages today");
     console.log("[WhatsApp] Will resume tomorrow at 7:00 AM");
 
     const msUntilMorning = getMillisecondsUntilMorning();
@@ -882,62 +830,21 @@ async function startSystem() {
 
       dailyLimitReached = false;
       await refreshQueueFromDB();
-      await processScheduledMessages();
 
       if (messageQueue.length > 0 && !processingQueue) {
         processQueueWithDelay();
       }
     }, msUntilMorning);
+  } else {
+    // Initial load
+    await refreshQueueFromDB();
 
-    if (intervalId) {
-      clearInterval(intervalId);
+    if (messageQueue.length > 0 && !processingQueue) {
+      processQueueWithDelay();
     }
-
-    intervalId = setInterval(async () => {
-      resetDailyCounterIfNeeded();
-
-      if (!isWithinSendingHours()) {
-        return;
-      }
-
-      if (dailyLimitReached) {
-        const currentSent = getSentTodayCount();
-        const currentSettings = await getWhatsappSettings();
-
-        if (currentSent < currentSettings.whatsapp_daily_limit) {
-          console.log(
-            "[WhatsApp] Daily limit reset - resuming message sending",
-          );
-          dailyLimitReached = false;
-        } else {
-          return;
-        }
-      }
-
-      try {
-        await refreshQueueFromDB();
-        await processScheduledMessages();
-
-        if (messageQueue.length > 0 && !processingQueue) {
-          processQueueWithDelay();
-        }
-      } catch (error) {
-        console.error("[WhatsApp] Periodic refresh error:", error.message);
-      }
-    }, PROCESS_INTERVAL_MS);
-
-    console.log("[WhatsApp] System started (paused - daily limit reached)");
-    return;
   }
 
-  // Initial load
-  await refreshQueueFromDB();
-  await processScheduledMessages();
-
-  if (messageQueue.length > 0 && !processingQueue) {
-    processQueueWithDelay();
-  }
-
+  // Set up periodic processing
   if (intervalId) {
     clearInterval(intervalId);
   }
@@ -949,21 +856,23 @@ async function startSystem() {
       return;
     }
 
-    if (dailyLimitReached) {
-      const currentSent = getSentTodayCount();
-      const currentSettings = await getWhatsappSettings();
+    const currentSent = getSentTodayCount();
+    const currentSettings = await getWhatsappSettings();
 
-      if (currentSent < currentSettings.whatsapp_daily_limit) {
-        console.log("[WhatsApp] Daily limit reset - resuming");
-        dailyLimitReached = false;
-      } else {
-        return;
-      }
+    if (
+      dailyLimitReached &&
+      currentSent < currentSettings.whatsapp_daily_limit
+    ) {
+      console.log("[WhatsApp] Daily limit reset - resuming message sending");
+      dailyLimitReached = false;
+    }
+
+    if (dailyLimitReached) {
+      return;
     }
 
     try {
       await refreshQueueFromDB();
-      await processScheduledMessages();
 
       if (messageQueue.length > 0 && !processingQueue) {
         processQueueWithDelay();
@@ -1012,7 +921,6 @@ module.exports = {
   startSystem,
   stopSystem,
   refreshQueueFromDB,
-  processScheduledMessages,
   processQueueWithDelay,
   forceProcess,
 };
