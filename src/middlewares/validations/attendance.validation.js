@@ -11,9 +11,10 @@ const createAttendanceSchema = Joi.object({
   grade_id: Joi.number().integer().positive().required().messages({
     "any.required": "الصف الدراسي مطلوب",
   }),
-  attendance_date: Joi.date().iso().required().messages({
+  attendance_date: Joi.date().iso().max("now").required().messages({
     "any.required": "تاريخ الحضور مطلوب",
     "date.base": "صيغة التاريخ غير صحيحة",
+    "date.max": "لا يمكن تسجيل الحضور في المستقبل",
   }),
   status: Joi.string().valid("present", "absent").required().messages({
     "any.required": "حالة الحضور مطلوبة",
@@ -45,8 +46,9 @@ const startSessionSchema = Joi.object({
   grade_id: Joi.number().integer().positive().required().messages({
     "any.required": "الصف الدراسي مطلوب",
   }),
-  lock_at: Joi.date().iso().allow(null).messages({
+  lock_at: Joi.date().iso().greater("now").allow(null).messages({
     "date.base": "صيغة وقت القفل غير صحيحة",
+    "date.greater": "وقت القفل يجب أن يكون في المستقبل",
   }),
 });
 

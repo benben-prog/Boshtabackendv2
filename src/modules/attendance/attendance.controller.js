@@ -5,6 +5,59 @@ const { logActivity } = require("../../utils/activityLogger");
 // SESSION MANAGEMENT
 // ============================================
 
+
+// ============================================
+// GET DASHBOARD - now requires group_id
+// ============================================
+
+const getDashboard = async (req, res, next) => {
+  try {
+    const { group_id } = req.query;
+
+    if (!group_id) {
+      throw new Error("معرف المجموعة مطلوب");
+    }
+
+    const stats = await attendanceService.getDashboard(parseInt(group_id));
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل الإحصائيات بنجاح",
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// GET ACTIVE SESSION - validates groupId
+// ============================================
+
+const getActiveSession = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      throw new Error("معرف المجموعة مطلوب");
+    }
+
+    const session = await attendanceService.getActiveSession(parseInt(groupId));
+
+    return res.status(200).json({
+      success: true,
+      message: session ? "تم تحميل الجلسة بنجاح" : "لا توجد جلسة نشطة",
+      data: session,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// START SESSION
+// ============================================
+
 const startSession = async (req, res, next) => {
   try {
     const { group_id, grade_id, lock_at } = req.body;
@@ -37,20 +90,6 @@ const startSession = async (req, res, next) => {
   }
 };
 
-const getActiveSession = async (req, res, next) => {
-  try {
-    const { groupId } = req.params;
-    const session = await attendanceService.getActiveSession(groupId);
-
-    return res.status(200).json({
-      success: true,
-      message: session ? "تم تحميل الجلسة بنجاح" : "لا توجد جلسة نشطة",
-      data: session,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 const toggleMakeupMode = async (req, res, next) => {
   try {
@@ -349,19 +388,7 @@ const deleteAttendance = async (req, res, next) => {
   }
 };
 
-const getDashboard = async (req, res, next) => {
-  try {
-    const stats = await attendanceService.getDashboard();
 
-    return res.status(200).json({
-      success: true,
-      message: "تم تحميل الإحصائيات بنجاح",
-      data: stats,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 module.exports = {
   // Session management

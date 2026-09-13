@@ -1,5 +1,5 @@
 /* ============================================
-   ATTENDANCE QUERIES
+   ATTENDANCE QUERIES (FIXED VERSION)
    ============================================ */
 
 // ============================================
@@ -14,11 +14,28 @@ WHERE group_id = $1
   AND DATE(started_at AT TIME ZONE 'Africa/Cairo') = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
 `;
 
-// Create new session
+// Get default lock minutes from settings
+const getDefaultLockMinutes = `
+SELECT default_lock_minutes FROM settings WHERE id = 1
+`;
+
+// Create new session - lock_at is calculated in application code
 const startSession = `
-INSERT INTO attendance_sessions (group_id, grade_id, started_by, lock_at, is_makeup_enabled, attendance_locked, status)
-VALUES ($1, $2, $3, $4, 0, 0, 'active')
-RETURNING *
+INSERT INTO attendance_sessions 
+  (group_id, grade_id, started_by, lock_at, is_makeup_enabled, attendance_locked, status)
+VALUES 
+  ($1, $2, $3, $4, 0, 0, 'active')
+RETURNING 
+  id,
+  group_id,
+  grade_id,
+  started_by,
+  started_at,
+  lock_at,
+  is_makeup_enabled,
+  attendance_locked,
+  status,
+  ended_at
 `;
 
 // Get active session for group (today)
@@ -85,12 +102,20 @@ WHERE id = $1 AND status = 'active'
 RETURNING *
 `;
 
-// Toggle makeup mode
+// Toggle makeup mode - only if session not locked
 const toggleMakeupMode = `
 UPDATE attendance_sessions
 SET is_makeup_enabled = CASE WHEN is_makeup_enabled = 1 THEN 0 ELSE 1 END
-WHERE id = $1 AND status = 'active'
+WHERE id = $1 AND status = 'active' AND attendance_locked = 0
 RETURNING *
+`;
+
+// Validate that group belongs to grade
+const validateGroupBelongsToGrade = `
+SELECT g.id AS group_id, g.grade_id, gr.name AS grade_name
+FROM groups g
+JOIN grades gr ON g.grade_id = gr.id
+WHERE g.id = $1 AND g.deleted = 0 AND gr.deleted = 0
 `;
 
 // ============================================
@@ -214,12 +239,12 @@ LEFT JOIN groups gr ON a.group_id = gr.id
 WHERE a.id = $1
 `;
 
-// Update attendance record
+// Update attendance record - attendance_time uses NOW() if not provided
 const updateAttendance = `
 UPDATE attendance
 SET 
   status = $1,
-  attendance_time = $2,
+  attendance_time = COALESCE($2, NOW() AT TIME ZONE 'Africa/Cairo'),
   method = $3,
   is_makeup = $4,
   makeup_group_id = $5,
@@ -249,14 +274,7 @@ SELECT
   g.name AS grade_name,
   s.group_id,
   gr.name AS group_name,
-  s.profile_image,
-  COALESCE(
-    (SELECT sub.status FROM subscriptions sub 
-     WHERE sub.student_id = s.id 
-       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
-       AND sub.deleted = 0
-     LIMIT 1), 'unpaid'
-  ) AS payment_status
+  s.profile_image
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
@@ -271,10 +289,11 @@ WHERE student_id = $1
   AND attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
 `;
 
-// Record attendance with session
+// Record attendance with session - uses ON CONFLICT to prevent race condition
 const recordAttendanceWithSession = `
 INSERT INTO attendance (student_id, group_id, grade_id, attendance_date, status, attendance_time, method, is_makeup, makeup_group_id)
 VALUES ($1, $2, $3, DATE(NOW() AT TIME ZONE 'Africa/Cairo'), 'present', NOW() AT TIME ZONE 'Africa/Cairo', 'barcode', $4, $5)
+ON CONFLICT (student_id, attendance_date) DO NOTHING
 RETURNING *
 `;
 
@@ -322,24 +341,29 @@ ORDER BY month DESC
 // CONSECUTIVE ABSENCES QUERIES
 // ============================================
 
-// Get students with 3+ consecutive absences (3 most recent attendances all absent)
+// Get students with 3+ consecutive absences (last 3 records within same group)
 const getStudentsWithThreeConsecutiveAbsences = `
 WITH ranked_attendance AS (
   SELECT 
     a.student_id,
+    a.group_id,
     a.attendance_date,
     a.status,
-    ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY a.attendance_date DESC) AS rn
+    ROW_NUMBER() OVER (
+      PARTITION BY a.student_id 
+      ORDER BY a.attendance_date DESC
+    ) AS rn
   FROM attendance a
 ),
 last_three AS (
   SELECT 
     student_id,
+    group_id,
     COUNT(*) AS total_days,
     COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_count
   FROM ranked_attendance
   WHERE rn <= 3
-  GROUP BY student_id
+  GROUP BY student_id, group_id
 )
 SELECT 
   s.id,
@@ -357,22 +381,31 @@ LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE lt.total_days = 3 
   AND lt.absent_count = 3
+  AND s.group_id = lt.group_id
 `;
 
 // ============================================
-// DASHBOARD
+// DASHBOARD - takes group_id parameter
 // ============================================
 
 const getDashboard = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') AND status = 'present') AS present_today,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') AND status = 'absent') AS absent_today,
+  (SELECT COUNT(*) FROM students WHERE group_id = $1 AND deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM attendance 
+   WHERE group_id = $1 
+     AND attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
+     AND status = 'present') AS present_today,
+  (SELECT COUNT(*) FROM attendance 
+   WHERE group_id = $1 
+     AND attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
+     AND status = 'absent') AS absent_today,
   (SELECT COUNT(*) FROM students s 
-   WHERE s.deleted = 0 
+   WHERE s.group_id = $1 
+     AND s.deleted = 0 
      AND NOT EXISTS (
        SELECT 1 FROM attendance a 
-       WHERE a.student_id = s.id AND a.attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
+       WHERE a.student_id = s.id 
+         AND a.attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
      )) AS not_marked_today
 `;
 
@@ -391,12 +424,14 @@ RETURNING id, barcode, full_name
 module.exports = {
   // Session management
   checkSessionExistsForGroupOnDate,
+  getDefaultLockMinutes,
   startSession,
   getActiveSessionByGroup,
   getSessionById,
   lockAttendanceRecording,
   closeSession,
   toggleMakeupMode,
+  validateGroupBelongsToGrade,
   // Attendance recording
   createAttendance,
   getAttendanceByGroupAndDate,

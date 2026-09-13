@@ -857,7 +857,7 @@ async function startSystem() {
   if (sentTodayCounter >= settings.whatsapp_daily_limit) {
     dailyLimitReached = true;
     console.log(
-      `[WhatsApp] ⚠️ Daily limit already reached (${sentTodayCounter}/${settings.whatsapp_daily_limit})`,
+      `[WhatsApp] Daily limit already reached (${sentTodayCounter}/${settings.whatsapp_daily_limit})`,
     );
     console.log("[WhatsApp] Will NOT send any messages today");
     console.log("[WhatsApp] Will resume tomorrow at 7:00 AM");
