@@ -10,6 +10,7 @@ RETURNING *
 `;
 
 // Get all students with filters (search, grade, group) - 20 per page
+// Includes payment status for current month
 const getAllStudents = `
 SELECT 
   s.id,
@@ -21,7 +22,22 @@ SELECT
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
-  gr.name AS group_name
+  gr.name AS group_name,
+  g.monthly_price AS required_amount,
+  COALESCE(
+    (SELECT sub.id FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), NULL
+  ) AS subscription_id,
+  COALESCE(
+    (SELECT sub.status FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), 'unpaid'
+  ) AS payment_status
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
@@ -140,6 +156,7 @@ LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
 // Get all students in a specific group - 20 per page
+// Includes payment status for current month
 const getStudentsByGroupId = `
 SELECT 
   s.id,
@@ -149,7 +166,22 @@ SELECT
   s.parent_phone,
   s.profile_image,
   s.grade_id,
-  g.name AS grade_name
+  g.name AS grade_name,
+  g.monthly_price AS required_amount,
+  COALESCE(
+    (SELECT sub.id FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), NULL
+  ) AS subscription_id,
+  COALESCE(
+    (SELECT sub.status FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), 'unpaid'
+  ) AS payment_status
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 WHERE s.group_id = $1 AND s.deleted = 0
@@ -402,7 +434,6 @@ WHERE p.student_id = $1
 ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
-
 
 // Get current month subscription
 const getCurrentSubscription = `
