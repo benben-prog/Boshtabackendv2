@@ -272,7 +272,7 @@ RETURNING *
 // BARCODE SCAN QUERIES
 // ============================================
 
-// Check student by barcode
+// Check student by barcode - includes payment status and required amount
 const checkStudentByBarcode = `
 SELECT 
   s.id,
@@ -280,9 +280,26 @@ SELECT
   s.full_name,
   s.grade_id,
   g.name AS grade_name,
+  g.monthly_price,
   s.group_id,
   gr.name AS group_name,
-  s.profile_image
+  s.profile_image,
+  s.phone,
+  s.parent_phone,
+  COALESCE(
+    (SELECT sub.status FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), 'unpaid'
+  ) AS payment_status,
+  COALESCE(
+    (SELECT sub.required_amount FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), g.monthly_price
+  ) AS required_amount
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
