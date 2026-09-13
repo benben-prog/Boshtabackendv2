@@ -3,6 +3,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 const path = require("path");
+const swaggerUi = require("swagger-ui-express");
 
 // Routes
 const authRoutes = require("./modules/auth/auth.routes");
@@ -34,10 +35,38 @@ const swaggerSpec = require("./docs/swagger");
 const app = express();
 
 // ============================================
+// SWAGGER DEBUG LOG (remove after confirming it works)
+// ============================================
+
+console.log(
+  "[Swagger] Paths loaded:",
+  Object.keys(swaggerSpec.paths || {}).length,
+);
+
+// ============================================
 // SECURITY MIDDLEWARE
 // ============================================
 
-app.use(helmet());
+// Helmet with custom CSP that allows Swagger UI to work
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:", "data:"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -136,38 +165,24 @@ app.get("/health", (req, res) => {
   });
 });
 
+// ============================================
+// SWAGGER UI (serves from node_modules - no CDN needed)
+// ============================================
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: "JupiterLearn API Docs",
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: "none",
+    },
+  }),
+);
+
 app.get("/api-docs-json", (req, res) => {
   res.json(swaggerSpec);
-});
-
-app.get("/api-docs", (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="ar">
-    <head>
-      <meta charset="UTF-8">
-      <title>JupiterLearn API Docs</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css">
-    </head>
-    <body>
-      <div id="swagger-ui"></div>
-      <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
-      <script>
-        window.onload = function() {
-          SwaggerUIBundle({
-            url: "/api-docs-json",
-            dom_id: "#swagger-ui",
-            presets: [
-              SwaggerUIBundle.presets.apis,
-              SwaggerUIBundle.SwaggerUIStandalonePreset
-            ],
-            layout: "BaseLayout",
-          });
-        };
-      </script>
-    </body>
-    </html>
-  `);
 });
 
 // ============================================
