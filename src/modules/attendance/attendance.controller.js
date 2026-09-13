@@ -5,7 +5,6 @@ const { logActivity } = require("../../utils/activityLogger");
 // SESSION MANAGEMENT
 // ============================================
 
-
 // ============================================
 // GET DASHBOARD - now requires group_id
 // ============================================
@@ -60,14 +59,13 @@ const getActiveSession = async (req, res, next) => {
 
 const startSession = async (req, res, next) => {
   try {
-    const { group_id, grade_id, lock_at } = req.body;
+    const { group_id, grade_id } = req.body;
     const started_by = req.clientId;
 
     const session = await attendanceService.startSession({
       group_id,
       grade_id,
       started_by,
-      lock_at,
     });
 
     await logActivity({
@@ -89,7 +87,6 @@ const startSession = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const toggleMakeupMode = async (req, res, next) => {
   try {
@@ -387,8 +384,6 @@ const deleteAttendance = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 module.exports = {
   // Session management

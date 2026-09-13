@@ -140,7 +140,9 @@ const checkAndSoftDeleteAbsentStudents = async () => {
 // ============================================
 
 const startSession = async (sessionData) => {
-  const { group_id, grade_id, started_by, lock_at } = sessionData;
+  const { group_id, grade_id, started_by } = sessionData;
+  // NOTE: lock_at is intentionally NOT accepted from the client.
+  // The lock duration is always derived from settings.default_lock_minutes.
 
   // Validate that group belongs to grade
   const groupCheckResult = await query(
@@ -185,35 +187,12 @@ const startSession = async (sessionData) => {
     throw new Error("مدة القفل الافتراضية غير صحيحة في الإعدادات");
   }
 
-  // Calculate lock_at
-  let finalLockAt;
-
-  if (lock_at) {
-    // Front-end provided lock_at
-    const lockAtDate = new Date(lock_at);
-    if (isNaN(lockAtDate.getTime())) {
-      throw new Error("صيغة وقت القفل غير صحيحة");
-    }
-
-    // Compare with Egypt current time
-    const nowEgypt = getNowEgypt();
-    if (lockAtDate <= nowEgypt) {
-      throw new Error("وقت القفل يجب أن يكون في المستقبل");
-    }
-
-    finalLockAt = lockAtDate;
-  } else {
-    // Use default from settings - calculate from now
-    const nowEgypt = getNowEgypt();
-    finalLockAt = new Date(nowEgypt.getTime() + defaultMinutes * 60 * 1000);
-  }
-
-  // Create session
+  // Create session — Postgres computes lock_at from NOW() + defaultMinutes
   const result = await query(attendanceQueries.startSession, [
     group_id,
     grade_id,
     started_by,
-    finalLockAt,
+    defaultMinutes,
   ]);
 
   const session = result.rows[0];

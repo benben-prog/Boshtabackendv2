@@ -19,12 +19,20 @@ const getDefaultLockMinutes = `
 SELECT default_lock_minutes FROM settings WHERE id = 1
 `;
 
-// Create new session - lock_at is calculated in application code
+// Create new session - lock_at is computed in SQL from NOW() + default minutes
 const startSession = `
 INSERT INTO attendance_sessions 
   (group_id, grade_id, started_by, lock_at, is_makeup_enabled, attendance_locked, status)
 VALUES 
-  ($1, $2, $3, $4, 0, 0, 'active')
+  (
+    $1, 
+    $2, 
+    $3, 
+    ((NOW() AT TIME ZONE 'Africa/Cairo') + ($4 || ' minutes')::interval),
+    0, 
+    0, 
+    'active'
+  )
 RETURNING 
   id,
   group_id,

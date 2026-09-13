@@ -39,16 +39,14 @@ const updateAttendanceSchema = Joi.object({
 });
 
 // Start session schema
+// Note: lock_at is intentionally NOT accepted.
+// The lock duration is derived from settings.default_lock_minutes.
 const startSessionSchema = Joi.object({
   group_id: Joi.number().integer().positive().required().messages({
     "any.required": "المجموعة مطلوبة",
   }),
   grade_id: Joi.number().integer().positive().required().messages({
     "any.required": "الصف الدراسي مطلوب",
-  }),
-  lock_at: Joi.date().iso().greater("now").allow(null).messages({
-    "date.base": "صيغة وقت القفل غير صحيحة",
-    "date.greater": "وقت القفل يجب أن يكون في المستقبل",
   }),
 });
 
