@@ -17,8 +17,7 @@ const axios = require("axios");
 // CONFIG
 // ============================================
 
-const API_URL =
-  process.env.API_URL || "https://backend.benb3n.cloud/api";
+const API_URL = process.env.API_URL || "https://backend.benb3n.cloud/";
 
 const API_USERNAME = process.env.API_USERNAME || "your_api_username";
 const API_PASSWORD = process.env.API_PASSWORD || "your_api_password";
@@ -34,9 +33,9 @@ const INTERVAL_MS = 3000;
 // AUTH
 // ============================================
 
-const basicAuth = Buffer.from(
-  `${API_USERNAME}:${API_PASSWORD}`
-).toString("base64");
+const basicAuth = Buffer.from(`${API_USERNAME}:${API_PASSWORD}`).toString(
+  "base64",
+);
 
 const headers = {
   Authorization: `Basic ${basicAuth}`,
@@ -62,9 +61,7 @@ async function listOnline() {
 
     console.log(`👥 الأونلاين (${users.length}):`);
     for (const u of users) {
-      console.log(
-        `   • ${u.name} [${u.role}] — idle ${u.idle_seconds}s`
-      );
+      console.log(`   • ${u.name} [${u.role}] — idle ${u.idle_seconds}s`);
     }
   } catch (error) {
     handleError(error);
@@ -74,10 +71,9 @@ async function listOnline() {
 async function sendOnce() {
   try {
     // 1. Get online users
-    const onlineRes = await axios.get(
-      `${API_URL}/broadcast/online`,
-      { headers }
-    );
+    const onlineRes = await axios.get(`${API_URL}/broadcast/online`, {
+      headers,
+    });
 
     const users = onlineRes.data.data || [];
     const time = new Date().toLocaleTimeString("ar-EG");
@@ -93,13 +89,13 @@ async function sendOnce() {
     await axios.post(
       `${API_URL}/broadcast/send`,
       { user_ids: userIds, message: MESSAGE },
-      { headers }
+      { headers },
     );
 
     console.log(
       `[${time}] 📤 "${MESSAGE}" → ${users.length} مستخدم (${users
         .map((u) => u.name)
-        .join(", ")})`
+        .join(", ")})`,
     );
   } catch (error) {
     handleError(error);
@@ -111,7 +107,7 @@ function handleError(error) {
     console.error(`❌ السيرفر مش شغال على ${API_URL}`);
   } else if (error.response) {
     console.error(
-      `❌ خطأ ${error.response.status}: ${error.response.statusText}`
+      `❌ خطأ ${error.response.status}: ${error.response.statusText}`,
     );
   } else {
     console.error(`❌ خطأ: ${error.message}`);

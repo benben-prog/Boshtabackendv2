@@ -20,8 +20,17 @@ const PROCESS_INTERVAL_MS = 60 * 1000;
 const LOAD_BATCH_SIZE = 50;
 const MAX_QUEUE_SIZE = 500;
 
+// Message statuses
+const STATUS = {
+  PENDING: "pending",      // الرسالة في الطابور
+  SENT: "sent",            // تم إرسالها من WhatsApp API
+  FAILED: "failed",        // فشل الإرسال
+  SKIPPED: "skipped",      // تم تخطيها (رقم خاطئ، قالب معطل، الخ)
+  DELIVERED: "delivered",  // وصلت للمستقبل (من webhook)
+  READ: "read",            // قُرئت (من webhook)
+};
+
 // Priority order for message types (lower = higher priority)
-// absence > exam > payment > welcome > custom
 const TYPE_PRIORITY_SQL = `
   CASE 
     WHEN type = 'absence' THEN 1
@@ -92,8 +101,9 @@ async function getTodaySentCountFromDB() {
   const result = await query(
     `SELECT COUNT(*) AS count
      FROM messages
-     WHERE status IN ('sent', 'delivered', 'read')
+     WHERE status = $1
        AND DATE(sent_at AT TIME ZONE 'Africa/Cairo') = DATE(NOW() AT TIME ZONE 'Africa/Cairo')`,
+    [STATUS.SENT],
   );
   return parseInt(result.rows[0]?.count || 0);
 }
@@ -195,10 +205,10 @@ function generateExamMessage(student, examData) {
 async function loadPendingMessages(limit = LOAD_BATCH_SIZE) {
   const result = await query(
     `SELECT id FROM messages
-     WHERE status = 'pending'
+     WHERE status = $1
      ORDER BY ${TYPE_PRIORITY_SQL} ASC, created_at ASC
-     LIMIT $1`,
-    [limit],
+     LIMIT $2`,
+    [STATUS.PENDING, limit],
   );
   return result.rows.map((row) => row.id);
 }
@@ -316,22 +326,6 @@ async function processQueueWithDelay() {
 }
 
 // ============================================
-// QUEUE: Reset daily limit flag when day changes
-// ============================================
-
-function checkAndResetDailyLimit() {
-  resetDailyCounterIfNeeded();
-
-  if (dailyLimitReached) {
-    const sentToday = getSentTodayCount();
-    // This will be re-checked against settings in the caller
-    return sentToday;
-  }
-
-  return null;
-}
-
-// ============================================
 // QUEUE: Enqueue single message
 // ============================================
 
@@ -361,17 +355,16 @@ async function enqueueMessage(messageData) {
     }
   }
 
-  // All messages are always enqueued as 'pending' — no more 'scheduled' status.
   const paramsJson = params ? JSON.stringify(params) : null;
 
   const result = await query(
     `INSERT INTO messages 
      (student_id, phone, message, type, recipient, ref_key, status, params, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 
        NOW() AT TIME ZONE 'Africa/Cairo', 
        NOW() AT TIME ZONE 'Africa/Cairo')
      RETURNING id, status`,
-    [student_id, phone, message, type, recipient, ref_key, paramsJson],
+    [student_id, phone, message, type, recipient, ref_key, STATUS.PENDING, paramsJson],
   );
 
   // Push to in-memory queue and try to process if not already
@@ -486,29 +479,56 @@ async function dispatchMessage(messageId) {
 
   const message = result.rows[0];
   if (!message) {
+    console.error(`[WhatsApp] Message not found: ${messageId}`);
     return { success: false, error: "Message not found" };
   }
 
-  if (message.status !== "pending") {
-    return { success: false, error: `Message status is ${message.status}` };
+  // ========================================
+  // 1. STATUS CHECK: يجب أن تكون pending فقط
+  // ========================================
+  if (message.status !== STATUS.PENDING) {
+    const errorMsg = `Message already in status: ${message.status}`;
+    console.warn(`[WhatsApp] ${errorMsg} (ID: ${messageId})`);
+    return { success: false, error: errorMsg };
   }
 
+  // ========================================
+  // 2. TEMPLATE CHECK: القالب يجب أن يكون مفعل
+  // ========================================
   const template = await getTemplateByType(message.type);
   if (!template || Number(template.is_active) !== 1) {
-    await markFailed(message.id, "Template inactive");
-    return { success: false, skipped: true, error: "Template inactive" };
+    const errorMsg = "Template inactive or not found";
+    console.warn(`[WhatsApp] ${errorMsg} (ID: ${messageId}, Type: ${message.type})`);
+    await markSkipped(message.id, errorMsg);
+    return { success: false, skipped: true, error: errorMsg };
   }
 
+  // ========================================
+  // 3. PHONE CHECK: يجب أن يكون هناك رقم صحيح
+  // ========================================
+  if (!message.phone || !message.phone.trim()) {
+    const errorMsg = "No phone number provided";
+    console.warn(`[WhatsApp] ${errorMsg} (ID: ${messageId})`);
+    await markSkipped(message.id, errorMsg);
+    return { success: false, skipped: true, error: errorMsg };
+  }
+
+  // ========================================
+  // 4. BUILD STUDENT OBJECT
+  // ========================================
   const student = {
     id: message.student_id,
-    full_name: message.full_name,
-    name: message.full_name,
-    barcode: message.barcode,
-    parent_token: message.parent_token,
+    full_name: message.full_name || "-",
+    name: message.full_name || "-",
+    barcode: message.barcode || "-",
+    parent_token: message.parent_token || "-",
     phone: message.student_phone,
     parent_phone: message.parent_phone,
   };
 
+  // ========================================
+  // 5. PARSE PARAMS
+  // ========================================
   let params = {};
   try {
     if (message.params) {
@@ -518,86 +538,161 @@ async function dispatchMessage(messageId) {
           : message.params;
     }
   } catch (e) {
-    console.error("Failed to parse params:", e.message);
+    console.error(`[WhatsApp] Failed to parse params (ID: ${messageId}):`, e.message);
     params = {};
   }
 
+  // ========================================
+  // 6. SEND MESSAGE (الإرسال الفعلي)
+  // ========================================
   let sendResult;
-  switch (message.type) {
-    case "welcome":
-      sendResult = await whatsappClient.sendWelcomeMsg(student, message.phone);
-      break;
+  try {
+    switch (message.type) {
+      case "welcome":
+        sendResult = await whatsappClient.sendWelcomeMsg(student, message.phone);
+        break;
 
-    case "absence":
-      sendResult = await whatsappClient.sendAbsentMsg(
-        student,
-        message.phone,
-        params.date || "",
-      );
-      break;
+      case "absence":
+        sendResult = await whatsappClient.sendAbsentMsg(
+          student,
+          message.phone,
+          params.date || "",
+        );
+        break;
 
-    case "payment":
-      sendResult = await whatsappClient.sendPaymentMsg(student, message.phone, {
-        month: params.month || "غير محدد",
-        year: params.year || new Date().getFullYear(),
-        amount: params.amount || 0,
-      });
-      break;
+      case "payment":
+        sendResult = await whatsappClient.sendPaymentMsg(student, message.phone, {
+          month: params.month || "غير محدد",
+          year: params.year || new Date().getFullYear(),
+          amount: params.amount || 0,
+        });
+        break;
 
-    case "exam":
-      sendResult = await whatsappClient.sendExamMsg(student, message.phone, {
-        score: params.score || 0,
-        fullMark: params.fullMark || 100,
-        date: params.date || "غير محدد",
-        day: params.day || "غير محدد",
-      });
-      break;
+      case "exam":
+        sendResult = await whatsappClient.sendExamMsg(student, message.phone, {
+          score: params.score || 0,
+          fullMark: params.fullMark || 100,
+          date: params.date || "غير محدد",
+          day: params.day || "غير محدد",
+        });
+        break;
 
-    default:
-      sendResult = { success: false, error: "Unknown message type" };
+      default:
+        sendResult = { success: false, error: "Unknown message type" };
+    }
+  } catch (error) {
+    console.error(`[WhatsApp] Exception while sending (ID: ${messageId}):`, error.message);
+    sendResult = { success: false, error: error.message };
   }
 
-  if (sendResult?.success) {
+  // ========================================
+  // 7. HANDLE RESULT
+  // ========================================
+  if (!sendResult) {
+    const errorMsg = "No response from WhatsApp client";
+    console.error(`[WhatsApp] ${errorMsg} (ID: ${messageId})`);
+    await markFailed(message.id, errorMsg);
+    return { success: false, error: errorMsg };
+  }
+
+  // ✅ SUCCESS: الرسالة تم إرسالها بنجاح
+  if (sendResult.success && sendResult.id) {
+    console.log(
+      `[WhatsApp] Message sent successfully (ID: ${messageId}, API ID: ${sendResult.id})`,
+    );
     await markSent(message.id, sendResult.id);
     incrementSentCounter();
-    return sendResult;
-  } else {
-    await markFailed(message.id, sendResult?.error || "Send failed");
-    return sendResult;
+    return {
+      success: true,
+      id: sendResult.id,
+      messageId,
+    };
   }
+
+  // ❌ SKIPPED: إذا كانت مشكلة في الرقم أو القالب
+  if (sendResult.skipped) {
+    console.warn(
+      `[WhatsApp] Message skipped (ID: ${messageId}): ${sendResult.error}`,
+    );
+    await markSkipped(message.id, sendResult.error);
+    return { success: false, skipped: true, error: sendResult.error };
+  }
+
+  // ❌ FAILED: فشل الإرسال من API
+  const errorMsg = sendResult.error || "Unknown error";
+  console.error(
+    `[WhatsApp] Message failed (ID: ${messageId}): ${errorMsg}`,
+  );
+  await markFailed(message.id, errorMsg);
+  return { success: false, error: errorMsg };
 }
 
 // ============================================
-// STATUS: Mark message as sent
+// STATUS: Mark message as SENT
+// ✅ يُستخدم فقط عندما يكون لدينا message_id من API
 // ============================================
 
 async function markSent(id, messageId) {
+  if (!messageId || typeof messageId !== "string") {
+    throw new Error(
+      `Cannot mark sent without valid message_id (got: ${messageId})`,
+    );
+  }
+
   await query(
     `UPDATE messages 
-     SET status = 'sent', 
+     SET status = $1, 
          sent_at = NOW() AT TIME ZONE 'Africa/Cairo',
          message_id = $2,
          attempts = attempts + 1,
+         error_message = NULL,
          updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE id = $1`,
-    [id, messageId],
+     WHERE id = $3`,
+    [STATUS.SENT, messageId, id],
   );
+
+  console.log(`[WhatsApp DB] Marked as SENT (ID: ${id}, API ID: ${messageId})`);
 }
 
 // ============================================
-// STATUS: Mark message as failed
+// STATUS: Mark message as FAILED
+// ❌ يُستخدم عن��ما يفشل الإرسال
 // ============================================
 
 async function markFailed(id, error) {
+  const errorTruncated = (error || "Unknown error").slice(0, 500);
+
   await query(
     `UPDATE messages 
-     SET status = 'failed', 
+     SET status = $1, 
          error_message = $2,
          attempts = attempts + 1,
          updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE id = $1`,
-    [id, error?.slice(0, 500) || "Unknown error"],
+     WHERE id = $3`,
+    [STATUS.FAILED, errorTruncated, id],
   );
+
+  console.log(`[WhatsApp DB] Marked as FAILED (ID: ${id}): ${errorTruncated}`);
+}
+
+// ============================================
+// STATUS: Mark message as SKIPPED
+// ⊘ يُستخدم عندما لا يتم محاولة الإرسال
+// ============================================
+
+async function markSkipped(id, reason) {
+  const reasonTruncated = (reason || "Unknown reason").slice(0, 500);
+
+  await query(
+    `UPDATE messages 
+     SET status = $1, 
+         error_message = $2,
+         updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+     WHERE id = $3`,
+    [STATUS.SKIPPED, reasonTruncated, id],
+  );
+
+  console.log(`[WhatsApp DB] Marked as SKIPPED (ID: ${id}): ${reasonTruncated}`);
 }
 
 // ============================================
@@ -614,6 +709,7 @@ async function sendQueue({ limit = 5 } = {}) {
       success: true,
       sent: 0,
       failed: 0,
+      skipped: 0,
       total: 0,
       dailyLimitReached: true,
     };
@@ -622,27 +718,29 @@ async function sendQueue({ limit = 5 } = {}) {
   const availableSlots = dailyLimit - sentToday;
   const maxToSend = Math.min(limit, availableSlots);
 
-  // Load pending messages ordered by priority (absence first)
   const result = await query(
     `SELECT id FROM messages 
-     WHERE status = 'pending'
+     WHERE status = $1
      ORDER BY ${TYPE_PRIORITY_SQL} ASC, created_at ASC
-     LIMIT $1`,
-    [maxToSend],
+     LIMIT $2`,
+    [STATUS.PENDING, maxToSend],
   );
 
   const pendingMessages = result.rows;
   if (pendingMessages.length === 0) {
-    return { success: true, sent: 0, failed: 0, total: 0 };
+    return { success: true, sent: 0, failed: 0, skipped: 0, total: 0 };
   }
 
   let sent = 0;
   let failed = 0;
+  let skipped = 0;
   const delaySeconds = settings.whatsapp_delay_seconds || 2;
 
   for (let i = 0; i < pendingMessages.length; i++) {
     const dispatchResult = await dispatchMessage(pendingMessages[i].id);
+
     if (dispatchResult?.success) sent++;
+    else if (dispatchResult?.skipped) skipped++;
     else failed++;
 
     if (i < pendingMessages.length - 1) {
@@ -650,7 +748,7 @@ async function sendQueue({ limit = 5 } = {}) {
     }
   }
 
-  return { success: true, sent, failed, total: pendingMessages.length };
+  return { success: true, sent, failed, skipped, total: pendingMessages.length };
 }
 
 // ============================================
@@ -664,13 +762,14 @@ async function getStats() {
   const statsResult = await query(`
     SELECT 
       COUNT(*) AS total,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-      SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
-      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
-      SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
-      SUM(CASE WHEN status = 'read' THEN 1 ELSE 0 END) AS read
+      SUM(CASE WHEN status = $1 THEN 1 ELSE 0 END) AS pending,
+      SUM(CASE WHEN status = $2 THEN 1 ELSE 0 END) AS sent,
+      SUM(CASE WHEN status = $3 THEN 1 ELSE 0 END) AS failed,
+      SUM(CASE WHEN status = $4 THEN 1 ELSE 0 END) AS skipped,
+      SUM(CASE WHEN status = $5 THEN 1 ELSE 0 END) AS delivered,
+      SUM(CASE WHEN status = $6 THEN 1 ELSE 0 END) AS read
     FROM messages
-  `);
+  `, [STATUS.PENDING, STATUS.SENT, STATUS.FAILED, STATUS.SKIPPED, 'delivered', 'read']);
 
   return {
     ...statsResult.rows[0],
@@ -710,12 +809,12 @@ async function getMessageById(id) {
 async function resetFailed() {
   const result = await query(
     `UPDATE messages 
-     SET status = 'pending', 
+     SET status = $1, 
          error_message = NULL,
          updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-     WHERE status = 'failed' AND attempts < $1
+     WHERE status = $2 AND attempts < $3
      RETURNING id`,
-    [MAX_RETRY_ATTEMPTS],
+    [STATUS.PENDING, STATUS.FAILED, MAX_RETRY_ATTEMPTS],
   );
 
   if (result.rows.length > 0) {
@@ -740,7 +839,6 @@ async function resetFailed() {
 async function forceProcess() {
   console.log("[WhatsApp Queue] Force process triggered");
 
-  // Reset daily limit flag if the day has changed
   resetDailyCounterIfNeeded();
 
   const settings = await getWhatsappSettings();
@@ -786,9 +884,11 @@ async function startSystem() {
   console.log(
     `[WhatsApp] Priority: absence > exam > payment > welcome > custom`,
   );
+  console.log(
+    `[WhatsApp] Message statuses: pending | sent | failed | skipped | delivered | read`,
+  );
   console.log("============================================");
 
-  // Load today's sent count from DB
   try {
     const sentCount = await getTodaySentCountFromDB();
     sentTodayCounter = sentCount;
@@ -800,7 +900,6 @@ async function startSystem() {
     sentTodayDate = getTodayEgypt();
   }
 
-  // Check if daily limit already reached
   const settings = await getWhatsappSettings();
 
   if (sentTodayCounter >= settings.whatsapp_daily_limit) {
@@ -836,7 +935,6 @@ async function startSystem() {
       }
     }, msUntilMorning);
   } else {
-    // Initial load
     await refreshQueueFromDB();
 
     if (messageQueue.length > 0 && !processingQueue) {
@@ -844,7 +942,6 @@ async function startSystem() {
     }
   }
 
-  // Set up periodic processing
   if (intervalId) {
     clearInterval(intervalId);
   }
@@ -903,6 +1000,7 @@ function stopSystem() {
 // ============================================
 
 module.exports = {
+  STATUS,
   enqueueMessage,
   enqueueForStudentAndParent,
   dispatchMessage,
@@ -911,6 +1009,7 @@ module.exports = {
   resetFailed,
   markSent,
   markFailed,
+  markSkipped,
   getMessageById,
   getTemplateByType,
   getAllTemplates,

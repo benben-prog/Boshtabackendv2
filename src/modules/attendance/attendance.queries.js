@@ -19,7 +19,8 @@ const getDefaultLockMinutes = `
 SELECT default_lock_minutes FROM settings WHERE id = 1
 `;
 
-// Create new session - lock_at is computed in SQL from NOW() + default minutes
+// Create new session - lock_at is computed correctly in Egypt timezone
+// FIX: Use proper timezone arithmetic - add interval to NOW(), then convert to Cairo time
 const startSession = `
 INSERT INTO attendance_sessions 
   (group_id, grade_id, started_by, lock_at, is_makeup_enabled, attendance_locked, status)
@@ -28,7 +29,7 @@ VALUES
     $1, 
     $2, 
     $3, 
-    ((NOW() AT TIME ZONE 'Africa/Cairo') + ($4 || ' minutes')::interval),
+    (NOW() + ($4 || ' minutes')::interval) AT TIME ZONE 'Africa/Cairo',
     0, 
     0, 
     'active'
