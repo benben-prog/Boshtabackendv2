@@ -1,9 +1,15 @@
 const { query } = require("../../config/database");
 const parentQueries = require("./parent.queries");
-
+const stdQr = require("../students/students.queries");
 // ============================================
 // GETTERS
 // ============================================
+const getPerentTokenByParentPhone = async (parent_phone) => {
+  const result = await query(stdQr.findStudentByParentPhone, [parent_phone]);
+  return result.rows[0];
+}
+
+
 
 const getStudentByParentToken = async (token) => {
   const result = await query(parentQueries.getStudentByParentToken, [token]);
@@ -63,6 +69,7 @@ const getStudentOverallStats = async (studentId) => {
 };
 
 module.exports = {
+  getPerentTokenByParentPhone,
   getStudentByParentToken,
   getParentDashboardAttendance,
   getAttendanceHistory,

@@ -4,6 +4,33 @@ const parentService = require("./parent.service");
 // GET PARENT DASHBOARD
 // ============================================
 
+const getPerentTokenByParentPhone = async (req, res, next) => {
+  try {
+    const { parent_phone } = req.body;
+    if (!parent_phone) {
+      return res.status(404).json({
+        success: false,
+        message: "رقم الهاتف غير موجود برجاء مراجعة السنتر!",
+      });
+    }
+    const { parent_token } =
+      parentService.getPerentTokenByParentPhone(parent_phone);
+    if (!parent_token) {
+      return res.status(404).json({
+        success: false,
+        message: "رمز ولي الأمر غير موجود!",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل البيانات بنجاح",
+      data: parent_token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getParentDashboard = async (req, res, next) => {
   try {
     const { token } = req.params;
@@ -61,5 +88,6 @@ const getParentDashboard = async (req, res, next) => {
 };
 
 module.exports = {
+  getPerentTokenByParentPhone,
   getParentDashboard,
 };

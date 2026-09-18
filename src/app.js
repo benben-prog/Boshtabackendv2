@@ -13,7 +13,6 @@ const assistantRoutes = require("./modules/assistant/assistant.routes");
 const teacherRoutes = require("./modules/teacher/teacher.routes");
 const superAdminRoutes = require("./modules/super-admin/super-admin.routes");
 const webhookRoutes = require("./webhook.routes");
-const broadcastRoutes = require("./modules/broadcast/broadcast.routes");
 
 // Middleware
 const {
@@ -185,7 +184,6 @@ app.use(
 app.get("/api-docs-json", (req, res) => {
   res.json(swaggerSpec);
 });
-app.use("/api/broadcast", broadcastRoutes);
 
 // ============================================
 // PLATFORM STATUS CHECK (with periodic refresh)

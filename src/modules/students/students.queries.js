@@ -121,19 +121,8 @@ WHERE s.phone = $1 AND s.deleted = 0
 // Find students by parent phone number
 const findStudentByParentPhone = `
 SELECT 
-  s.id,
-  s.barcode,
-  s.full_name,
-  s.phone,
-  s.parent_phone,
-  s.profile_image,
-  s.grade_id,
-  g.name AS grade_name,
-  s.group_id,
-  gr.name AS group_name
+s.parent_token
 FROM students s
-LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
-LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE s.parent_phone = $1 AND s.deleted = 0
 `;
 
