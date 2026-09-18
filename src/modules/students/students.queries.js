@@ -121,9 +121,9 @@ WHERE s.phone = $1 AND s.deleted = 0
 // Find students by parent phone number
 const findStudentByParentPhone = `
 SELECT 
-s.parent_token
-FROM students s
-WHERE s.parent_phone = $1 AND s.deleted = 0
+parent_token
+FROM students 
+WHERE parent_phone = $1 AND deleted = 0
 `;
 
 // Get all students in a specific grade - 20 per page

@@ -8,23 +8,22 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
   try {
     const { parent_phone } = req.body;
     if (!parent_phone) {
-      return res.status(404).json({
+      return res.status(403).json({
         success: false,
-        message: "رقم الهاتف غير موجود برجاء مراجعة السنتر!",
+        message: "برجاء إدخال رقم الهاتف!",
       });
     }
-    const { parent_token } =
-      parentService.getPerentTokenByParentPhone(parent_phone);
+    const parent_token =
+      await parentService.getPerentTokenByParentPhone(parent_phone);
     if (!parent_token) {
       return res.status(404).json({
         success: false,
-        message: "رمز ولي الأمر غير موجود!",
+        message: "رقم الهاتف غير موجود برجاء متابعة السنتر!",
       });
     }
     return res.status(200).json({
       success: true,
-      message: "تم تحميل البيانات بنجاح",
-      data: parent_token,
+      date: parent_token,
     });
   } catch (error) {
     next(error);
