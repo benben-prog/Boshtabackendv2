@@ -18,7 +18,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.parent_phone = $1 AND s.deleted = 0
+WHERE s.parent_token = $1 AND s.deleted = 0
 `;
 
 // Get attendance summary
