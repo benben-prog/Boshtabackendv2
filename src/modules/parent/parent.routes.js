@@ -9,5 +9,5 @@ const parentController = require("./parent.controller");
 // Get parent dashboard by token
 routes.get("/:token", parentController.getParentDashboard);
 //Get Parent token by parent phone
-routes.post("/", parentController.getPerentTokenByParentPhone);
+routes.post("", parentController.getPerentTokenByParentPhone);
 module.exports = routes;
