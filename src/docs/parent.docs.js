@@ -60,7 +60,7 @@
 
 /**
  * @swagger
- * /api/parent:
+ * /api/parent/phone:
  *   post:
  *     summary: Get parent token by parent phone
  *     description: Returns the parent_token associated with the given parent phone number
