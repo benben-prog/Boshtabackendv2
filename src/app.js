@@ -253,7 +253,7 @@ app.use(checkPlatformStatus);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/student", apiMiddelware, clientAuth, studentModuleRoutes);
-app.use("/api/parent", apiMiddelware, parentRoutes);
+app.use("/api/parent", parentRoutes);
 app.use(
   "/api/assistant",
   apiMiddelware,
