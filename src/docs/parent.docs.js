@@ -71,9 +71,9 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phone]
+ *             required: [parent_phone]
  *             properties:
- *               phone:
+ *               parent_phone:
  *                 type: string
  *                 description: Parent phone number
  *                 example: "01012345678"
