@@ -174,6 +174,7 @@ SELECT
   a.student_id,
   s.full_name,
   s.barcode,
+  s.parent_phone,
   a.status,
   a.attendance_time,
   a.method,
