@@ -1990,6 +1990,31 @@
  *       200:
  *         description: Retrieved successfully
  */
+/**
+ * @swagger
+ * /api/assistant/attendance/absent/group/{groupId}/date/{date}:
+ *   get:
+ *     summary: Get attendance by group and date
+ *     tags: [Assistant - Attendance]
+ *     security:
+ *       - ApiAuth: []
+ *       - ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Retrieved successfully
+ */
 
 /**
  * @swagger
