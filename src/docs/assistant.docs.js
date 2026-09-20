@@ -1994,7 +1994,7 @@
  * @swagger
  * /api/assistant/attendance/absent/group/{groupId}/date/{date}:
  *   get:
- *     summary: Get attendance by group and date
+ *     summary: Get Absent attendance by group and date
  *     tags: [Assistant - Attendance]
  *     security:
  *       - ApiAuth: []
