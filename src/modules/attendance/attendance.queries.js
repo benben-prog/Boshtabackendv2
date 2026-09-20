@@ -167,6 +167,25 @@ WHERE a.group_id = $1 AND a.attendance_date = $2
 ORDER BY s.full_name ASC
 `;
 
+// Get attendance by group and date
+const getAbsentByGroupAndDate = `
+SELECT 
+  a.id,
+  a.student_id,
+  s.full_name,
+  s.barcode,
+  a.status,
+  a.attendance_time,
+  a.method,
+  a.is_makeup,
+  a.makeup_group_id,
+  a.notes
+FROM attendance a
+JOIN students s ON a.student_id = s.id AND s.deleted = 0
+WHERE a.group_id = $1 AND a.attendance_date = $2 AND a.status = 'absent'
+ORDER BY s.full_name ASC
+`;
+
 // Get attendance by group and month - 20 per page
 const getAttendanceByGroupAndMonth = `
 SELECT 
@@ -464,6 +483,7 @@ module.exports = {
   getAttendanceByGroupAndMonth,
   getAttendanceSummary,
   markRestAbsent,
+  getAbsentByGroupAndDate,
   // CRUD
   getAttendanceById,
   updateAttendance,

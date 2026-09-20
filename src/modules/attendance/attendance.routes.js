@@ -81,6 +81,11 @@ routes.get(
   "/group/:groupId/date/:date",
   attendanceController.getAttendanceByGroupAndDate,
 );
+// Get attendance by group and date
+routes.get(
+  "absent/group/:groupId/date/:date",
+  attendanceController.getAttendanceByGroupAndDate,
+);
 
 // Get attendance by group and month
 routes.get(

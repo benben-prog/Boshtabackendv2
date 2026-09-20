@@ -425,6 +425,13 @@ const getAttendanceByGroupAndDate = async (groupId, date) => {
   ]);
   return result.rows;
 };
+const getAbsentByGroupAndDate = async (groupId, date) => {
+  const result = await query(attendanceQueries.getAbsentByGroupAndDate, [
+    groupId,
+    date || getTodayEgypt(),
+  ]);
+  return result.rows;
+};
 
 const getAttendanceByGroupAndMonth = async (groupId, month, page = 1) => {
   const result = await query(attendanceQueries.getAttendanceByGroupAndMonth, [
@@ -547,6 +554,7 @@ module.exports = {
   getAttendanceById,
   updateAttendance,
   deleteAttendance,
+  getAbsentByGroupAndDate,
   // Barcode
   scanBarcode,
   // Statistics

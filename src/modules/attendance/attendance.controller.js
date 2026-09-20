@@ -227,7 +227,23 @@ const getAttendanceByGroupAndDate = async (req, res, next) => {
     next(error);
   }
 };
+const getAbsentByGroupAndDate = async (req, res, next) => {
+  try {
+    const { groupId, date } = req.params;
+    const attendance = await attendanceService.getAbsentByGroupAndDate(
+      groupId,
+      date,
+    );
 
+    return res.status(200).json({
+      success: true,
+      message: "تم تحميل الحضور بنجاح",
+      data: attendance,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 const getAttendanceByGroupAndMonth = async (req, res, next) => {
   try {
     const { groupId, month } = req.params;
@@ -401,6 +417,7 @@ module.exports = {
   getAttendanceById,
   updateAttendance,
   deleteAttendance,
+  getAbsentByGroupAndDate,
   // Statistics
   getGradeAttendanceStats,
   getOverallAttendanceStats,
