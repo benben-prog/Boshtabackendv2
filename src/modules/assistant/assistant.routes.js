@@ -456,6 +456,10 @@ routes.get(
   attendanceController.getAttendanceByGroupAndDate,
 );
 routes.get(
+  "/attendance/absent/group/:groupId/date/:date",
+  attendanceController.getAbsentByGroupAndDate,
+);
+routes.get(
   "/attendance/group/:groupId/month/:month",
   attendanceController.getAttendanceByGroupAndMonth,
 );
