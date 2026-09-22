@@ -11,7 +11,7 @@ const getPerentTokenByParentPhone = async (parent_phone) => {
 
 const getStudentByParentToken = async (token) => {
   const result = await query(parentQueries.getStudentByParentToken, [
-    token.parent_token,
+    token,
   ]);
   return result.rows[0];
 };
