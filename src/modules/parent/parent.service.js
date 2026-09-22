@@ -7,12 +7,9 @@ const stdQr = require("../students/students.queries");
 const getPerentTokenByParentPhone = async (parent_phone) => {
   const result = await query(stdQr.findStudentByParentPhone, [parent_phone]);
   return result.rows[0];
-};
-
+}
 const getStudentByParentToken = async (token) => {
-  const result = await query(parentQueries.getStudentByParentToken, [
-    token,
-  ]);
+  const result = await query(parentQueries.getStudentByParentToken, [token]);
   return result.rows[0];
 };
 

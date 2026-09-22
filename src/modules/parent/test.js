@@ -1,9 +1,10 @@
-const parentServ = require('./parent.service');
+const parentServ = require("./parent.service");
 const parentCont = require("./parent.controller");
 
-const test = async()=> {
-    const std = parentCont.getPerentTokenByParentPhone("01000159084");
-    console.log("Student From test",std);
-}
+const test = async () => {
+  const std = await parentServ.getPerentTokenByParentPhone("01094012094");
+
+  console.log(std);
+};
 
 test();
