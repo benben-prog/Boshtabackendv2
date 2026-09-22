@@ -21,10 +21,39 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
         message: "رقم الهاتف غير موجود برجاء متابعة السنتر!",
       });
     }
-    const stdData = parentService.getStudentByParentToken(parent_token);
+    const { id } = parentService.getStudentByParentToken(parent_token);
+    const [
+      attendance,
+      attendanceHistory,
+      payments,
+      paymentHistory,
+      allExams,
+      assignments,
+      groupInfo,
+      overallStats,
+    ] = await Promise.all([
+      parentService.getParentDashboardAttendance(id),
+      parentService.getAttendanceHistory(id, 1),
+      parentService.getParentDashboardPayments(id),
+      parentService.getPaymentHistory(id, 1),
+      parentService.getAllExams(id),
+      parentService.getParentDashboardAssignments(id),
+      parentService.getGroupInfo(id),
+      parentService.getStudentOverallStats(id),
+    ]);
+
     return res.status(200).json({
       success: true,
-      date: stdData,
+      date: {
+        attendance,
+        attendanceHistory,
+        payments,
+        paymentHistory,
+        allExams,
+        assignments,
+        groupInfo,
+        overallStats,
+      },
     });
   } catch (error) {
     next(error);
