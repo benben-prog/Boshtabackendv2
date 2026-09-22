@@ -22,7 +22,7 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
       });
     }
 
-    const student = await parentService.getStudentByParentToken(token);
+    const student = await parentService.getStudentByParentToken(parent_token);
 
     if (!student) {
       return res.status(404).json({
