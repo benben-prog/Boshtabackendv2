@@ -21,9 +21,10 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
         message: "رقم الهاتف غير موجود برجاء متابعة السنتر!",
       });
     }
+    const stdData = parentService.getStudentByParentToken(parent_token);
     return res.status(200).json({
       success: true,
-      date: parent_token,
+      date: stdData,
     });
   } catch (error) {
     next(error);
