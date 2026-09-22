@@ -21,7 +21,16 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
         message: "رقم الهاتف غير موجود برجاء متابعة السنتر!",
       });
     }
+
     const student = await parentService.getStudentByParentToken(parent_token);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "رابط غير صالح أو منتهي الصلاحية",
+      });
+    }
+
     const studentId = student.id;
 
     // Fetch all data in parallel
