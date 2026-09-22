@@ -23,7 +23,7 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
     }
 
     const student = await parentService.getStudentByParentToken(parent_token);
-    const { id } = student;
+    const id = student.id;
 
     // Fetch all data in parallel
     const [
