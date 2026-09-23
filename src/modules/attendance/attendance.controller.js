@@ -404,7 +404,7 @@ const getAbsentStudentsByDate = async (req, res, next) => {
   try {
     const { date } = req.query;
     if (!date) throw new Error("التاريخ مطلوب!");
-    const absentData = attendanceService.getAbsentStudentsByDate(date);
+    const absentData = await attendanceService.getAbsentStudentsByDate(date);
     if (!absentData) throw new Error("حدث خطأ ما!");
     return res.status(200).json({
       success: true,
