@@ -73,6 +73,7 @@ routes.put(
 
 routes.use(onlineManagementAuth);
 
+/* ---------- Preview Routes ---------- */
 routes.get(
   "/assignments/:assignmentId/preview",
   previewController.previewAssignment,
@@ -87,6 +88,8 @@ routes.get(
   previewController.previewStudentAnswer,
 );
 
+/* ---------- Online Exams ---------- */
+// Static routes first
 routes.get("/online-exams", onlineExamController.getAllOnlineExams);
 routes.get(
   "/online-exams/available",
@@ -109,6 +112,7 @@ routes.get(
   "/online-exams/stats/:examId",
   onlineExamController.getOnlineExamStats,
 );
+// Dynamic routes last
 routes.get("/online-exams/:examId", onlineExamController.getOnlineExamById);
 routes.post("/online-exams", onlineExamController.createOnlineExam);
 routes.put("/online-exams/:examId", onlineExamController.updateOnlineExam);
@@ -121,12 +125,15 @@ routes.delete(
   onlineExamController.hardDeleteOnlineExam,
 );
 
+/* ---------- Questions ---------- */
+// Static routes first
 routes.get("/questions/exam/:examId", questionController.getQuestionsByExamId);
-routes.get("/questions/:questionId", questionController.getQuestionById);
 routes.get(
   "/questions/:questionId/download",
   questionController.downloadQuestionFile,
 );
+// Dynamic routes last
+routes.get("/questions/:questionId", questionController.getQuestionById);
 routes.post(
   "/questions",
   examUpload.single("file"),
@@ -139,15 +146,20 @@ routes.put(
 );
 routes.delete("/questions/:questionId", questionController.deleteQuestion);
 
+/* ---------- Options ---------- */
+// Static routes first
 routes.get(
   "/options/question/:questionId",
   optionController.getOptionsByQuestionId,
 );
+// Dynamic routes last
 routes.get("/options/:optionId", optionController.getOptionById);
 routes.post("/options", optionController.createOption);
 routes.put("/options/:optionId", optionController.updateOption);
 routes.delete("/options/:optionId", optionController.deleteOption);
 
+/* ---------- Assignments ---------- */
+// Static routes first
 routes.get("/assignments", assignmentController.getAllAssignments);
 routes.get(
   "/assignments/grade/:gradeId",
@@ -161,6 +173,7 @@ routes.get(
   "/assignments/:assignmentId/download",
   assignmentController.downloadAssignment,
 );
+// Dynamic routes last
 routes.get(
   "/assignments/:assignmentId",
   assignmentController.getAssignmentById,
@@ -184,6 +197,7 @@ routes.delete(
   assignmentController.hardDeleteAssignment,
 );
 
+/* ---------- Assignment Submissions ---------- */
 routes.get(
   "/assignment-submissions/stats/grade/:gradeId",
   assignmentSubmissionController.getGradeAssignmentSubmissionStats,
@@ -193,12 +207,8 @@ routes.get(
   assignmentSubmissionController.getGroupAssignmentSubmissionStats,
 );
 routes.get(
-  "/assignment-submissions/assignment/:assignmentId",
-  assignmentSubmissionController.getSubmissionsByAssignmentId,
-);
-routes.get(
-  "/assignment-submissions/assignment/:assignmentId/student/:studentId",
-  assignmentSubmissionController.getStudentSubmission,
+  "/assignment-submissions/stats/assignment/:assignmentId",
+  assignmentSubmissionController.getAssignmentSubmissionStats,
 );
 routes.get(
   "/assignment-submissions/assignment/:assignmentId/submitted-students",
@@ -209,17 +219,24 @@ routes.get(
   assignmentSubmissionController.getNotSubmittedStudents,
 );
 routes.get(
-  "/assignment-submissions/stats/assignment/:assignmentId",
-  assignmentSubmissionController.getAssignmentSubmissionStats,
+  "/assignment-submissions/assignment/:assignmentId/student/:studentId",
+  assignmentSubmissionController.getStudentSubmission,
+);
+routes.get(
+  "/assignment-submissions/assignment/:assignmentId",
+  assignmentSubmissionController.getSubmissionsByAssignmentId,
 );
 routes.put(
   "/assignment-submissions/:submissionId/grade",
   assignmentSubmissionController.gradeSubmission,
 );
 
+/* ---------- Videos ---------- */
+// Static routes first
 routes.get("/videos", videoController.getAllVideos);
 routes.get("/videos/grade/:gradeId", videoController.getVideosByGradeId);
 routes.get("/videos/:videoId/download", videoController.downloadVideoFile);
+// Dynamic routes last
 routes.get("/videos/:videoId", videoController.getVideoById);
 routes.post(
   "/videos",
@@ -239,11 +256,14 @@ routes.put(
 );
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
+/* ---------- Playlists ---------- */
+// Static routes first
 routes.get("/playlists", playlistController.getAllPlaylists);
 routes.get(
   "/playlists/grade/:gradeId",
   playlistController.getPlaylistsByGradeId,
 );
+// Dynamic routes last
 routes.get("/playlists/:playlistId", playlistController.getPlaylistById);
 routes.post(
   "/playlists",
@@ -257,6 +277,7 @@ routes.put(
 );
 routes.delete("/playlists/:playlistId", playlistController.hardDeletePlaylist);
 
+/* ---------- Playlist Videos ---------- */
 routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
@@ -273,6 +294,7 @@ routes.delete(
 
 routes.use(centerManagementAuth);
 
+/* ---------- Bulk Uploads ---------- */
 routes.get(
   "/students/template",
   studentsBulkController.downloadStudentsTemplate,
@@ -307,6 +329,8 @@ routes.post(
   examResultsBulkController.bulkUploadExamResults,
 );
 
+/* ---------- Grades ---------- */
+// Static routes first
 routes.get("/grades", gradesController.getAllGrades);
 routes.get("/grades/groups-count", gradesController.getGradesWithGroupsCount);
 routes.get(
@@ -315,14 +339,18 @@ routes.get(
 );
 routes.get("/grades/stats", gradesController.getAllGradesStats);
 routes.post("/grades/find", gradesController.findGradeByName);
+// Dynamic routes (longer paths first)
 routes.get("/grades/:id/details", gradesController.getGradeDetails);
-routes.get("/grades/:id", gradesController.getGradeById);
 routes.get("/grades/:id/stats", gradesController.getGradeStats);
+routes.get("/grades/:id", gradesController.getGradeById);
+// Mutations
 routes.post("/grades", gradesController.createGrade);
 routes.put("/grades/:id", gradesController.updateGrade);
 routes.delete("/grades/:id", gradesController.softDeleteGrade);
 routes.delete("/grades/:id/permanent", gradesController.hardDeleteGrade);
 
+/* ---------- Groups ---------- */
+// Static routes first
 routes.get("/groups", groupsController.getAllGroups);
 routes.get("/groups/with-grade-name", groupsController.getGroupsWithGradeName);
 routes.get(
@@ -330,21 +358,46 @@ routes.get(
   groupsController.getGroupsWithStudentsCount,
 );
 routes.get("/groups/stats", groupsController.getAllGroupsStats);
-routes.get("/groups/:id/full-stats", groupsController.getGroupFullStats);
 routes.post("/groups/find", groupsController.findGroupByName);
 routes.get("/groups/grade/:gradeId", groupsController.getGroupsByGradeId);
-routes.get("/groups/:id", groupsController.getGroupById);
+// Dynamic routes (longer paths first)
+routes.get("/groups/:id/full-stats", groupsController.getGroupFullStats);
 routes.get("/groups/:id/stats", groupsController.getGroupStats);
+routes.get("/groups/:id", groupsController.getGroupById);
+// Mutations
 routes.post("/groups", groupsController.createGroup);
 routes.put("/groups/:id", groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
 
+/* ---------- Student Answers ---------- */
+routes.get(
+  "/student-answers/essay/pending",
+  studentAnswerController.getEssayAnswersForGrading,
+);
+routes.get(
+  "/student-answers/essay/exam/:examId",
+  studentAnswerController.getEssayAnswersByExam,
+);
+routes.get(
+  "/student-answers/question/:questionId/stats",
+  studentAnswerController.getQuestionAnswerStats,
+);
+routes.get(
+  "/student-answers/question/:questionId/options",
+  studentAnswerController.getMostSelectedOptions,
+);
 routes.get(
   "/student-answers/:answerId/download",
   studentAnswerController.downloadAnswerFile,
 );
+routes.put(
+  "/student-answers/:answerId/grade",
+  studentAnswerController.gradeEssayAnswer,
+);
 
+/* ---------- Students ---------- */
+// Static routes first
 routes.get("/students", studentsController.getAllStudents);
 routes.get("/students/deleted", studentsController.getDeletedStudents);
 routes.get("/students/search/barcode", studentsController.getStudentByBarcode);
@@ -355,6 +408,7 @@ routes.get(
 );
 routes.get("/students/grade/:gradeId", studentsController.getStudentsByGradeId);
 routes.get("/students/group/:groupId", studentsController.getStudentsByGroupId);
+// Dynamic routes (longer paths first)
 routes.get(
   "/students/:studentId/profile",
   studentsController.getStudentProfile,
@@ -362,10 +416,6 @@ routes.get(
 routes.get(
   "/students/:studentId/stats",
   studentsController.getStudentQuickStats,
-);
-routes.get(
-  "/students/:studentId/attendance",
-  studentsController.getAttendanceHistory,
 );
 routes.get(
   "/students/:studentId/attendance/monthly",
@@ -380,21 +430,24 @@ routes.get(
   studentsController.getConsecutiveAbsences,
 );
 routes.get(
-  "/students/:studentId/payments",
-  studentsController.getPaymentHistory,
+  "/students/:studentId/attendance",
+  studentsController.getAttendanceHistory,
 );
-
 routes.get(
   "/students/:studentId/payments/current-subscription",
   studentsController.getCurrentSubscription,
 );
 routes.get(
-  "/students/:studentId/exams/paper",
-  studentsController.getStudentPaperExams,
+  "/students/:studentId/payments",
+  studentsController.getPaymentHistory,
 );
 routes.get(
   "/students/:studentId/exams/paper/:examId",
   studentsController.getStudentPaperExamById,
+);
+routes.get(
+  "/students/:studentId/exams/paper",
+  studentsController.getStudentPaperExams,
 );
 routes.get(
   "/students/:studentId/exams/results",
@@ -409,26 +462,27 @@ routes.get(
   studentsController.getStudentOnlineExamById,
 );
 routes.get(
-  "/students/:studentId/assignments",
-  studentsController.getStudentAssignments,
-);
-routes.get(
   "/students/:studentId/assignments/:assignmentId",
   studentsController.getStudentAssignmentById,
 );
 routes.get(
-  "/students/:studentId/submissions",
-  studentsController.getStudentSubmissions,
+  "/students/:studentId/assignments",
+  studentsController.getStudentAssignments,
 );
 routes.get(
   "/students/:studentId/submissions/:submissionId",
   studentsController.getStudentSubmissionById,
 );
 routes.get(
+  "/students/:studentId/submissions",
+  studentsController.getStudentSubmissions,
+);
+routes.get(
   "/students/:studentId/playlists",
   studentsController.getStudentPlaylists,
 );
 routes.get("/students/:studentId", studentsController.getStudentById);
+// Mutations
 routes.post("/students", studentsController.createStudent);
 routes.put("/students/:studentId", studentsController.updateStudent);
 routes.delete("/students/:studentId", studentsController.softDeleteStudent);
@@ -438,6 +492,8 @@ routes.delete(
 );
 routes.post("/students/:studentId/restore", studentsController.restoreStudent);
 
+/* ---------- Attendance ---------- */
+// Static routes first
 routes.get("/attendance/dashboard", attendanceController.getDashboard);
 routes.get(
   "/attendance/overall-stats",
@@ -447,6 +503,7 @@ routes.get(
   "/attendance/consecutive-absences",
   attendanceController.getStudentsWithThreeConsecutiveAbsences,
 );
+routes.get("/attendance/absent", attendanceController.getAbsentStudentsByDate);
 routes.get(
   "/attendance/grade/:gradeId/stats",
   attendanceController.getGradeAttendanceStats,
@@ -467,12 +524,7 @@ routes.get(
   "/attendance/summary/group/:groupId/date/:date",
   attendanceController.getAttendanceSummary,
 );
-routes.get("/attendance/:id", attendanceController.getAttendanceById);
-routes.post("/attendance", attendanceController.createAttendance);
-routes.get("/attendance/absent", attendanceController.getAbsentStudentsByDate);
-routes.put("/attendance/:id", attendanceController.updateAttendance);
-routes.delete("/attendance/:id", attendanceController.deleteAttendance);
-
+// Sessions
 routes.post("/attendance/sessions/start", attendanceController.startSession);
 routes.get(
   "/attendance/sessions/active/:groupId",
@@ -482,9 +534,17 @@ routes.put(
   "/attendance/sessions/:id/toggle-makeup",
   attendanceController.toggleMakeupMode,
 );
-routes.post("/attendance/scan-barcode", attendanceController.scanBarcode);
 routes.post("/attendance/sessions/lock", attendanceController.lockSession);
+// Barcode
+routes.post("/attendance/scan-barcode", attendanceController.scanBarcode);
+// Dynamic routes last
+routes.get("/attendance/:id", attendanceController.getAttendanceById);
+routes.post("/attendance", attendanceController.createAttendance);
+routes.put("/attendance/:id", attendanceController.updateAttendance);
+routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 
+/* ---------- Payments ---------- */
+// Static routes first
 routes.get("/payments", paymentsController.getAllPayments);
 routes.get("/payments/collections", paymentsController.getMonthlyCollections);
 routes.get(
@@ -512,11 +572,14 @@ routes.get(
   "/payments/group/:groupId/month/:month",
   paymentsController.getPaymentsByGroupAndMonth,
 );
+// Dynamic routes last
 routes.get("/payments/:id", paymentsController.getPaymentById);
 routes.post("/payments", paymentsController.createPayment);
 routes.put("/payments/:id", paymentsController.updatePayment);
 routes.delete("/payments/:id", paymentsController.deletePayment);
 
+/* ---------- Subscriptions ---------- */
+// Static routes first
 routes.get(
   "/subscriptions/overall",
   subscriptionsController.getOverallSubscriptionStats,
@@ -541,6 +604,7 @@ routes.get(
   "/subscriptions/student/:studentId",
   subscriptionsController.getStudentSubscriptions,
 );
+// Mutations & dynamic
 routes.post("/subscriptions", subscriptionsController.createSubscription);
 routes.put(
   "/subscriptions/:id/status",
@@ -548,17 +612,23 @@ routes.put(
 );
 routes.delete("/subscriptions/:id", subscriptionsController.deleteSubscription);
 
+/* ---------- Exams ---------- */
+// Static routes first
 routes.get("/exams", examsController.getAllExams);
 routes.get("/exams/grade/:gradeId/stats", examsController.getGradeExamStats);
 routes.get("/exams/grade/:gradeId", examsController.getExamsByGradeId);
 routes.get("/exams/group/:groupId", examsController.getExamsByGroupId);
-routes.get("/exams/:id", examsController.getExamById);
+// Dynamic routes (longer paths first)
 routes.get("/exams/:id/stats", examsController.getExamStats);
+routes.get("/exams/:id", examsController.getExamById);
+// Mutations
 routes.post("/exams", examsController.createExam);
 routes.put("/exams/:id", examsController.updateExam);
 routes.delete("/exams/:id", examsController.softDeleteExam);
 routes.delete("/exams/:id/permanent", examsController.hardDeleteExam);
 
+/* ---------- Exam Results ---------- */
+// Static routes first
 routes.get(
   "/exam-results/grade/:gradeId/stats",
   examResultsController.getGradeExamResultsStats,
@@ -567,11 +637,12 @@ routes.get(
   "/exam-results/group/:groupId/stats",
   examResultsController.getGroupExamResultsStats,
 );
-routes.get("/exam-results/exam/:examId", examResultsController.getExamResults);
 routes.get(
   "/exam-results/exam/:examId/stats",
   examResultsController.getExamResultStats,
 );
+routes.get("/exam-results/exam/:examId", examResultsController.getExamResults);
+// Mutations & dynamic
 routes.post("/exam-results", examResultsController.createExamResult);
 routes.post("/exam-results/upsert", examResultsController.upsertExamResult);
 routes.post(
@@ -581,13 +652,14 @@ routes.post(
 routes.put("/exam-results/:id", examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
-routes.get(
-  "/student-exams/exam/:examId",
-  studentExamController.getStudentExamsByExamId,
-);
+/* ---------- Student Exams ---------- */
 routes.get(
   "/student-exams/exam/:examId/stats",
   studentExamController.getExamAttemptStats,
+);
+routes.get(
+  "/student-exams/exam/:examId",
+  studentExamController.getStudentExamsByExamId,
 );
 routes.get(
   "/student-exams/grade/:gradeId/stats",
@@ -598,32 +670,13 @@ routes.get(
   studentExamController.getGroupExamAttemptsStats,
 );
 
-routes.get(
-  "/student-answers/question/:questionId/stats",
-  studentAnswerController.getQuestionAnswerStats,
-);
-routes.get(
-  "/student-answers/question/:questionId/options",
-  studentAnswerController.getMostSelectedOptions,
-);
-routes.get(
-  "/student-answers/essay/pending",
-  studentAnswerController.getEssayAnswersForGrading,
-);
-routes.get(
-  "/student-answers/essay/exam/:examId",
-  studentAnswerController.getEssayAnswersByExam,
-);
-routes.put(
-  "/student-answers/:answerId/grade",
-  studentAnswerController.gradeEssayAnswer,
-);
-
 /* ============================================
    WHATSAPP - TEMPLATES
    ============================================ */
 
+// Static routes first
 routes.get("/whatsapp-messages", whatsappController.getAllTemplates);
+// Dynamic routes last
 routes.get(
   "/whatsapp-messages/:templateId",
   whatsappController.getTemplateById,
