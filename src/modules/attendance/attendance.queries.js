@@ -466,7 +466,33 @@ SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = ANY($1) AND deleted = 0
 RETURNING id, barcode, full_name
 `;
+//get absent students by date
+const getAbsentStudentsbyDate = `
+SELECT 
+    s.full_name,
+    s.barcode,
+    s.parent_phone,
+    s.phone,
+    a.status,
+    a.attendance_date,
+	g.name AS grade_name,
+	gr.name AS group_name
 
+FROM attendance a
+
+JOIN students s 
+    ON a.student_id = s.id
+
+LEFT JOIN groups gr 
+    ON a.group_id = gr.id
+
+LEFT JOIN grades g 
+    ON a.grade_id = g.id
+
+WHERE a.status = 'absent' and a.attendance_date = $1
+
+ORDER BY g.id, gr.id;
+`;
 module.exports = {
   // Session management
   checkSessionExistsForGroupOnDate,
@@ -498,6 +524,7 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
+  getAbsentStudentsbyDate,
   // Soft delete
   softDeleteStudent,
 };

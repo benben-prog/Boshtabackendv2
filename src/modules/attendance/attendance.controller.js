@@ -400,7 +400,27 @@ const deleteAttendance = async (req, res, next) => {
     next(error);
   }
 };
-
+const getAbsentStudentsbyDate = async (req, res, next) => {
+  try {
+    const { date } = req.params;
+    if (!date) {
+      res.status(403).json({
+        success: false,
+        message: " التاريخ مطلوب ادخل التاريخ!",
+      });
+    }
+    const absentStudents =
+      await attendanceService.getAbsentStudentsbyDate(date);
+    if (!absentStudents) throw new Error("في مشكلة هنا يباشا!");
+    return res.stats(200).json({
+      success: true,
+      message: "تم تحميل البيانات بنجاح!",
+      date: absentStudents,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   // Session management
   startSession,
@@ -423,4 +443,5 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
+  getAbsentStudentsbyDate,
 };
