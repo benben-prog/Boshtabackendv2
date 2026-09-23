@@ -402,7 +402,7 @@ const deleteAttendance = async (req, res, next) => {
 };
 const getAbsentStudentsbyDate = async (req, res, next) => {
   try {
-    const { date } = req.params;
+    const { date } = req.query;
     if (!date) {
       res.status(403).json({
         success: false,
