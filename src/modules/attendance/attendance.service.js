@@ -534,9 +534,9 @@ const getDashboard = async (groupId) => {
   const result = await query(attendanceQueries.getDashboard, [groupId]);
   return result.rows[0];
 };
-const getAbsentStudentsbyDate = async (date) => {
-  const result = await query(attendanceQueries.getAbsentStudentsbyDate, [date]);
-  return result.rows
+const getAbsentStudentsByDate =async (date) => {
+  const result = await query(attendanceQueries.getAbsentStudentsByDate, [date]);
+  return result.rows;
 }
 // ============================================
 // EXPORTS
@@ -565,7 +565,7 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
-  getAbsentStudentsbyDate,
+  getAbsentStudentsByDate,
   // Helpers
   checkAndSoftDeleteAbsentStudents,
 };

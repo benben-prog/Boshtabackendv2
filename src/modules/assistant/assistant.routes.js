@@ -469,7 +469,7 @@ routes.get(
 );
 routes.get("/attendance/:id", attendanceController.getAttendanceById);
 routes.post("/attendance", attendanceController.createAttendance);
-routes.get("/attendance/absent",attendanceController.getAbsentStudentsbyDate)
+routes.get("/attendance/absent", attendanceController.getAbsentStudentsByDate);
 routes.put("/attendance/:id", attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 

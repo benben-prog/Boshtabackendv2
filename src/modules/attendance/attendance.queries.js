@@ -466,8 +466,7 @@ SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = ANY($1) AND deleted = 0
 RETURNING id, barcode, full_name
 `;
-//get absent students by date
-const getAbsentStudentsbyDate = `
+const getAbsentStudentsByDate = `
 SELECT 
     s.full_name,
     s.barcode,
@@ -524,7 +523,7 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
-  getAbsentStudentsbyDate,
+  getAbsentStudentsByDate,
   // Soft delete
   softDeleteStudent,
 };
