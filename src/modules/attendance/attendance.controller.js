@@ -400,21 +400,93 @@ const deleteAttendance = async (req, res, next) => {
     next(error);
   }
 };
+const groupAbsentByGradeAndGroup = (data = []) => {
+  const gradesMap = new Map();
+
+  for (const row of data) {
+    const {
+      grade_name,
+      group_name,
+      full_name,
+      barcode,
+      parent_phone,
+      phone,
+      status,
+      attendance_date,
+    } = row;
+
+    if (!gradesMap.has(grade_name)) {
+      gradesMap.set(grade_name, {
+        grade_name,
+        total_absent: 0,
+        groups_count: 0,
+        _groupsMap: new Map(),
+      });
+    }
+    const grade = gradesMap.get(grade_name);
+
+    if (!grade._groupsMap.has(group_name)) {
+      grade._groupsMap.set(group_name, {
+        group_name,
+        total_absent: 0,
+        students: [],
+      });
+    }
+    const group = grade._groupsMap.get(group_name);
+
+    group.students.push({
+      full_name,
+      barcode,
+      parent_phone,
+      phone,
+      status,
+      attendance_date,
+    });
+
+    group.total_absent += 1;
+    grade.total_absent += 1;
+  }
+
+  const result = [];
+  for (const grade of gradesMap.values()) {
+    const groups = Array.from(grade._groupsMap.values());
+    grade.groups_count = groups.length;
+    grade.groups = groups;
+    delete grade._groupsMap;
+    result.push(grade);
+  }
+
+  return result;
+};
+
 const getAbsentStudentsByDate = async (req, res, next) => {
   try {
     const { date } = req.query;
+
     if (!date) throw new Error("التاريخ مطلوب!");
+
     const absentData = await attendanceService.getAbsentStudentsByDate(date);
-    if (!absentData) throw new Error("حدث خطأ ما!");
+
+    if (!absentData || !absentData.length) {
+      return res.status(200).json({
+        success: true,
+        message: "لا يوجد طلاب غائبين في هذا التاريخ",
+        date: [],
+      });
+    }
+
+    const nestedData = groupAbsentByGradeAndGroup(absentData);
+
     return res.status(200).json({
       success: true,
       message: "تم تحميل البيانات بنجاح!",
-      date: absentData,
+      date: nestedData,
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 module.exports = {
   // Session management
@@ -438,5 +510,5 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
-  getAbsentStudentsByDate
+  getAbsentStudentsByDate,
 };
