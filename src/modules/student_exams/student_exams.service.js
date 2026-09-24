@@ -6,6 +6,35 @@ const { getNowEgypt } = require("../../utils/timezone");
 // HELPER FUNCTIONS
 // ============================================
 
+const createStableOrderValue = (value, seed) => {
+  const str = `${seed}:${value}`;
+  let hash = 2166136261;
+
+  for (let i = 0; i < str.length; i += 1) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+};
+
+const orderQuestionsByAttemptSeed = (questions, seed) => {
+  if (!Array.isArray(questions) || questions.length < 2) {
+    return questions;
+  }
+
+  return [...questions].sort((a, b) => {
+    const aOrder = createStableOrderValue(a.id, seed);
+    const bOrder = createStableOrderValue(b.id, seed);
+
+    if (aOrder === bOrder) {
+      return Number(a.id) - Number(b.id);
+    }
+
+    return aOrder - bOrder;
+  });
+};
+
 // Calculate remaining time in seconds
 function calculateRemainingSeconds(startedAt, durationMinutes, endAt) {
   const now = getNowEgypt();
@@ -150,16 +179,22 @@ const createExamAttempt = async (examId, studentId) => {
     throw new Error("هذا الامتحان غير متاح لمجموعتك");
   }
 
-  // Create new attempt
-  const result = await query(studentExamQueries.createExamAttempt, [
-    examId,
-    studentId,
-  ]);
+  try {
+    const result = await query(studentExamQueries.createExamAttempt, [
+      examId,
+      studentId,
+    ]);
 
-  return {
-    ...result.rows[0],
-    is_resumed: false,
-  };
+    return {
+      ...result.rows[0],
+      is_resumed: false,
+    };
+  } catch (error) {
+    if (error?.code === "23505") {
+      throw new Error("لقد قمت بحل هذا الامتحان من قبل");
+    }
+    throw error;
+  }
 };
 
 // ============================================
@@ -228,14 +263,9 @@ const getStudentExamWithQuestions = async (attemptId, studentId) => {
 
   let questions = Array.from(questionsMap.values());
 
-  // Randomize if needed
-  if (attempt.randomize_questions === 1) {
-    questions = questions.sort(() => Math.random() - 0.5);
-    questions = questions.map((q, index) => ({
-      ...q,
-      order: index + 1,
-    }));
-  }
+  // Keep a stable order per attempt, so refresh/resume never reorders the exam.
+  const attemptSeed = String(attempt.attempt_id || attempt.exam_id);
+  questions = orderQuestionsByAttemptSeed(questions, attemptSeed);
 
   // Calculate remaining time
   const remainingSeconds = calculateRemainingSeconds(
@@ -573,9 +603,13 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
   ]);
 
   const optionsMap = groupOptionsByQuestion(optionsResult.rows);
+  const orderedQuestions = orderQuestionsByAttemptSeed(
+    questions,
+    String(attemptCheck.rows[0].id),
+  );
 
   // Attach options to questions
-  return questions.map((question) => {
+  return orderedQuestions.map((question) => {
     if (question.type === "mcq" || question.type === "true_false") {
       return {
         ...question,
