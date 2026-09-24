@@ -3,6 +3,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 const path = require("path");
+const { UPLOAD_ROOT } = require("./utils/fileStorage");
 const swaggerUi = require("swagger-ui-express");
 
 // Routes
@@ -112,33 +113,33 @@ app.use((req, res, next) => {
 
 app.use(
   "/uploads/thumbnails",
-  express.static(path.join(process.cwd(), "uploads/thumbnails"), {
+  express.static(path.join(UPLOAD_ROOT, "thumbnails"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.setHeader("Cache-Control", "public, max-age=31536000");
+      res.setHeader("Cache-Control", "public, max-age=86400");
     },
   }),
 );
 
 app.use(
   "/uploads/videoFiles",
-  express.static(path.join(process.cwd(), "uploads/videoFiles"), {
+  express.static(path.join(UPLOAD_ROOT, "videoFiles"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.setHeader("Cache-Control", "public, max-age=31536000");
+      res.setHeader("Cache-Control", "public, max-age=86400");
     },
   }),
 );
 
 app.use(
   "/uploads/photos",
-  express.static(path.join(process.cwd(), "uploads/photos"), {
+  express.static(path.join(UPLOAD_ROOT, "photos"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.setHeader("Cache-Control", "public, max-age=31536000");
+      res.setHeader("Cache-Control", "private, no-cache");
     },
   }),
 );

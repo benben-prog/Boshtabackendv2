@@ -7,6 +7,7 @@ const excelUpload = createUpload({
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.ms-excel",
   ],
+  allowedExtensions: ["xls", "xlsx"],
   maxFileSize: 10 * 1024 * 1024, // 10MB
   errorMessages: {
     invalidType: "مسموح فقط بملفات Excel",

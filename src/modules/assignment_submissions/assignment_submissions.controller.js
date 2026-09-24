@@ -2,6 +2,7 @@ const assignmentSubmissionService = require("./assignment_submissions.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
+const { cleanupUploadedFiles, resolveStoredPath } = require("../../utils/fileStorage");
 
 // ============================================
 // SUBMIT
@@ -28,9 +29,8 @@ const submitAssignment = async (req, res, next) => {
 
     if (!submission) {
       // Delete uploaded file if submission failed
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      const uploadedPath = resolveStoredPath(filePath);
+      if (uploadedPath) fs.rmSync(uploadedPath, { force: true });
       return res.status(400).json({
         success: false,
         message: "لا يمكن تسليم هذا الواجب - قد يكون مغلقاً أو منتهياً",
@@ -53,6 +53,7 @@ const submitAssignment = async (req, res, next) => {
       data: submission,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -82,9 +83,8 @@ const updateSubmission = async (req, res, next) => {
 
     if (!oldSubmission) {
       // Delete uploaded file
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      const uploadedPath = resolveStoredPath(filePath);
+      if (uploadedPath) fs.rmSync(uploadedPath, { force: true });
       return res.status(400).json({
         success: false,
         message: "لا يوجد تسليم مسبق لهذا الواجب",
@@ -99,9 +99,8 @@ const updateSubmission = async (req, res, next) => {
 
     if (!submission) {
       // Delete uploaded file
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      const uploadedPath = resolveStoredPath(filePath);
+      if (uploadedPath) fs.rmSync(uploadedPath, { force: true });
       return res.status(400).json({
         success: false,
         message: "لا يمكن تعديل التسليم - الواجب مغلق أو تم تصحيحه",
@@ -110,14 +109,8 @@ const updateSubmission = async (req, res, next) => {
 
     // Delete old file after successful update
     if (oldSubmission.file_path) {
-      const oldFilePath = path.join(
-        __dirname,
-        "../../../",
-        oldSubmission.file_path,
-      );
-      if (fs.existsSync(oldFilePath)) {
-        fs.unlinkSync(oldFilePath);
-      }
+      const oldFilePath = resolveStoredPath(oldSubmission.file_path);
+      if (oldFilePath) fs.rmSync(oldFilePath, { force: true });
     }
 
     await logActivity({
@@ -136,6 +129,7 @@ const updateSubmission = async (req, res, next) => {
       data: submission,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -170,9 +164,9 @@ const downloadSubmission = async (req, res, next) => {
       throw new Error("التسليم غير موجود");
     }
 
-    const filePath = path.join(__dirname, "../../../", submission.file_path);
+    const filePath = resolveStoredPath(submission.file_path);
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath || !fs.existsSync(filePath)) {
       throw new Error("الملف غير موجود");
     }
 

@@ -2,6 +2,7 @@ const questionService = require("./questions.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
+const { resolveStoredPath } = require("../../utils/fileStorage");
 
 // ============================================
 // HELPER: Delete file from disk
@@ -11,7 +12,8 @@ const deleteFileFromDisk = (filePath) => {
   if (!filePath) return;
 
   try {
-    const fullPath = path.join(process.cwd(), filePath);
+    const fullPath = resolveStoredPath(filePath);
+    if (!fullPath) return;
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
@@ -215,7 +217,7 @@ const downloadQuestionFile = async (req, res, next) => {
 
     const filePath = path.join(__dirname, "../../../", question.file_path);
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath || !fs.existsSync(filePath)) {
       throw new Error("الملف غير موجود");
     }
 

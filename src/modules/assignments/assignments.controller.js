@@ -2,6 +2,8 @@ const assignmentService = require("./assignments.service");
 const { logActivity } = require("../../utils/activityLogger");
 const path = require("path");
 const { formatEgyptTime } = require("../../utils/timezone");
+const { cleanupUploadedFiles, resolveStoredPath } = require("../../utils/fileStorage");
+const fs = require("fs");
 
 // ============================================
 // HELPER: Format dates
@@ -180,6 +182,7 @@ const createAssignment = async (req, res, next) => {
       data: formattedAssignment,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -191,14 +194,21 @@ const createAssignment = async (req, res, next) => {
 const updateAssignment = async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
+    const oldAssignment = await assignmentService.getAssignmentById(assignmentId);
+    const newFilePath = req.file ? req.file.path : null;
 
     const assignment = await assignmentService.updateAssignment(
       assignmentId,
-      req.body,
+      { ...req.body, ...(newFilePath ? { file_path: newFilePath } : {}) },
     );
 
     if (!assignment) {
       throw new Error("الواجب غير موجود");
+    }
+
+    if (newFilePath && oldAssignment?.file_path) {
+      const oldPath = resolveStoredPath(oldAssignment.file_path);
+      if (oldPath) fs.rmSync(oldPath, { force: true });
     }
 
     await logActivity({
@@ -219,6 +229,7 @@ const updateAssignment = async (req, res, next) => {
       data: formattedAssignment,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };

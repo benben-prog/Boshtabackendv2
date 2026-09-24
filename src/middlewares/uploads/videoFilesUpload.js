@@ -1,18 +1,11 @@
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const crypto = require("crypto");
+const { ensureUploadDir, wrapUpload } = require("../../utils/fileStorage");
 
 // Directories for video files and thumbnails
-const thumbnailDir = "uploads/videoFiles/thumbnails";
-const filesDir = "uploads/videoFiles/files";
-
-// Ensure both directories exist
-if (!fs.existsSync(thumbnailDir)) {
-  fs.mkdirSync(thumbnailDir, { recursive: true });
-}
-if (!fs.existsSync(filesDir)) {
-  fs.mkdirSync(filesDir, { recursive: true });
-}
+const thumbnailDir = ensureUploadDir("videoFiles/thumbnails");
+const filesDir = ensureUploadDir("videoFiles/files");
 
 // Configure storage for video files
 const storage = multer.diskStorage({
@@ -26,10 +19,8 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname);
-    const originalName = path.basename(file.originalname, extension);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}-${originalName}${extension}`;
-    cb(null, fileName);
+    const extension = path.extname(file.originalname).toLowerCase();
+    cb(null, `${crypto.randomUUID()}${extension}`);
   },
 });
 
@@ -37,10 +28,14 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === "thumbnail") {
     const allowedImages = ["image/jpeg", "image/jpg", "image/png"];
-    if (allowedImages.includes(file.mimetype)) {
+    const extension = path.extname(file.originalname).toLowerCase().slice(1);
+    if (allowedImages.includes(file.mimetype) && ["jpg", "jpeg", "png"].includes(extension)) {
       cb(null, true);
     } else {
-      cb(new Error("مسموح فقط بالصور jpg و jpeg و png"));
+      const error = new Error("مسموح فقط بالصور jpg و jpeg و png");
+      error.code = "INVALID_FILE_TYPE";
+      error.statusCode = 415;
+      cb(error);
     }
   } else if (file.fieldname === "file") {
     const allowedFiles = [
@@ -48,10 +43,14 @@ const fileFilter = (req, file, cb) => {
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    if (allowedFiles.includes(file.mimetype)) {
+    const extension = path.extname(file.originalname).toLowerCase().slice(1);
+    if (allowedFiles.includes(file.mimetype) && ["pdf", "doc", "docx"].includes(extension)) {
       cb(null, true);
     } else {
-      cb(new Error("مسموح فقط بملفات PDF و Word"));
+      const error = new Error("مسموح فقط بملفات PDF و Word");
+      error.code = "INVALID_FILE_TYPE";
+      error.statusCode = 415;
+      cb(error);
     }
   } else {
     cb(new Error("اسم الحقل غير صحيح"));
@@ -59,12 +58,16 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Create multer instance
-const videoFilesUpload = multer({
+const videoFilesUpload = wrapUpload(multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 10 * 1024 * 1024,
+    files: 2,
+    fields: 50,
+    fieldSize: 1024 * 1024,
+    parts: 52,
   },
-});
+}));
 
 module.exports = videoFilesUpload;

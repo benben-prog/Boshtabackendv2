@@ -2,6 +2,7 @@ const studentAnswerService = require("./student_answers.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
+const { cleanupUploadedFiles, resolveStoredPath } = require("../../utils/fileStorage");
 
 // ============================================
 // SUBMIT MCQ/TRUE-FALSE ANSWER
@@ -94,10 +95,8 @@ const submitEssayAnswer = async (req, res, next) => {
 
       // Delete old file AFTER successful update
       if (oldFilePath) {
-        const fullOldPath = path.join(__dirname, "../../../", oldFilePath);
-        if (fs.existsSync(fullOldPath)) {
-          fs.unlinkSync(fullOldPath);
-        }
+        const fullOldPath = resolveStoredPath(oldFilePath);
+        if (fullOldPath) fs.rmSync(fullOldPath, { force: true });
       }
     } else {
       answer = await studentAnswerService.insertEssayAnswer({
@@ -115,15 +114,7 @@ const submitEssayAnswer = async (req, res, next) => {
     });
   } catch (error) {
     // Delete uploaded file if operation failed
-    if (req.file && req.file.path) {
-      try {
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-      } catch (cleanupError) {
-        console.error("Error cleaning up file:", cleanupError.message);
-      }
-    }
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -310,9 +301,9 @@ const downloadAnswerFile = async (req, res, next) => {
       });
     }
 
-    const filePath = path.join(__dirname, "../../../", answer.file_path);
+    const filePath = resolveStoredPath(answer.file_path);
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath || !fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
         message: "الملف غير موجود",

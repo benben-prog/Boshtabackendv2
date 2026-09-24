@@ -2,6 +2,7 @@ const studentService = require("./student.service");
 const studentsService = require("../students/students.service");
 const studentExamService = require("../student_exams/student_exams.service");
 const { query } = require("../../config/database");
+const { cleanupUploadedFiles } = require("../../utils/fileStorage");
 
 // Get student dashboard
 const getDashboard = async (req, res, next) => {
@@ -84,6 +85,7 @@ const updateProfileImage = async (req, res, next) => {
       data: student,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };

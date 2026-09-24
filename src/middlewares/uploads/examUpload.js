@@ -12,6 +12,7 @@ const examUpload = createUpload({
     "image/png",
     "image/webp",
   ],
+  allowedExtensions: ["pdf", "doc", "docx", "jpg", "jpeg", "png", "webp"],
   maxFileSize: 10 * 1024 * 1024, // 10MB
   errorMessages: {
     invalidType: "مسموح فقط بملفات PDF و Word والصور",

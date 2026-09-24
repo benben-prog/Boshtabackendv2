@@ -1,14 +1,16 @@
 const XLSX = require("xlsx");
 const fs = require("fs");
+const { resolveStoredPath } = require("./fileStorage");
 
 // Read Excel file and convert to JSON
 const readExcelFile = (filePath) => {
   try {
-    if (!fs.existsSync(filePath)) {
+    const absolutePath = resolveStoredPath(filePath);
+    if (!absolutePath || !fs.existsSync(absolutePath)) {
       throw new Error("الملف غير موجود");
     }
 
-    const workbook = XLSX.readFile(filePath);
+    const workbook = XLSX.readFile(absolutePath);
 
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
@@ -90,9 +92,8 @@ const validateColumns = (data, requiredColumns) => {
 // Delete Excel file after processing
 const deleteExcelFile = (filePath) => {
   try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    const absolutePath = resolveStoredPath(filePath);
+    if (absolutePath) fs.rmSync(absolutePath, { force: true });
   } catch (error) {
     console.error("Error deleting Excel file:", error.message);
   }

@@ -1,0 +1,2378 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/assistant/activity-log"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/assignment-submissions/{submissionId}/grade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/assignment/{assignmentId}/not-submitted-students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/assignment/{assignmentId}/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/assignment/{assignmentId}/submitted-students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/stats/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/stats/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignment-submissions/stats/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/assignments"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments/{assignmentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments/{assignmentId}/download"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/assignments/{assignmentId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments/{assignmentId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/assignments/group/{groupId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/attendance"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/attendance/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/attendance/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/absent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/absent/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/group/{groupId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/overall-stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/attendance/scan-barcode"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/attendance/sessions/{id}/toggle-makeup"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/sessions/active/{groupId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/attendance/sessions/lock"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/attendance/sessions/start"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/attendance/summary/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/dashboard"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/exam-results"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/exam-results/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/exam-results/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/exam-results/bulk-upload/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/template"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/exam-results/upsert"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/exam-results/upsert-batch/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/exams"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/exams/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/exams/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/{id}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/grades"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/grades/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/grades/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/{id}/details"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/grades/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/{id}/stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/grades/bulk-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/grades/find"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/groups-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/grades/template"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/groups"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/groups/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/groups/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/{id}/full-stats"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/groups/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/{id}/stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/groups/bulk-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/groups/find"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/template"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/groups/with-grade-name"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/online-exams"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/online-exams/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/{examId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/online-exams/{examId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/online-exams/{examId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/available"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/expired"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/stats/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/online-exams/stats/grade/{gradeId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/options"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/options/{optionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/options/{optionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/options/{optionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/options/question/{questionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/password"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/payments"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/payments/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/payments/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/grade/{gradeId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/group/{groupId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/students-status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/unpaid"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/playlist-videos"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/playlist-videos/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/playlist-videos/playlist/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/playlists"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/playlists"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/playlists/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/playlists/{playlistId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/playlists/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/playlists/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/profile"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/profile-image"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/profile-image"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/questions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/questions/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/questions/{questionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/questions/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/questions/{questionId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/questions/{questionId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/questions/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/{answerId}/download"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/student-answers/{answerId}/grade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/{answerId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/essay/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/essay/pending"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/question/{questionId}/options"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-answers/question/{questionId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-exams/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-exams/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/student-exams/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/students"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/students/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/students/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/attendance"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/attendance/monthly"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/attendance/total"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/exams/online/{attemptId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/exams/online/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/exams/paper"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/exams/paper/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/exams/results"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/payments/current-subscription"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/students/{studentId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/playlists"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/profile"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/students/{studentId}/restore"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/{studentId}/submissions/{submissionId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/students/bulk-upload"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/deleted"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/search/barcode"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/search/parent-phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/search/phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/template"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/subscriptions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/subscriptions/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/subscriptions/{id}/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/subscriptions/without-current"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/videos"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/videos"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/videos/{videoId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/videos/{videoId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/videos/{videoId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/videos/{videoId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/videos/{videoId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/videos/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp-messages"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/whatsapp-messages"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp-messages/{templateId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/whatsapp-messages/{templateId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/whatsapp-messages/{templateId}/toggle"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp/messages"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/whatsapp/messages/{messageId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp/messages/{messageId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/whatsapp/queue/force-process"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/whatsapp/queue/reset-failed"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/whatsapp/queue/send"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/whatsapp/queue/stats"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/whatsapp/settings"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/parent/access"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/student/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/user/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/parent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/parent/{token}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/assignments/{assignmentId}/download"
+  },
+  {
+    "method": "POST",
+    "path": "/api/student/assignments/{assignmentId}/submit"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/student/assignments/{assignmentId}/update"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/attendance"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/attendance/monthly"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/{attemptId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/{attemptId}/review"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/student/exams/online/{attemptId}/submit"
+  },
+  {
+    "method": "POST",
+    "path": "/api/student/exams/online/{examId}/answer"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/{examId}/check-attempt"
+  },
+  {
+    "method": "POST",
+    "path": "/api/student/exams/online/{examId}/essay"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/{examId}/questions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/{examId}/resume"
+  },
+  {
+    "method": "POST",
+    "path": "/api/student/exams/online/{examId}/start"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/available"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/online/question/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/paper"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/paper/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/exams/results"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/homeWorkSubmission/{assignmentId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/options/question/{questionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/student/password"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/payments/balance"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/payments/current-subscription"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/playlists"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/playlists/{playlistId}/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/profile"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/student/profile-image"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/student/profile-image"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/activity-log"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/assignment-submissions/{submissionId}/grade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/assignment/{assignmentId}/not-submitted-students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/assignment/{assignmentId}/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/assignment/{assignmentId}/submitted-students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/stats/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/stats/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignment-submissions/stats/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/assignments"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments/{assignmentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments/{assignmentId}/download"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/assignments/{assignmentId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments/{assignmentId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/assignments/group/{groupId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/attendance"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/attendance/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/attendance/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/group/{groupId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/overall-stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/attendance/scan-barcode"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/attendance/sessions/{id}/toggle-makeup"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/sessions/active/{groupId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/attendance/sessions/lock"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/attendance/sessions/start"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/attendance/summary/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/dashboard"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/exam-results"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/exam-results/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/exam-results/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/exam-results/bulk-upload/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/template"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/exam-results/upsert"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/exam-results/upsert-batch/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/exams"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/exams/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/exams/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/{id}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/grades"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/grades/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/grades/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/grades/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/{id}/stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/grades/bulk-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/grades/find"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/groups-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/grades/template"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/groups"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/groups/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/groups/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/{id}/full-stats"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/groups/{id}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/{id}/stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/groups/bulk-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/groups/find"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/template"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/groups/with-grade-name"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/online-exams"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/online-exams/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/{examId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/online-exams/{examId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/online-exams/{examId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/available"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/expired"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/stats/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/online-exams/stats/grade/{gradeId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/options"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/options/{optionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/options/{optionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/options/{optionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/options/question/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/payments"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/payments/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/payments/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/grade/{gradeId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/group/{groupId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/students-status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/unpaid"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/platform-status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/playlist-videos"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/playlist-videos/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/playlist-videos/playlist/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/playlists"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/playlists"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/playlists/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/playlists/{playlistId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/playlists/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/playlists/grade/{gradeId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/questions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/questions/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/questions/{questionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/questions/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/questions/{questionId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/questions/{questionId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/questions/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/settings"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/settings"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/settings/academic-year"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/settings/toggle-platform"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/student-answers/{answerId}/grade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-answers/{answerId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-answers/essay/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-answers/essay/pending"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-answers/question/{questionId}/options"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-answers/question/{questionId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-exams/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-exams/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/student-exams/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/students/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/students/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/attendance"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/attendance/monthly"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/attendance/total"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/exams/online/{attemptId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/exams/online/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/exams/paper"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/exams/paper/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/exams/results"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/payments/current-subscription"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/students/{studentId}/permanent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/playlists"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/profile"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/students/{studentId}/reset-password"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/{studentId}/restore"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/{studentId}/submissions/{submissionId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/bulk-upload"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/deleted"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/search/barcode"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/search/parent-phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/search/phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/template"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/without-password"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/subscriptions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/subscriptions/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/subscriptions/{id}/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/subscriptions/without-current"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/users"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/users"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/users/{userId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/users/{userId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/users/{userId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/users/{userId}/password"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/users/{userId}/permanent"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/users/{userId}/reset-password"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/users/{userId}/restore"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/users/{userId}/toggle-active"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/users/assistants"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/users/deleted"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/users/find"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/users/teachers"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/videos"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/videos"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/videos/{videoId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/videos/{videoId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/videos/{videoId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/videos/{videoId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/videos/{videoId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/videos/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp-messages"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/whatsapp-messages"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp-messages/{templateId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/whatsapp-messages/{templateId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/whatsapp-messages/{templateId}/toggle"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp/messages"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/whatsapp/messages/{messageId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp/messages/{messageId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/whatsapp/queue/reset-failed"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/whatsapp/queue/send"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/whatsapp/queue/stats"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/whatsapp/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/activity-log"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignment-submissions/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignment-submissions/assignment/{assignmentId}/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignment-submissions/stats/assignment/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignment-submissions/stats/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignment-submissions/stats/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments/{assignmentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments/{assignmentId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments/{assignmentId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assignments/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assistants"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/assistants/{userId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/consecutive-absences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/group/{groupId}/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/overall-stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/attendance/summary/group/{groupId}/date/{date}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exam-results/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exam-results/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exam-results/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exam-results/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/{id}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades/{id}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades/groups-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/grades/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/{id}/full-stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/{id}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/students-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/groups/with-grade-name"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/available"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/expired"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/stats/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/online-exams/stats/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/options/{optionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/options/question/{questionId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/teacher/password"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/students-status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/unpaid"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/playlist-videos/playlist/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/playlists"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/playlists/{playlistId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/playlists/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/profile"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/teacher/profile-image"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/profile-image"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/teacher/profile-image"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/questions/{questionId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/questions/{questionId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/questions/{questionId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/questions/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-answers/{answerId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-answers/question/{questionId}/options"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-answers/question/{questionId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-exams/exam/{examId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-exams/exam/{examId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-exams/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/student-exams/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/attendance"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/attendance/monthly"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/exams/online/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/exams/paper"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/exams/results"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/profile"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/{studentId}/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/search/barcode"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/search/phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/grade/{gradeId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/group/{groupId}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/month/{month}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/overall"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/subscriptions/without-current"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/videos/{videoId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/videos/{videoId}/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/videos/{videoId}/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/videos/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/webhook/webhook"
+  },
+  {
+    "method": "POST",
+    "path": "/webhook/webhook"
+  }
+]

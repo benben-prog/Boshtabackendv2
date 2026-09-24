@@ -1,4 +1,5 @@
 const userService = require("./users.service");
+const { cleanupUploadedFiles } = require("../../utils/fileStorage");
 const { logActivity } = require("../../utils/activityLogger");
 
 // ============================================
@@ -185,6 +186,7 @@ const updateUserProfileImage = async (req, res, next) => {
       data: user,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };

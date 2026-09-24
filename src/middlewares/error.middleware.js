@@ -32,12 +32,18 @@ const errorHandler = (err, req, res, next) => {
 
   // Handle Multer errors
   if (err.name === "MulterError") {
-    statusCode = 400;
     if (err.code === "LIMIT_FILE_SIZE") {
-      message = "حجم الملف exceeds الحد المسموح";
+      statusCode = 413;
+      message = "حجم الملف يتجاوز الحد المسموح";
     } else {
+      statusCode = 400;
       message = "حدث خطأ في رفع الملف";
     }
+  }
+
+  if (err.code === "INVALID_FILE_TYPE") {
+    statusCode = 415;
+    message = err.message || "نوع الملف غير مدعوم";
   }
 
   // Handle JWT errors

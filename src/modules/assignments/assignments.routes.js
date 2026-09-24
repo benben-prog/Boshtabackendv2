@@ -44,6 +44,7 @@ routes.post(
 
 routes.put(
   "/:assignmentId",
+  assignmentUpload.single("file"),
   validate(updateAssignmentSchema),
   assignmentController.updateAssignment,
 );

@@ -11,6 +11,7 @@ module.exports = {
   // Server
   PORT: Number(process.env.PORT) || 3000,
   NODE_ENV: process.env.NODE_ENV || "development",
+  UPLOAD_ROOT: process.env.UPLOAD_ROOT,
 
   // Database
   DB_HOST: process.env.DB_HOST || "localhost",

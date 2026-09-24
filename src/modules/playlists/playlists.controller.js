@@ -2,6 +2,7 @@ const playlistService = require("./playlists.service");
 const { logActivity } = require("../../utils/activityLogger");
 const fs = require("fs");
 const path = require("path");
+const { cleanupUploadedFiles, resolveStoredPath } = require("../../utils/fileStorage");
 
 // ============================================
 // HELPER: Delete file from disk
@@ -11,7 +12,8 @@ const deleteFileFromDisk = (filePath) => {
   if (!filePath) return;
 
   try {
-    const fullPath = path.join(process.cwd(), filePath);
+    const fullPath = resolveStoredPath(filePath);
+    if (!fullPath) return;
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
@@ -54,6 +56,7 @@ const createPlaylist = async (req, res, next) => {
       data: playlist,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -162,6 +165,7 @@ const updatePlaylist = async (req, res, next) => {
       data: playlist,
     });
   } catch (error) {
+    cleanupUploadedFiles(req);
     next(error);
   }
 };
