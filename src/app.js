@@ -154,6 +154,17 @@ app.use(
     },
   }),
 );
+app.use(
+  "/uploads/assignments",
+  express.static(path.join(UPLOAD_ROOT, "assignments"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "private, no-cache");
+      res.setHeader("Content-Disposition", "inline");
+    },
+  }),
+);
 
 // ============================================
 // ROOT ROUTES

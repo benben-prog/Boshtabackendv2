@@ -1,6 +1,5 @@
 const assignmentService = require("./assignments.service");
 const { logActivity } = require("../../utils/activityLogger");
-const path = require("path");
 const { formatEgyptTime } = require("../../utils/timezone");
 const { cleanupUploadedFiles, resolveStoredPath } = require("../../utils/fileStorage");
 const fs = require("fs");
@@ -247,7 +246,10 @@ const downloadAssignment = async (req, res, next) => {
       throw new Error("الملف غير موجود");
     }
 
-    const filePath = path.join(__dirname, "../../../", assignment.file_path);
+    const filePath = resolveStoredPath(assignment.file_path);
+    if (!filePath || !fs.existsSync(filePath)) {
+      throw new Error("ملف الواجب غير موجود على مساحة التخزين");
+    }
     return res.download(filePath);
   } catch (error) {
     next(error);
