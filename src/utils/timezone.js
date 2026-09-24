@@ -1,10 +1,18 @@
 // Timezone utilities for Egypt (Africa/Cairo)
-// Egypt observes DST: UTC+2 (winter), UTC+3 (summer)
-// Africa/Cairo handles DST automatically
+// Keep one consistent representation at the API boundary:
+// - Database comparisons use real Date instances (an instant in time).
+// - API date-time strings are ISO-8601 with the Egypt offset.
+// - Date-only and time-only formats remain backward compatible.
 
 const TIMEZONE = "Africa/Cairo";
 
-// Cache formatters for better performance
+// Ensure dates without an explicit offset are interpreted as Egypt local time.
+// This is also configured by config/database.js, but this module can be used
+// independently by controllers and scripts.
+if (!process.env.TZ) {
+  process.env.TZ = TIMEZONE;
+}
+
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: TIMEZONE,
   year: "numeric",
@@ -23,51 +31,52 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
 });
 
+const offsetFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIMEZONE,
+  timeZoneName: "longOffset",
+});
+
 // Extract a part from formatter output
 const getPart = (parts, type) => {
   return parts.find((p) => p.type === type)?.value || "";
+};
+
+const getEgyptOffset = (date) => {
+  const parts = offsetFormatter.formatToParts(date);
+  const offset = getPart(parts, "timeZoneName");
+
+  // Intl returns values such as GMT+02:00 or GMT+03:00.
+  if (offset === "GMT" || !offset) return "+00:00";
+  return offset.replace(/^GMT/, "");
 };
 
 // Validate and normalize date input
 const normalizeDate = (date) => {
   if (!date) return null;
 
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  const d = date instanceof Date ? new Date(date.getTime()) : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
 
   return d;
 };
 
-// Get current time in Egypt as a Date object
-// The returned Date represents Egypt local time
-const getNowEgypt = () => {
-  const now = new Date();
-  const parts = dateTimeFormatter.formatToParts(now);
-
-  const year = getPart(parts, "year");
-  const month = getPart(parts, "month");
-  const day = getPart(parts, "day");
-  const hour = getPart(parts, "hour");
-  const minute = getPart(parts, "minute");
-  const second = getPart(parts, "second");
-
-  // Build ISO-like string in Egypt local time
-  const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
-  return new Date(isoString);
-};
+// Get current time as a real Date instant.
+// Do not rebuild a Date from Egypt's wall-clock components: doing so changes
+// the instant and causes incorrect exam deadlines and invalid frontend dates.
+const getNowEgypt = () => new Date();
 
 // Format a date to Egypt time string
 // Supported formats:
 //   - "YYYY-MM-DD"
 //   - "DD/MM/YYYY"
-//   - "YYYY-MM-DD HH:mm:ss" (default)
+//   - "YYYY-MM-DD HH:mm:ss" (legacy display format)
 //   - "HH:mm:ss"
+//   - "ISO" / "YYYY-MM-DDTHH:mm:ssZ" (ISO-8601 with Egypt offset)
 const formatEgyptTime = (date, format = "YYYY-MM-DD HH:mm:ss") => {
   const d = normalizeDate(date);
   if (!d) return null;
 
   const parts = dateTimeFormatter.formatToParts(d);
-
   const year = getPart(parts, "year");
   const month = getPart(parts, "month");
   const day = getPart(parts, "day");
@@ -82,33 +91,27 @@ const formatEgyptTime = (date, format = "YYYY-MM-DD HH:mm:ss") => {
       return `${day}/${month}/${year}`;
     case "HH:mm:ss":
       return `${hour}:${minute}:${second}`;
+    case "ISO":
+    case "YYYY-MM-DDTHH:mm:ssZ":
+      return `${year}-${month}-${day}T${hour}:${minute}:${second}${getEgyptOffset(d)}`;
     case "YYYY-MM-DD HH:mm:ss":
     default:
+      // Kept as a display format for existing callers. API date-time values
+      // should use ISO by default at serialization boundaries.
       return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
   }
 };
 
 // Get today's date in Egypt (YYYY-MM-DD)
 const getTodayEgypt = () => {
-  const now = new Date();
-  const parts = dateFormatter.formatToParts(now);
-
-  const year = getPart(parts, "year");
-  const month = getPart(parts, "month");
-  const day = getPart(parts, "day");
-
-  return `${year}-${month}-${day}`;
+  const parts = dateFormatter.formatToParts(new Date());
+  return `${getPart(parts, "year")}-${getPart(parts, "month")}-${getPart(parts, "day")}`;
 };
 
 // Get current month in Egypt (YYYY-MM)
 const getCurrentMonthEgypt = () => {
-  const now = new Date();
-  const parts = dateFormatter.formatToParts(now);
-
-  const year = getPart(parts, "year");
-  const month = getPart(parts, "month");
-
-  return `${year}-${month}`;
+  const parts = dateFormatter.formatToParts(new Date());
+  return `${getPart(parts, "year")}-${getPart(parts, "month")}`;
 };
 
 // Compare two dates
@@ -134,4 +137,5 @@ module.exports = {
   getCurrentMonthEgypt,
   getNowEgypt,
   compareEgyptDates,
+  normalizeDate,
 };
