@@ -88,7 +88,19 @@ if (env.NODE_ENV === "production") {
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  const allowedOrigins = env.CORS_ORIGINS;
+  const allowAllOrigins = allowedOrigins.length === 0 && env.NODE_ENV !== "production";
+  const originAllowed = Boolean(origin && allowedOrigins.includes(origin));
+
+  if (originAllowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  } else if (allowAllOrigins) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Credentials", "false");
+  }
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
@@ -97,7 +109,6 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, x-client-key, x-super-admin-key",
   );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
   if (req.method === "OPTIONS") {

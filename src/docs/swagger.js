@@ -10,6 +10,15 @@ const swaggerOptions = {
       version: "1.0.0",
       description: "Boshta-Platform Platform API Documentation",
     },
+    tags: [
+      { name: "Students", description: "Student-facing API operations" },
+      { name: "Assistant", description: "Assistant API operations" },
+      { name: "Parent", description: "Parent-facing API operations" },
+      { name: "Teacher", description: "Teacher API operations" },
+      { name: "Auth", description: "Authentication and access operations" },
+      { name: "Super Admin", description: "Super-admin API operations" },
+      { name: "Webhooks", description: "External webhook operations" },
+    ],
     servers: [{ url: "https://backend.benb3n.cloud/" }],
     components: {
       securitySchemes: {

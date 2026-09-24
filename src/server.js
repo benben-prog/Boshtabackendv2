@@ -26,9 +26,9 @@ async function startServer() {
     });
 
     // Configure server timeouts
-    server.keepAliveTimeout = 65000;
-    server.headersTimeout = 66000;
-    server.requestTimeout = 0;
+    server.keepAliveTimeout = Math.max(env.REQUEST_TIMEOUT_MS + 5000, 65000);
+    server.headersTimeout = server.keepAliveTimeout + 5000;
+    server.requestTimeout = env.REQUEST_TIMEOUT_MS;
 
     // Start WhatsApp system
     try {

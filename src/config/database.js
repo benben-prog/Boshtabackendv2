@@ -18,17 +18,17 @@ function getSslConfig() {
   }
 
   // Production with CA certificate
-  if (isProduction && env.DATABASE_CA_CERT) {
+  if (env.DATABASE_CA_CERT) {
     return {
-      rejectUnauthorized: true,
+      rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED,
       ca: env.DATABASE_CA_CERT,
     };
   }
 
-  // Production without CA certificate or development with SSL enabled
-  if (isProduction || env.DB_SSL === "true" || env.DB_SSL === "1") {
+  // Production or explicitly enabled SSL
+  if (isProduction || env.DB_SSL) {
     return {
-      rejectUnauthorized: false,
+      rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED,
     };
   }
 

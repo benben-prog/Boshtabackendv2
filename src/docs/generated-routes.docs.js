@@ -10,7 +10,7 @@
  *     summary: DELETE assistant attendance id
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -41,7 +41,7 @@
  *     summary: PUT assistant attendance id
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -78,7 +78,7 @@
  *     summary: GET assistant attendance absent
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -103,7 +103,7 @@
  *     summary: GET assistant exam-results grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -134,7 +134,7 @@
  *     summary: GET assistant exam-results group groupId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -165,7 +165,7 @@
  *     summary: GET assistant exams grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -196,7 +196,7 @@
  *     summary: GET assistant grades id details
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -227,7 +227,7 @@
  *     summary: GET assistant student-answers answerId download
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -258,7 +258,7 @@
  *     summary: GET assistant whatsapp dashboard
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -283,7 +283,7 @@
  *     summary: POST assistant whatsapp queue force-process
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -314,7 +314,7 @@
  *     summary: PUT assistant whatsapp settings
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Assistant - Generated Routes
+ *       - Assistant
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -345,7 +345,7 @@
  *     summary: GET student attendance consecutive-absences
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Student - Generated Routes
+ *       - Students
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -370,7 +370,7 @@
  *     summary: GET student exams online attemptId review
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Student - Generated Routes
+ *       - Students
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -401,7 +401,7 @@
  *     summary: GET student exams online examId check-attempt
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Student - Generated Routes
+ *       - Students
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -432,7 +432,7 @@
  *     summary: GET student exams online examId resume
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Student - Generated Routes
+ *       - Students
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -463,7 +463,7 @@
  *     summary: DELETE student profile-image
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Student - Generated Routes
+ *       - Students
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -488,7 +488,7 @@
  *     summary: PUT super-admin assignment-submissions submissionId grade
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -527,7 +527,7 @@
  *     summary: GET super-admin assignment-submissions assignment assignmentId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -560,7 +560,7 @@
  *     summary: GET super-admin assignment-submissions assignment assignmentId not-submitted-students
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -593,7 +593,7 @@
  *     summary: GET super-admin assignment-submissions assignment assignmentId student studentId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -631,7 +631,7 @@
  *     summary: GET super-admin assignment-submissions assignment assignmentId submitted-students
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -664,7 +664,7 @@
  *     summary: GET super-admin assignment-submissions stats assignment assignmentId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -697,7 +697,7 @@
  *     summary: GET super-admin assignment-submissions stats grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -730,7 +730,7 @@
  *     summary: GET super-admin assignment-submissions stats group groupId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -763,7 +763,7 @@
  *     summary: GET super-admin assignments assignmentId download
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -796,7 +796,7 @@
  *     summary: DELETE super-admin assignments assignmentId permanent
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -829,7 +829,7 @@
  *     summary: GET super-admin assignments assignmentId preview
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -862,7 +862,7 @@
  *     summary: GET super-admin assignments grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -895,7 +895,7 @@
  *     summary: GET super-admin assignments group groupId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -928,7 +928,7 @@
  *     summary: GET super-admin attendance consecutive-absences
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -955,7 +955,7 @@
  *     summary: GET super-admin attendance dashboard
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -982,7 +982,7 @@
  *     summary: GET super-admin attendance grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1015,7 +1015,7 @@
  *     summary: GET super-admin attendance group groupId date date
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1053,7 +1053,7 @@
  *     summary: GET super-admin attendance group groupId month month
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1091,7 +1091,7 @@
  *     summary: GET super-admin attendance overall-stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1118,7 +1118,7 @@
  *     summary: POST super-admin attendance scan-barcode
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1151,7 +1151,7 @@
  *     summary: PUT super-admin attendance sessions id toggle-makeup
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1190,7 +1190,7 @@
  *     summary: GET super-admin attendance sessions active groupId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1223,7 +1223,7 @@
  *     summary: POST super-admin attendance sessions lock
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1256,7 +1256,7 @@
  *     summary: POST super-admin attendance sessions start
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1289,7 +1289,7 @@
  *     summary: GET super-admin attendance summary group groupId date date
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1327,7 +1327,7 @@
  *     summary: GET super-admin exam-results exam examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1360,7 +1360,7 @@
  *     summary: GET super-admin exam-results exam examId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1393,7 +1393,7 @@
  *     summary: GET super-admin exam-results grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1426,7 +1426,7 @@
  *     summary: GET super-admin exam-results group groupId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1459,7 +1459,7 @@
  *     summary: POST super-admin exam-results upsert-batch examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1498,7 +1498,7 @@
  *     summary: GET super-admin exams id stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1531,7 +1531,7 @@
  *     summary: GET super-admin exams grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1564,7 +1564,7 @@
  *     summary: GET super-admin exams grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1597,7 +1597,7 @@
  *     summary: GET super-admin exams group groupId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1630,7 +1630,7 @@
  *     summary: GET super-admin grades id stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1663,7 +1663,7 @@
  *     summary: POST super-admin grades find
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1696,7 +1696,7 @@
  *     summary: GET super-admin grades groups-count
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1723,7 +1723,7 @@
  *     summary: GET super-admin grades stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1750,7 +1750,7 @@
  *     summary: GET super-admin grades students-count
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1777,7 +1777,7 @@
  *     summary: GET super-admin groups id full-stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1810,7 +1810,7 @@
  *     summary: GET super-admin groups id stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1843,7 +1843,7 @@
  *     summary: POST super-admin groups find
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1876,7 +1876,7 @@
  *     summary: GET super-admin groups grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1909,7 +1909,7 @@
  *     summary: GET super-admin groups stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1936,7 +1936,7 @@
  *     summary: GET super-admin groups students-count
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1963,7 +1963,7 @@
  *     summary: GET super-admin groups with-grade-name
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1990,7 +1990,7 @@
  *     summary: DELETE super-admin online-exams examId permanent
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2023,7 +2023,7 @@
  *     summary: GET super-admin online-exams available
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2050,7 +2050,7 @@
  *     summary: GET super-admin online-exams expired
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2077,7 +2077,7 @@
  *     summary: GET super-admin online-exams grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2110,7 +2110,7 @@
  *     summary: GET super-admin online-exams group groupId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2143,7 +2143,7 @@
  *     summary: GET super-admin online-exams stats examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2176,7 +2176,7 @@
  *     summary: GET super-admin online-exams stats grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2209,7 +2209,7 @@
  *     summary: GET super-admin options question questionId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2242,7 +2242,7 @@
  *     summary: GET super-admin payments collections
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2269,7 +2269,7 @@
  *     summary: GET super-admin payments grade gradeId month month
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2307,7 +2307,7 @@
  *     summary: GET super-admin payments grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2340,7 +2340,7 @@
  *     summary: GET super-admin payments group groupId month month
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2378,7 +2378,7 @@
  *     summary: GET super-admin payments group groupId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2411,7 +2411,7 @@
  *     summary: GET super-admin payments overall
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2438,7 +2438,7 @@
  *     summary: GET super-admin payments students-status
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2465,7 +2465,7 @@
  *     summary: GET super-admin payments unpaid
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2492,7 +2492,7 @@
  *     summary: GET super-admin playlists grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2525,7 +2525,7 @@
  *     summary: GET super-admin questions questionId download
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2558,7 +2558,7 @@
  *     summary: GET super-admin questions questionId preview
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2591,7 +2591,7 @@
  *     summary: GET super-admin questions exam examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2624,7 +2624,7 @@
  *     summary: PUT super-admin student-answers answerId grade
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2663,7 +2663,7 @@
  *     summary: GET super-admin student-answers answerId preview
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2696,7 +2696,7 @@
  *     summary: GET super-admin student-answers essay exam examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2729,7 +2729,7 @@
  *     summary: GET super-admin student-answers essay pending
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2756,7 +2756,7 @@
  *     summary: GET super-admin student-answers question questionId options
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2789,7 +2789,7 @@
  *     summary: GET super-admin student-answers question questionId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2822,7 +2822,7 @@
  *     summary: GET super-admin student-exams exam examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2855,7 +2855,7 @@
  *     summary: GET super-admin student-exams exam examId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2888,7 +2888,7 @@
  *     summary: GET super-admin student-exams grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2921,7 +2921,7 @@
  *     summary: GET super-admin student-exams group groupId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2954,7 +2954,7 @@
  *     summary: GET super-admin students studentId assignments
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -2987,7 +2987,7 @@
  *     summary: GET super-admin students studentId assignments assignmentId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3025,7 +3025,7 @@
  *     summary: GET super-admin students studentId attendance
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3058,7 +3058,7 @@
  *     summary: GET super-admin students studentId attendance consecutive-absences
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3091,7 +3091,7 @@
  *     summary: GET super-admin students studentId attendance monthly
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3124,7 +3124,7 @@
  *     summary: GET super-admin students studentId attendance total
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3157,7 +3157,7 @@
  *     summary: GET super-admin students studentId exams online attemptId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3195,7 +3195,7 @@
  *     summary: GET super-admin students studentId exams online history
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3228,7 +3228,7 @@
  *     summary: GET super-admin students studentId exams paper
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3261,7 +3261,7 @@
  *     summary: GET super-admin students studentId exams paper examId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3299,7 +3299,7 @@
  *     summary: GET super-admin students studentId exams results
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3332,7 +3332,7 @@
  *     summary: GET super-admin students studentId payments
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3365,7 +3365,7 @@
  *     summary: GET super-admin students studentId payments current-subscription
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3398,7 +3398,7 @@
  *     summary: GET super-admin students studentId playlists
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3431,7 +3431,7 @@
  *     summary: GET super-admin students studentId submissions
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3464,7 +3464,7 @@
  *     summary: GET super-admin students studentId submissions submissionId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3502,7 +3502,7 @@
  *     summary: GET super-admin subscriptions grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3535,7 +3535,7 @@
  *     summary: GET super-admin subscriptions group groupId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3568,7 +3568,7 @@
  *     summary: GET super-admin subscriptions month month
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3601,7 +3601,7 @@
  *     summary: GET super-admin subscriptions overall
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3628,7 +3628,7 @@
  *     summary: GET super-admin subscriptions student studentId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3661,7 +3661,7 @@
  *     summary: GET super-admin subscriptions without-current
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3688,7 +3688,7 @@
  *     summary: GET super-admin videos videoId download
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3721,7 +3721,7 @@
  *     summary: GET super-admin videos videoId preview
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3754,7 +3754,7 @@
  *     summary: GET super-admin videos grade gradeId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Super Admin - Generated Routes
+ *       - Super Admin
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3787,7 +3787,7 @@
  *     summary: GET teacher assistants
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Teacher - Generated Routes
+ *       - Teacher
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3812,7 +3812,7 @@
  *     summary: GET teacher assistants userId
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Teacher - Generated Routes
+ *       - Teacher
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -3843,7 +3843,7 @@
  *     summary: GET teacher exams grade gradeId stats
  *     description: Generated from the currently mounted Express route.
  *     tags:
- *       - Teacher - Generated Routes
+ *       - Teacher
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
