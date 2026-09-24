@@ -1,8 +1,6 @@
 // Timezone utilities for Egypt (Africa/Cairo)
-// Keep one consistent representation at the API boundary:
-// - Database comparisons use real Date instances (an instant in time).
-// - API date-time strings are ISO-8601 with the Egypt offset.
-// - Date-only and time-only formats remain backward compatible where needed.
+// Database comparisons use real Date instances. API date-time values are
+// serialized as ISO-8601 values with the current Egypt offset.
 
 const TIMEZONE = "Africa/Cairo";
 
@@ -33,55 +31,67 @@ const offsetFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "longOffset",
 });
 
-const getPart = (parts, type) => {
-  return parts.find((part) => part.type === type)?.value || "";
-};
+const getPart = (parts, type) =>
+  parts.find((part) => part.type === type)?.value || "";
 
 const getEgyptOffset = (date) => {
-  const offset = getPart(offsetFormatter.formatToParts(date), "timeZoneName");
-  if (offset === "GMT" || !offset) return "+00:00";
-  return offset.replace(/^GMT/, "");
+  const value = getPart(offsetFormatter.formatToParts(date), "timeZoneName");
+  if (value === "GMT" || !value) return "+00:00";
+  return value.replace(/^GMT/, "");
 };
 
+const getOffsetMinutes = (date) => {
+  const offset = getEgyptOffset(date);
+  const match = /^([+-])(\d{2}):(\d{2})$/.exec(offset);
+  if (!match) return 0;
+
+  const minutes = Number(match[2]) * 60 + Number(match[3]);
+  return match[1] === "-" ? -minutes : minutes;
+};
+
+// Parse a date-time entered without a timezone as Egypt local time. The
+// offset is calculated through Intl so DST changes are handled by the runtime.
 const parseEgyptLocalDate = (value) => {
   const text = String(value).trim();
+  const dateTimeMatch = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(text);
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
 
-  // Date-only values are calendar dates in Egypt, not UTC timestamps.
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-    return new Date(`${text}T00:00:00+02:00`);
-  }
+  if (!dateTimeMatch && !dateOnlyMatch) return new Date(value);
 
-  // Old API/client values without an offset are Egypt local date-times.
-  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/.test(text)) {
-    const normalized = text.replace(" ", "T");
-    return new Date(`${normalized}${normalized.length === 16 ? ":00" : ""}+02:00`);
-  }
+  const [, year, month, day, hour = "00", minute = "00", second = "00", ms = ""] =
+    dateTimeMatch || [...dateOnlyMatch, "00", "00", "00", ""];
+  const milliseconds = ms ? ms.padEnd(3, "0") : "000";
 
-  return new Date(value);
+  // Treat the wall-clock components as UTC first, then remove Egypt's offset.
+  const wallClockAsUtc = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+    Number(milliseconds),
+  );
+  const initialGuess = new Date(wallClockAsUtc);
+  const offsetMs = getOffsetMinutes(initialGuess) * 60 * 1000;
+  return new Date(wallClockAsUtc - offsetMs);
 };
 
-// Validate and normalize date input.
 const normalizeDate = (date) => {
   if (!date) return null;
 
-  const d = date instanceof Date
-    ? new Date(date.getTime())
-    : parseEgyptLocalDate(date);
+  const value = date instanceof Date ? new Date(date.getTime()) : date;
+  const normalized =
+    typeof value === "string" ? parseEgyptLocalDate(value) : new Date(value);
 
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
+  if (Number.isNaN(normalized.getTime())) return null;
+  return normalized;
 };
 
-// Return the real current instant. Formatting it for Egypt happens only at
-// display/serialization boundaries; never rebuild a Date from wall-clock parts.
+// Return the actual current instant. Never rebuild Date from Egypt wall-clock
+// components because that changes the instant and breaks deadline comparisons.
 const getNowEgypt = () => new Date();
 
-// Supported formats:
-// - YYYY-MM-DD
-// - DD/MM/YYYY
-// - HH:mm:ss
-// - ISO / YYYY-MM-DDTHH:mm:ssZ: parseable Egypt ISO value
-// - YYYY-MM-DD HH:mm:ss: kept as a legacy display format
 const formatEgyptTime = (date, format = "YYYY-MM-DD HH:mm:ss") => {
   const d = normalizeDate(date);
   if (!d) return null;
@@ -103,13 +113,27 @@ const formatEgyptTime = (date, format = "YYYY-MM-DD HH:mm:ss") => {
       return `${hour}:${minute}:${second}`;
     case "ISO":
     case "YYYY-MM-DDTHH:mm:ssZ":
-      return `${year}-${month}-${day}T${hour}:${minute}:${second}${getEgyptOffset(d)}`;
     case "YYYY-MM-DD HH:mm:ss":
     default:
-      // ISO-compatible output prevents Invalid Date in JavaScript clients while
-      // keeping the requested Egypt local clock value.
       return `${year}-${month}-${day}T${hour}:${minute}:${second}${getEgyptOffset(d)}`;
   }
+};
+
+const serializeApiDates = (value, seen = new WeakSet()) => {
+  if (value instanceof Date) return formatEgyptTime(value, "ISO");
+  if (!value || typeof value !== "object") return value;
+  if (seen.has(value)) return value;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeApiDates(item, seen));
+  }
+
+  const result = {};
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = serializeApiDates(item, seen);
+  }
+  return result;
 };
 
 const getTodayEgypt = () => {
@@ -125,9 +149,7 @@ const getCurrentMonthEgypt = () => {
 const compareEgyptDates = (date1, date2) => {
   const d1 = normalizeDate(date1);
   const d2 = normalizeDate(date2);
-
   if (!d1 || !d2) return null;
-
   if (d1.getTime() < d2.getTime()) return -1;
   if (d1.getTime() > d2.getTime()) return 1;
   return 0;
@@ -141,4 +163,5 @@ module.exports = {
   getNowEgypt,
   compareEgyptDates,
   normalizeDate,
+  serializeApiDates,
 };
