@@ -5,7 +5,7 @@ const fs = require("fs");
 
 // Load environment file based on NODE_ENV with fallback to .env
 const rootDir = path.join(__dirname, "../../");
-const prodEnvPath = path.join(rootDir, ".env.production");
+const prodEnvPath = path.join(rootDir, ".env");
 const defaultEnvPath = path.join(rootDir, ".env");
 
 if (process.env.NODE_ENV === "production" && fs.existsSync(prodEnvPath)) {

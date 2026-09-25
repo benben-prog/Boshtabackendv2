@@ -85,22 +85,17 @@ if (env.NODE_ENV === "production") {
 }
 
 // ============================================
-// CORS HEADERS
+// CORS (Completely Unrestricted - No Blocking)
 // ============================================
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = env.CORS_ORIGINS;
-  const allowAllOrigins = allowedOrigins.length === 0 && env.NODE_ENV !== "production";
-  const originAllowed = Boolean(origin && allowedOrigins.includes(origin));
-
-  if (originAllowed) {
+  if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Vary", "Origin");
-  } else if (allowAllOrigins) {
+  } else {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Credentials", "false");
   }
 
   res.setHeader(
@@ -109,8 +104,9 @@ app.use((req, res, next) => {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-client-key, x-super-admin-key",
+    "Content-Type, Authorization, x-client-key, x-super-admin-key, *",
   );
+  res.setHeader("Access-Control-Expose-Headers", "*");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
   if (req.method === "OPTIONS") {
