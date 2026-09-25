@@ -6,7 +6,7 @@ const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "منصة بوشطة التعليمية | Boshta Learn Platform API",
+      title: "منصة بشتة التعليمية | Boshta Learn Platform API",
       version: "1.0.0",
       description:
         "التوثيق الشامل والرسمي لجميع واجهات برمجة التطبيقات (RESTful API) لمنصة بوشطة التعليمية.\n" +
