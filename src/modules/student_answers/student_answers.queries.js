@@ -6,6 +6,11 @@
 const insertAnswer = `
 INSERT INTO student_answers (exam_id, student_id, question_id, selected_option_id, is_correct)
 VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (exam_id, student_id, question_id)
+DO UPDATE SET
+  selected_option_id = EXCLUDED.selected_option_id,
+  is_correct = EXCLUDED.is_correct,
+  submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
 RETURNING *
 `;
 
@@ -13,6 +18,10 @@ RETURNING *
 const insertEssayAnswer = `
 INSERT INTO student_answers (exam_id, student_id, question_id, file_path, is_correct)
 VALUES ($1, $2, $3, $4, NULL)
+ON CONFLICT (exam_id, student_id, question_id)
+DO UPDATE SET
+  file_path = EXCLUDED.file_path,
+  submitted_at = NOW() AT TIME ZONE 'Africa/Cairo'
 RETURNING *
 `;
 

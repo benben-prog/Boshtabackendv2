@@ -1,4 +1,4 @@
-const { query } = require("../../config/database");
+const { query, transaction } = require("../../config/database");
 const paymentQueries = require("./payments.queries");
 const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.service");
 
@@ -93,19 +93,20 @@ const createPayment = async (paymentData) => {
   }
 
   // Create payment
-  const paymentResult = await query(paymentQueries.createPayment, [
-    subscription_id,
-    student_id,
-    finalAmount,
-    payment_date,
-    payment_mode,
-    notes,
-  ]);
+  const payment = await transaction(async (client) => {
+    const paymentResult = await client.query(paymentQueries.createPayment, [
+      subscription_id,
+      student_id,
+      finalAmount,
+      payment_date,
+      payment_mode,
+      notes,
+    ]);
 
-  // Mark subscription as paid
-  await query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
+    await client.query(paymentQueries.markSubscriptionAsPaid, [subscription_id]);
 
-  const payment = paymentResult.rows[0];
+    return paymentResult.rows[0];
+  });
 
   // Send WhatsApp notification (fire and forget)
   if (payment) {
@@ -254,28 +255,33 @@ const updatePayment = async (id, paymentData) => {
 // ============================================
 
 const deletePayment = async (id) => {
-  const paymentInfo = await query(paymentQueries.getPaymentSubscriptionId, [
-    id,
-  ]);
+  return await transaction(async (client) => {
+    const paymentInfo = await client.query(
+      paymentQueries.getPaymentSubscriptionId,
+      [id],
+    );
 
-  if (!paymentInfo.rows[0]) {
-    throw new Error("الدفعة غير موجودة");
-  }
+    if (!paymentInfo.rows[0]) {
+      throw new Error("الدفعة غير موجودة");
+    }
 
-  const subscription_id = paymentInfo.rows[0].subscription_id;
+    const subscription_id = paymentInfo.rows[0].subscription_id;
 
-  const result = await query(paymentQueries.deletePayment, [id]);
+    const result = await client.query(paymentQueries.deletePayment, [id]);
 
-  const otherPayments = await query(paymentQueries.checkOtherPayments, [
-    subscription_id,
-    id,
-  ]);
+    const otherPayments = await client.query(
+      paymentQueries.checkOtherPayments,
+      [subscription_id, id],
+    );
 
-  if (parseInt(otherPayments.rows[0].count) === 0) {
-    await query(paymentQueries.revertSubscriptionToUnpaid, [subscription_id]);
-  }
+    if (parseInt(otherPayments.rows[0].count) === 0) {
+      await client.query(paymentQueries.revertSubscriptionToUnpaid, [
+        subscription_id,
+      ]);
+    }
 
-  return result.rows[0];
+    return result.rows[0];
+  });
 };
 
 // ============================================

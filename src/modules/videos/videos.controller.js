@@ -197,7 +197,7 @@ const downloadVideoFile = async (req, res, next) => {
       throw new Error("الملف غير موجود");
     }
 
-    const filePath = path.join(__dirname, "../../../", video.file_url);
+    const filePath = resolveStoredPath(video.file_url);
 
     if (!filePath || !fs.existsSync(filePath)) {
       throw new Error("الملف غير موجود");

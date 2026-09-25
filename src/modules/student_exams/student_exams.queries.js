@@ -200,26 +200,46 @@ RETURNING *
 const autoSubmitExpiredExams = `
 UPDATE student_exams se
 SET submitted_at = NOW() AT TIME ZONE 'Africa/Cairo',
-    score = COALESCE(
-      (SELECT 
-        ROUND(
-          (COUNT(CASE WHEN sa.is_correct = 1 THEN 1 END)::numeric / 
-          NULLIF(COUNT(sa.id), 0)) * oe.full_mark, 2
-        )
-      FROM student_answers sa
-      JOIN questions q ON sa.question_id = q.id
-      JOIN online_exams oe ON sa.exam_id = oe.id
-      WHERE sa.exam_id = se.exam_id 
-        AND sa.student_id = se.student_id
-        AND q.type IN ('mcq', 'true_false')
-        AND sa.is_correct IS NOT NULL
-      ),
-      0
-    )
+    score = CASE 
+      WHEN EXISTS (
+        SELECT 1 FROM questions q 
+        WHERE q.exam_id = se.exam_id AND q.type = 'essay'
+      ) THEN NULL
+      ELSE COALESCE(
+        (
+          SELECT 
+            ROUND(
+              (COUNT(CASE WHEN sa.is_correct = 1 THEN 1 END)::numeric / 
+              NULLIF(COUNT(q.id), 0)) * MAX(oe.full_mark), 
+              2
+            )
+          FROM questions q
+          JOIN online_exams oe ON q.exam_id = oe.id
+          LEFT JOIN student_answers sa 
+            ON sa.question_id = q.id 
+           AND sa.student_id = se.student_id 
+           AND sa.exam_id = se.exam_id
+           AND sa.is_correct IS NOT NULL
+          WHERE q.exam_id = se.exam_id
+            AND q.type IN ('mcq', 'true_false')
+        ),
+        0
+      )
+    END
 WHERE se.submitted_at IS NULL
-  AND se.exam_id IN (
-    SELECT id FROM online_exams 
-    WHERE end_at < NOW() AT TIME ZONE 'Africa/Cairo'
+  AND (
+    se.exam_id IN (
+      SELECT id FROM online_exams 
+      WHERE end_at < NOW() AT TIME ZONE 'Africa/Cairo'
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM online_exams oe
+      WHERE oe.id = se.exam_id
+        AND oe.duration_minutes IS NOT NULL
+        AND oe.duration_minutes > 0
+        AND se.started_at + (oe.duration_minutes * INTERVAL '1 minute') < NOW() AT TIME ZONE 'Africa/Cairo'
+    )
   )
 RETURNING se.id, se.student_id, se.exam_id
 `;

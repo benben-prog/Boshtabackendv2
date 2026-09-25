@@ -76,15 +76,15 @@ WHERE al.user_id = $1
 const getOnlineAssistantDashboard = `
 SELECT 
   (SELECT COUNT(*) FROM online_exams WHERE deleted = 0) AS total_online_exams,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AND start_at <= NOW()) AS active_online_exams,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND start_at > NOW()) AS upcoming_online_exams,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at < NOW()) AS expired_online_exams,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AT TIME ZONE 'Africa/Cairo' AND start_at <= NOW() AT TIME ZONE 'Africa/Cairo') AS active_online_exams,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND start_at > NOW() AT TIME ZONE 'Africa/Cairo') AS upcoming_online_exams,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at < NOW() AT TIME ZONE 'Africa/Cairo') AS expired_online_exams,
   (SELECT COUNT(*) FROM questions) AS total_questions,
   (SELECT COUNT(*) FROM questions WHERE type = 'mcq') AS mcq_questions,
   (SELECT COUNT(*) FROM questions WHERE type = 'true_false') AS true_false_questions,
   (SELECT COUNT(*) FROM questions WHERE type = 'essay') AS essay_questions,
   (SELECT COUNT(*) FROM assignments WHERE deleted = 0) AS total_assignments,
-  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AND is_closed = 0) AS active_assignments,
+  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AT TIME ZONE 'Africa/Cairo' AND is_closed = 0) AS active_assignments,
   (SELECT COUNT(*) FROM assignment_submissions WHERE score IS NULL) AS pending_grading,
   (SELECT COUNT(*) FROM videos) AS total_videos,
   (SELECT COUNT(*) FROM playlists) AS total_playlists
@@ -96,16 +96,16 @@ SELECT
   (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
   (SELECT COUNT(*) FROM grades WHERE deleted = 0) AS total_grades,
   (SELECT COUNT(*) FROM groups WHERE deleted = 0) AS total_groups,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AND start_at <= NOW()) AS active_online_exams,
-  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AND is_closed = 0) AS active_assignments,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AT TIME ZONE 'Africa/Cairo' AND start_at <= NOW() AT TIME ZONE 'Africa/Cairo') AS active_online_exams,
+  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AT TIME ZONE 'Africa/Cairo' AND is_closed = 0) AS active_assignments,
   (SELECT COUNT(*) FROM assignment_submissions WHERE score IS NULL) AS pending_grading,
   (SELECT COUNT(*) FROM videos) AS total_videos,
   (SELECT COUNT(*) FROM playlists) AS total_playlists,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AT TIME ZONE 'Africa/Cairo' AND status = 'present') AS present_today,
-  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AT TIME ZONE 'Africa/Cairo' AND status = 'absent') AS absent_today,
-  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE TO_CHAR(payment_date AT TIME ZONE 'Africa/Cairo', 'YYYY-MM') = TO_CHAR(CURRENT_DATE AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')) AS total_paid_month,
+  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'present') AS present_today,
+  (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'absent') AS absent_today,
+  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE TO_CHAR(payment_date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS total_paid_month,
   (SELECT COUNT(*) FROM students WHERE deleted = 0 AND id NOT IN (
-    SELECT student_id FROM subscriptions WHERE month = TO_CHAR(CURRENT_DATE AT TIME ZONE 'Africa/Cairo', 'YYYY-MM') AND deleted = 0
+    SELECT student_id FROM subscriptions WHERE month = TO_CHAR(CURRENT_DATE, 'YYYY-MM') AND deleted = 0
   )) AS unpaid_students
 `;
 

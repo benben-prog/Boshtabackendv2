@@ -1,5 +1,5 @@
 const fs = require("fs");
-const path = require("path");
+const { resolveStoredPath } = require("../utils/fileStorage");
 
 // Middleware to preview files securely
 const previewFile = (filePath) => {
@@ -11,12 +11,10 @@ const previewFile = (filePath) => {
       });
     }
 
-    // Remove leading slash if exists
-    const cleanPath = filePath.replace(/^\//, "");
-    const fullPath = path.join(process.cwd(), cleanPath);
+    const fullPath = resolveStoredPath(filePath);
 
-    // Check if file exists
-    if (!fs.existsSync(fullPath)) {
+    // Check if file exists within allowed storage root
+    if (!fullPath || !fs.existsSync(fullPath)) {
       return res.status(404).json({
         success: false,
         message: "الملف غير موجود",

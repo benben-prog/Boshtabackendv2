@@ -1,11 +1,20 @@
 const dotenv = require("dotenv");
 const path = require("path");
 
-// Load environment file based on NODE_ENV
-const envFile =
-  process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+const fs = require("fs");
 
-dotenv.config({ path: path.join(__dirname, "../../", envFile) });
+// Load environment file based on NODE_ENV with fallback to .env
+const rootDir = path.join(__dirname, "../../");
+const prodEnvPath = path.join(rootDir, ".env.production");
+const defaultEnvPath = path.join(rootDir, ".env");
+
+if (process.env.NODE_ENV === "production" && fs.existsSync(prodEnvPath)) {
+  dotenv.config({ path: prodEnvPath });
+} else if (fs.existsSync(defaultEnvPath)) {
+  dotenv.config({ path: defaultEnvPath });
+} else {
+  dotenv.config();
+}
 
 const isProduction = process.env.NODE_ENV === "production";
 const parseBoolean = (value, fallback) => {
@@ -84,7 +93,7 @@ module.exports = {
   ),
   DB_POOL_CONNECTION_TIMEOUT: parsePositiveInt(
     process.env.DB_POOL_CONNECTION_TIMEOUT,
-    5000,
+    10000,
     "DB_POOL_CONNECTION_TIMEOUT",
   ),
 

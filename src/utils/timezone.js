@@ -2,6 +2,8 @@
 // Egypt observes DST: UTC+2 (winter), UTC+3 (summer)
 // Africa/Cairo handles DST automatically
 
+process.env.TZ = "Africa/Cairo";
+
 const TIMEZONE = "Africa/Cairo";
 
 // Cache formatters for better performance
@@ -39,21 +41,9 @@ const normalizeDate = (date) => {
 };
 
 // Get current time in Egypt as a Date object
-// The returned Date represents Egypt local time
+// Returns current Date (with process.env.TZ = Africa/Cairo, local representations reflect Egypt time)
 const getNowEgypt = () => {
-  const now = new Date();
-  const parts = dateTimeFormatter.formatToParts(now);
-
-  const year = getPart(parts, "year");
-  const month = getPart(parts, "month");
-  const day = getPart(parts, "day");
-  const hour = getPart(parts, "hour");
-  const minute = getPart(parts, "minute");
-  const second = getPart(parts, "second");
-
-  // Build ISO-like string in Egypt local time
-  const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
-  return new Date(isoString);
+  return new Date();
 };
 
 // Format a date to Egypt time string

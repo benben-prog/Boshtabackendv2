@@ -72,7 +72,7 @@ SELECT
 FROM exams e
 WHERE e.grade_id = $1
   AND e.deleted = 0
-  AND e.exam_date >= CURRENT_DATE AT TIME ZONE 'Africa/Cairo'
+  AND e.exam_date >= CURRENT_DATE
   AND (e.group_id IS NULL OR e.group_id = $2)
 ORDER BY e.exam_date ASC
 LIMIT 5

@@ -32,8 +32,8 @@ SELECT
 const getExamsStats = `
 SELECT 
   (SELECT COUNT(*) FROM exams WHERE deleted = 0 AND exam_date >= CURRENT_DATE) AS upcoming_paper_exams,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND start_at > NOW()) AS upcoming_online_exams,
-  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AND start_at <= NOW()) AS active_online_exams,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND start_at > NOW() AT TIME ZONE 'Africa/Cairo') AS upcoming_online_exams,
+  (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AT TIME ZONE 'Africa/Cairo' AND start_at <= NOW() AT TIME ZONE 'Africa/Cairo') AS active_online_exams,
   (SELECT ROUND(AVG(er.degree)::numeric, 2) FROM exam_results er) AS avg_paper_score,
   (SELECT ROUND(AVG(se.score)::numeric, 2) FROM student_exams se WHERE se.submitted_at IS NOT NULL) AS avg_online_score
 `;
@@ -41,7 +41,7 @@ SELECT
 // Get assignments stats
 const getAssignmentsStats = `
 SELECT 
-  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AND is_closed = 0) AS active_assignments,
+  (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline > NOW() AT TIME ZONE 'Africa/Cairo' AND is_closed = 0) AS active_assignments,
   (SELECT COUNT(*) FROM assignment_submissions WHERE score IS NULL) AS pending_grading,
   (SELECT COUNT(*) FROM assignments WHERE deleted = 0 AND deadline >= CURRENT_DATE AND deadline <= CURRENT_DATE + INTERVAL '3 days') AS due_soon
 `;

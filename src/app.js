@@ -1,3 +1,5 @@
+process.env.TZ = "Africa/Cairo";
+
 const express = require("express");
 const helmet = require("helmet");
 const compression = require("compression");
@@ -165,6 +167,17 @@ app.use(
     },
   }),
 );
+app.use(
+  "/uploads/exams",
+  express.static(path.join(UPLOAD_ROOT, "exams"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "private, no-cache");
+      res.setHeader("Content-Disposition", "inline");
+    },
+  }),
+);
 
 // ============================================
 // ROOT ROUTES
@@ -196,10 +209,13 @@ app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: "JupiterLearn API Docs",
+    customSiteTitle: "Boshta Learn Platform API Docs | منصة بوشطة التعليمية",
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: "none",
+      filter: true,
+      displayRequestDuration: true,
+      tryItOutEnabled: true,
     },
   }),
 );
@@ -219,7 +235,7 @@ let platformStatusCache = {
 
 const REFRESH_INTERVAL = 60000; // 60 seconds
 
-async function refreshPlatformStatus() {
+async function refreshPlatformStatus(retries = 3) {
   try {
     const result = await query(
       "SELECT platform_status FROM settings WHERE id = 1",
@@ -227,12 +243,16 @@ async function refreshPlatformStatus() {
     platformStatusCache.status = result.rows[0]?.platform_status || "active";
     platformStatusCache.lastUpdated = new Date();
   } catch (error) {
-    console.error("Error fetching platform status:", error.message);
+    if (retries > 0) {
+      setTimeout(() => refreshPlatformStatus(retries - 1), 3000);
+    } else {
+      console.error("Error fetching platform status:", error.message);
+    }
   }
 }
 
-// Initial fetch
-refreshPlatformStatus();
+// Initial fetch with slight delay to allow DB pool handshake to complete
+setTimeout(() => refreshPlatformStatus(), 1500);
 
 // Periodic refresh
 setInterval(refreshPlatformStatus, REFRESH_INTERVAL);

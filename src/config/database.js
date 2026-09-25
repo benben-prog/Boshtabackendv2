@@ -25,8 +25,8 @@ function getSslConfig() {
     };
   }
 
-  // Production or explicitly enabled SSL
-  if (isProduction || env.DB_SSL) {
+  // Explicitly enabled SSL
+  if (env.DB_SSL) {
     return {
       rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED,
     };
@@ -42,6 +42,7 @@ function getPoolConfig() {
     idleTimeoutMillis: env.DB_POOL_IDLE_TIMEOUT,
     max: env.DB_POOL_MAX,
     allowExitOnIdle: false,
+    options: "-c timezone=Africa/Cairo -c datestyle=ISO,DMY",
   };
 
   if (env.DATABASE_URL) {
@@ -63,16 +64,9 @@ function getPoolConfig() {
 
 const pool = new Pool(getPoolConfig());
 
-pool.on("connect", async (client) => {
-  try {
-    await client.query("SET TIME ZONE 'Africa/Cairo'");
-    await client.query("SET datestyle TO 'ISO, DMY'");
-
-    if (env.NODE_ENV !== "production") {
-      console.log("Database connected successfully");
-    }
-  } catch (error) {
-    console.error("Error setting timezone:", error.message);
+pool.on("connect", () => {
+  if (env.NODE_ENV !== "production") {
+    console.log("Database connected successfully");
   }
 });
 

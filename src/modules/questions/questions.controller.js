@@ -215,7 +215,7 @@ const downloadQuestionFile = async (req, res, next) => {
       throw new Error("الملف غير موجود");
     }
 
-    const filePath = path.join(__dirname, "../../../", question.file_path);
+    const filePath = resolveStoredPath(question.file_path);
 
     if (!filePath || !fs.existsSync(filePath)) {
       throw new Error("الملف غير موجود");

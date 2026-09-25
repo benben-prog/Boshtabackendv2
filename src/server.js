@@ -1,6 +1,9 @@
+process.env.TZ = "Africa/Cairo";
+
 const app = require("./app");
 const env = require("./config/env");
 const { testConnection, closePool } = require("./config/database");
+const { startExamCron, stopExamCron } = require("./jobs/examCron.job");
 
 const PORT = env.PORT;
 const GRACEFUL_SHUTDOWN_TIMEOUT = 10000; // 10 seconds
@@ -38,6 +41,12 @@ async function startServer() {
     } catch (error) {
       console.error("Failed to start WhatsApp system:", error.message);
     }
+
+    try {
+      startExamCron();
+    } catch (error) {
+      console.error("Failed to start exam cron jobs:", error.message);
+    }
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
@@ -54,6 +63,13 @@ async function gracefulShutdown(signal) {
     } catch (error) {
       console.error("Error stopping WhatsApp system:", error.message);
     }
+  }
+
+  // Stop exam cron jobs
+  try {
+    stopExamCron();
+  } catch (error) {
+    console.error("Error stopping exam cron jobs:", error.message);
   }
 
   if (!server) {
