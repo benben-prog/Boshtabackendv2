@@ -51,7 +51,7 @@ SELECT
   COUNT(a.id) AS total_days,
   COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_days,
   COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_days,
-  COUNT(CASE WHEN a.is_makeup = true OR a.is_makeup = 1 THEN 1 END) AS makeup_days,
+  COUNT(CASE WHEN a.is_makeup::text IN ('1', 'true') THEN 1 END) AS makeup_days,
   ROUND(
     (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / 
     NULLIF(COUNT(a.id), 0)) * 100, 2
