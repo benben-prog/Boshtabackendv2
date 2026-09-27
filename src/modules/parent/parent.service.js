@@ -1,13 +1,21 @@
 const { query } = require("../../config/database");
 const parentQueries = require("./parent.queries");
 const stdQr = require("../students/students.queries");
+
 // ============================================
 // GETTERS
 // ============================================
+
 const getPerentTokenByParentPhone = async (parent_phone) => {
   const result = await query(stdQr.findStudentByParentPhone, [parent_phone]);
   return result.rows[0];
-}
+};
+
+const getStudentsByParentPhone = async (parent_phone) => {
+  const result = await query(parentQueries.getStudentsByParentPhone, [parent_phone]);
+  return result.rows;
+};
+
 const getStudentByParentToken = async (token) => {
   const result = await query(parentQueries.getStudentByParentToken, [token]);
   return result.rows[0];
@@ -20,10 +28,10 @@ const getParentDashboardAttendance = async (studentId) => {
   return result.rows[0];
 };
 
-const getAttendanceHistory = async (studentId, page = 1) => {
+const getAttendanceHistory = async (studentId, limit = 500) => {
   const result = await query(parentQueries.getAttendanceHistory, [
     studentId,
-    page,
+    limit,
   ]);
   return result.rows;
 };
@@ -35,10 +43,10 @@ const getParentDashboardPayments = async (studentId) => {
   return result.rows[0];
 };
 
-const getPaymentHistory = async (studentId, page = 1) => {
+const getPaymentHistory = async (studentId, limit = 500) => {
   const result = await query(parentQueries.getPaymentHistory, [
     studentId,
-    page,
+    limit,
   ]);
   return result.rows;
 };
@@ -67,6 +75,7 @@ const getStudentOverallStats = async (studentId) => {
 
 module.exports = {
   getPerentTokenByParentPhone,
+  getStudentsByParentPhone,
   getStudentByParentToken,
   getParentDashboardAttendance,
   getAttendanceHistory,
