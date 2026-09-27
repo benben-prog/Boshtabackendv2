@@ -42,7 +42,7 @@ FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE s.deleted = 0
-  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
+  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
 ORDER BY s.full_name ASC
@@ -54,7 +54,7 @@ const getStudentsCount = `
 SELECT COUNT(*) AS count
 FROM students s
 WHERE s.deleted = 0
-  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
+  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
 `;
@@ -86,7 +86,7 @@ FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE s.deleted = 0
-  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
+  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
 ORDER BY s.full_name ASC
@@ -381,7 +381,7 @@ SELECT
 FROM attendance a
 LEFT JOIN groups gr ON a.group_id = gr.id
 WHERE a.student_id = $1
-  AND ($2 = '' OR TO_CHAR(a.attendance_date, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(a.attendance_date, 'YYYY-MM') = $2::text)
 ORDER BY a.attendance_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
@@ -452,7 +452,7 @@ SELECT
 FROM payments p
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
 WHERE p.student_id = $1
-  AND ($2 = '' OR TO_CHAR(p.payment_date, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(p.payment_date, 'YYYY-MM') = $2::text)
 ORDER BY p.payment_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
@@ -495,7 +495,7 @@ FROM exams e
 LEFT JOIN exam_results er ON e.id = er.exam_id AND er.student_id = $1
 WHERE e.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND e.deleted = 0
-  AND ($2 = '' OR TO_CHAR(e.exam_date, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(e.exam_date, 'YYYY-MM') = $2::text)
 ORDER BY e.exam_date DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
@@ -587,7 +587,7 @@ FROM student_exams se
 JOIN online_exams oe ON se.exam_id = oe.id
 WHERE se.student_id = $1
   AND se.submitted_at IS NOT NULL
-  AND ($2 = '' OR TO_CHAR(se.submitted_at, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(se.submitted_at, 'YYYY-MM') = $2::text)
 ORDER BY se.submitted_at DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
@@ -634,7 +634,7 @@ FROM assignments a
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = $1
 WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND a.deleted = 0
-  AND ($2 = '' OR TO_CHAR(a.deadline, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(a.deadline, 'YYYY-MM') = $2::text)
 ORDER BY a.deadline DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
@@ -658,7 +658,7 @@ SELECT
 FROM assignment_submissions asub
 JOIN assignments a ON asub.assignment_id = a.id
 WHERE asub.student_id = $1
-  AND ($2 = '' OR TO_CHAR(asub.submitted_at, 'YYYY-MM') = $2)
+  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(asub.submitted_at, 'YYYY-MM') = $2::text)
 ORDER BY asub.submitted_at DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;

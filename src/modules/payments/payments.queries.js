@@ -45,10 +45,10 @@ JOIN students s ON p.student_id = s.id AND s.deleted = 0
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
-WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
+WHERE ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
-  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
+  AND ($4::text IS NULL OR $4::text = '' OR sub.month = $4::text OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4::text)
 ORDER BY p.payment_date DESC
 LIMIT COALESCE($6::int, 20) OFFSET (($5::int - 1) * COALESCE($6::int, 20))
 `;
@@ -61,10 +61,10 @@ SELECT
 FROM payments p
 JOIN students s ON p.student_id = s.id AND s.deleted = 0
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
-WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
+WHERE ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
-  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
+  AND ($4::text IS NULL OR $4::text = '' OR sub.month = $4::text OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4::text)
 `;
 
 // Get all payments for export (unpaginated)
@@ -88,10 +88,10 @@ JOIN students s ON p.student_id = s.id AND s.deleted = 0
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
-WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
+WHERE ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
-  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
+  AND ($4::text IS NULL OR $4::text = '' OR sub.month = $4::text OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4::text)
 ORDER BY p.payment_date DESC
 `;
 

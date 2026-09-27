@@ -33,9 +33,9 @@ SELECT
   al.created_at
 FROM activity_logs al
 LEFT JOIN users u ON al.user_id = u.id
-WHERE ($1 = '' OR al.entity_type = $1)
+WHERE ($1::text IS NULL OR $1::text = '' OR al.entity_type = $1::text)
   AND ($2::date IS NULL OR DATE(al.created_at AT TIME ZONE 'Africa/Cairo') = $2::date)
-  AND ($3 = '' OR al.user_role = $3)
+  AND ($3::text IS NULL OR $3::text = '' OR al.user_role = $3::text)
 ORDER BY al.created_at DESC
 LIMIT 20 OFFSET (($4::int - 1) * 20)
 `;
@@ -44,9 +44,9 @@ LIMIT 20 OFFSET (($4::int - 1) * 20)
 const getActivityLogsCount = `
 SELECT COUNT(*) AS count
 FROM activity_logs al
-WHERE ($1 = '' OR al.entity_type = $1)
+WHERE ($1::text IS NULL OR $1::text = '' OR al.entity_type = $1::text)
   AND ($2::date IS NULL OR DATE(al.created_at AT TIME ZONE 'Africa/Cairo') = $2::date)
-  AND ($3 = '' OR al.user_role = $3)
+  AND ($3::text IS NULL OR $3::text = '' OR al.user_role = $3::text)
 `;
 
 // Get activity logs for specific user (online assistant)

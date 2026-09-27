@@ -35,7 +35,7 @@ LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
 WHERE gr.deleted = 0
   AND ($1::int IS NULL OR gr.grade_id = $1::int)
-  AND ($2 = '' OR gr.name ILIKE $2)
+  AND ($2::text IS NULL OR $2::text = '' OR gr.name ILIKE $2::text)
 GROUP BY gr.id, gr.name, gr.grade_id, g.name, gr.days, gr.start_time, gr.end_time, gr.room, gr.created_at, gr.updated_at
 ORDER BY gr.name ASC
 `;

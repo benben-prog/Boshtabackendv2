@@ -26,7 +26,7 @@ SELECT
   updated_at
 FROM grades
 WHERE deleted = 0
-  AND ($1 = '' OR name ILIKE $1)
+  AND ($1::text IS NULL OR $1::text = '' OR name ILIKE $1::text)
 ORDER BY name ASC
 `;
 
