@@ -13,6 +13,10 @@ routes.post("/", validate(createPaymentSchema), paymentController.createPayment)
 // Get all payments
 routes.get("/", paymentController.getAllPayments);
 
+// Export payments
+routes.get("/export/excel", paymentController.exportPaymentsExcel);
+routes.get("/export/pdf", paymentController.exportPaymentsPdf);
+
 // Get monthly collections
 routes.get("/collections", paymentController.getMonthlyCollections);
 

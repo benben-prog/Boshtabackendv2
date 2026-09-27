@@ -1,6 +1,15 @@
 const examResultService = require("./exam_results.service");
+const examsService = require("../exams/exams.service");
 const { logActivity } = require("../../utils/activityLogger");
 const { formatEgyptTime } = require("../../utils/timezone");
+const {
+  exportExamResultsToExcel,
+  sendExcelResponse,
+} = require("../../utils/excelExporter");
+const {
+  renderExamResultsReportHtml,
+  sendReportHtml,
+} = require("../../utils/pdfHtmlExporter");
 
 // ============================================
 // HELPER: Format dates
@@ -294,6 +303,60 @@ const getGroupExamResultsStats = async (req, res, next) => {
   }
 };
 
+// ============================================
+// EXPORT (EXCEL & PRINT/PDF)
+// ============================================
+
+const exportExamResultsExcel = async (req, res, next) => {
+  try {
+    const examId = req.params.examId || req.params.id;
+    const exam = await examsService.getExamById(examId);
+
+    if (!exam) {
+      return res.status(404).json({
+        success: false,
+        message: "الامتحان غير موجود",
+      });
+    }
+
+    const results = await examResultService.getExamResults(examId);
+    const stats = await examResultService.getExamResultStats(examId);
+
+    const { buffer, fileName } = exportExamResultsToExcel(exam, results, stats);
+    return sendExcelResponse(res, buffer, fileName);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportExamResultsPdf = async (req, res, next) => {
+  try {
+    const examId = req.params.examId || req.params.id;
+    const exam = await examsService.getExamById(examId);
+
+    if (!exam) {
+      return res.status(404).json({
+        success: false,
+        message: "الامتحان غير موجود",
+      });
+    }
+
+    const results = await examResultService.getExamResults(examId);
+    const stats = await examResultService.getExamResultStats(examId);
+
+    const excelUrl = req.originalUrl.replace("/export/pdf", "/export/excel");
+    const html = renderExamResultsReportHtml({
+      exam,
+      results,
+      stats,
+      excelUrl,
+    });
+    return sendReportHtml(res, html);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createExamResult,
   upsertExamResult,
@@ -304,4 +367,6 @@ module.exports = {
   getExamResultStats,
   getGradeExamResultsStats,
   getGroupExamResultsStats,
+  exportExamResultsExcel,
+  exportExamResultsPdf,
 };

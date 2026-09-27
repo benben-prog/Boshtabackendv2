@@ -65,6 +65,16 @@ routes.get(
 // Get exam results
 routes.get("/exam/:examId", examResultController.getExamResults);
 
+// Export exam results
+routes.get(
+  "/exam/:examId/export/excel",
+  examResultController.exportExamResultsExcel,
+);
+routes.get(
+  "/exam/:examId/export/pdf",
+  examResultController.exportExamResultsPdf,
+);
+
 // Get exam stats
 routes.get("/exam/:examId/stats", examResultController.getExamResultStats);
 

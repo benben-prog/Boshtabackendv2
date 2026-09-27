@@ -527,11 +527,11 @@ const getStudentsWithThreeConsecutiveAbsences = async () => {
 };
 
 const getDashboard = async (groupId) => {
-  if (!groupId) {
-    throw new Error("معرف المجموعة مطلوب لعرض الإحصائيات");
+  if (groupId) {
+    const result = await query(attendanceQueries.getDashboard, [groupId]);
+    return result.rows[0];
   }
-
-  const result = await query(attendanceQueries.getDashboard, [groupId]);
+  const result = await query(attendanceQueries.getDashboardGlobal);
   return result.rows[0];
 };
 const getAbsentStudentsByDate =async (date) => {

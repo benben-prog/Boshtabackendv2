@@ -1,5 +1,13 @@
 const studentService = require("./students.service");
 const { logActivity } = require("../../utils/activityLogger");
+const {
+  exportStudentsToExcel,
+  sendExcelResponse,
+} = require("../../utils/excelExporter");
+const {
+  renderStudentsReportHtml,
+  sendReportHtml,
+} = require("../../utils/pdfHtmlExporter");
 
 // ============================================
 // PART 1: CRUD & SEARCH
@@ -31,15 +39,38 @@ const createStudent = async (req, res, next) => {
 
 const getAllStudents = async (req, res, next) => {
   try {
-    const { search = "", grade_id = null, group_id = null } = req.query;
-    const page = parseInt(req.query.page) || 1;
+    const { search = "", grade_id = null, group_id = null, all } = req.query;
+    const isAll =
+      all === "true" ||
+      req.query.limit === "all" ||
+      parseInt(req.query.limit) >= 500;
 
     const filters = {
       search,
-      grade_id: grade_id ? parseInt(grade_id) : null,
-      group_id: group_id ? parseInt(group_id) : null,
-      page,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
     };
+
+    if (isAll) {
+      const students = await studentService.getAllStudentsForExport(filters);
+      return res.status(200).json({
+        success: true,
+        message: "تم تحميل البيانات بنجاح",
+        data: students,
+        pagination: {
+          page: 1,
+          limit: students.length,
+          total: students.length,
+          totalPages: 1,
+          is_all: true,
+        },
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    filters.page = page;
+    filters.limit = limit;
 
     const students = await studentService.getAllStudents(filters);
     const { count } = await studentService.getStudentsCount(filters);
@@ -50,11 +81,63 @@ const getAllStudents = async (req, res, next) => {
       data: students,
       pagination: {
         page,
-        limit: 20,
+        limit,
         total: parseInt(count),
-        totalPages: Math.ceil(parseInt(count) / 20),
+        totalPages: Math.ceil(parseInt(count) / limit),
+        is_all: false,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportStudentsExcel = async (req, res, next) => {
+  try {
+    const { search = "", grade_id = null, group_id = null } = req.query;
+    const filters = {
+      search,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
+    };
+
+    const students = await studentService.getAllStudentsForExport(filters);
+    const meta = {
+      gradeName:
+        students[0]?.grade_name || (grade_id ? `الصف ${grade_id}` : null),
+      groupName:
+        students[0]?.group_name || (group_id ? `المجموعة ${group_id}` : null),
+      search: search || null,
+    };
+
+    const { buffer, fileName } = exportStudentsToExcel(students, meta);
+    return sendExcelResponse(res, buffer, fileName);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportStudentsPdf = async (req, res, next) => {
+  try {
+    const { search = "", grade_id = null, group_id = null } = req.query;
+    const filters = {
+      search,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
+    };
+
+    const students = await studentService.getAllStudentsForExport(filters);
+    const meta = {
+      gradeName:
+        students[0]?.grade_name || (grade_id ? `الصف ${grade_id}` : null),
+      groupName:
+        students[0]?.group_name || (group_id ? `المجموعة ${group_id}` : null),
+      search: search || null,
+    };
+
+    const excelUrl = req.originalUrl.replace("/export/pdf", "/export/excel");
+    const html = renderStudentsReportHtml({ students, meta, excelUrl });
+    return sendReportHtml(res, html);
   } catch (error) {
     next(error);
   }
@@ -885,6 +968,8 @@ module.exports = {
   // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
+  exportStudentsExcel,
+  exportStudentsPdf,
   getStudentById,
   getStudentByBarcode,
   findStudentByPhone,

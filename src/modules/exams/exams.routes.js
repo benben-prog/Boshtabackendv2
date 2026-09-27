@@ -1,6 +1,7 @@
 const express = require("express");
 const routes = express.Router();
 const examController = require("./exams.controller");
+const examResultController = require("../exam_results/exam_results.controller");
 const validate = require("../../middlewares/validate.middleware");
 const {
   createExamSchema,
@@ -21,6 +22,10 @@ routes.get("/grade/:gradeId", examController.getExamsByGradeId);
 
 // Get exams by group
 routes.get("/group/:groupId", examController.getExamsByGroupId);
+
+// Export exam results (Excel & PDF)
+routes.get("/:id/export/excel", examResultController.exportExamResultsExcel);
+routes.get("/:id/export/pdf", examResultController.exportExamResultsPdf);
 
 // Get exam by ID
 routes.get("/:id", examController.getExamById);

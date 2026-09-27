@@ -92,6 +92,8 @@ routes.post(
 );
 
 routes.get("/students", studentsController.getAllStudents);
+routes.get("/students/export/excel", studentsController.exportStudentsExcel);
+routes.get("/students/export/pdf", studentsController.exportStudentsPdf);
 routes.get("/students/deleted", studentsController.getDeletedStudents);
 routes.get(
   "/students/without-password",
@@ -307,6 +309,8 @@ routes.post("/attendance/sessions/lock", attendanceController.lockSession);
    ============================================ */
 
 routes.get("/payments", paymentsController.getAllPayments);
+routes.get("/payments/export/excel", paymentsController.exportPaymentsExcel);
+routes.get("/payments/export/pdf", paymentsController.exportPaymentsPdf);
 routes.get("/payments/collections", paymentsController.getMonthlyCollections);
 routes.get(
   "/payments/unpaid",
@@ -405,6 +409,11 @@ routes.get("/exams", examsController.getAllExams);
 routes.get("/exams/grade/:gradeId/stats", examsController.getGradeExamStats);
 routes.get("/exams/grade/:gradeId", examsController.getExamsByGradeId);
 routes.get("/exams/group/:groupId", examsController.getExamsByGroupId);
+routes.get(
+  "/exams/:id/export/excel",
+  examResultsController.exportExamResultsExcel,
+);
+routes.get("/exams/:id/export/pdf", examResultsController.exportExamResultsPdf);
 routes.get("/exams/:id", examsController.getExamById);
 routes.get("/exams/:id/stats", examsController.getExamStats);
 routes.post("/exams", examsController.createExam);
@@ -421,6 +430,14 @@ routes.get(
   examResultsController.getGroupExamResultsStats,
 );
 routes.get("/exam-results/exam/:examId", examResultsController.getExamResults);
+routes.get(
+  "/exam-results/exam/:examId/export/excel",
+  examResultsController.exportExamResultsExcel,
+);
+routes.get(
+  "/exam-results/exam/:examId/export/pdf",
+  examResultsController.exportExamResultsPdf,
+);
 routes.get(
   "/exam-results/exam/:examId/stats",
   examResultsController.getExamResultStats,

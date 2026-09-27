@@ -173,6 +173,14 @@
   },
   {
     "method": "GET",
+    "path": "/api/assistant/exam-results/exam/{examId}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exam-results/exam/{examId}/export/pdf"
+  },
+  {
+    "method": "GET",
     "path": "/api/assistant/exam-results/exam/{examId}/stats"
   },
   {
@@ -214,6 +222,14 @@
   {
     "method": "PUT",
     "path": "/api/assistant/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/{id}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/exams/{id}/export/pdf"
   },
   {
     "method": "DELETE",
@@ -446,6 +462,14 @@
   {
     "method": "GET",
     "path": "/api/assistant/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/payments/export/pdf"
   },
   {
     "method": "GET",
@@ -702,6 +726,14 @@
   {
     "method": "GET",
     "path": "/api/assistant/students/deleted"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/students/export/pdf"
   },
   {
     "method": "GET",
@@ -1185,6 +1217,14 @@
   },
   {
     "method": "GET",
+    "path": "/api/super-admin/exam-results/exam/{examId}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exam-results/exam/{examId}/export/pdf"
+  },
+  {
+    "method": "GET",
     "path": "/api/super-admin/exam-results/exam/{examId}/stats"
   },
   {
@@ -1226,6 +1266,14 @@
   {
     "method": "PUT",
     "path": "/api/super-admin/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/{id}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/exams/{id}/export/pdf"
   },
   {
     "method": "DELETE",
@@ -1450,6 +1498,14 @@
   {
     "method": "GET",
     "path": "/api/super-admin/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/payments/export/pdf"
   },
   {
     "method": "GET",
@@ -1714,6 +1770,14 @@
   {
     "method": "GET",
     "path": "/api/super-admin/students/deleted"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/export/pdf"
   },
   {
     "method": "POST",
@@ -2021,6 +2085,14 @@
   },
   {
     "method": "GET",
+    "path": "/api/teacher/exam-results/exam/{examId}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exam-results/exam/{examId}/export/pdf"
+  },
+  {
+    "method": "GET",
     "path": "/api/teacher/exam-results/exam/{examId}/stats"
   },
   {
@@ -2038,6 +2110,14 @@
   {
     "method": "GET",
     "path": "/api/teacher/exams/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/{id}/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/exams/{id}/export/pdf"
   },
   {
     "method": "GET",
@@ -2162,6 +2242,14 @@
   {
     "method": "GET",
     "path": "/api/teacher/payments/collections"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/payments/export/pdf"
   },
   {
     "method": "GET",
@@ -2306,6 +2394,14 @@
   {
     "method": "GET",
     "path": "/api/teacher/students/{studentId}/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/export/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/students/export/pdf"
   },
   {
     "method": "GET",

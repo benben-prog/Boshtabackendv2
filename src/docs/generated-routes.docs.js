@@ -124,6 +124,72 @@
  */
 /**
  * @swagger
+ * /api/assistant/exam-results/exam/{examId}/export/excel:
+ *   get:
+ *     summary: "GET assistant exam-results exam examId export excel"
+ *     description: "GET assistant exam-results exam examId export excel"
+ *     tags:
+ *       - "Assistant - Exam Results"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/exam-results/exam/{examId}/export/pdf:
+ *   get:
+ *     summary: "GET assistant exam-results exam examId export pdf"
+ *     description: "GET assistant exam-results exam examId export pdf"
+ *     tags:
+ *       - "Assistant - Exam Results"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/exam-results/grade/{gradeId}/stats:
  *   get:
  *     summary: "GET assistant exam-results grade gradeId stats"
@@ -171,6 +237,72 @@
  *         name: groupId
  *         required: true
  *         description: "Group ID (معرف المجموعة)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/exams/{id}/export/excel:
+ *   get:
+ *     summary: "GET assistant exams id export excel"
+ *     description: "GET assistant exams id export excel"
+ *     tags:
+ *       - "Assistant - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/exams/{id}/export/pdf:
+ *   get:
+ *     summary: "GET assistant exams id export pdf"
+ *     description: "GET assistant exams id export pdf"
+ *     tags:
+ *       - "Assistant - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
  *         schema:
  *           type: integer
  *           example: 1
@@ -256,6 +388,56 @@
  */
 /**
  * @swagger
+ * /api/assistant/payments/export/excel:
+ *   get:
+ *     summary: "GET assistant payments export excel"
+ *     description: "GET assistant payments export excel"
+ *     tags:
+ *       - "Assistant - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/payments/export/pdf:
+ *   get:
+ *     summary: "GET assistant payments export pdf"
+ *     description: "GET assistant payments export pdf"
+ *     tags:
+ *       - "Assistant - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/student-answers/{answerId}/download:
  *   get:
  *     summary: "Download student essay answer file (تنزيل ملف إجابة الطالب المقالية)"
@@ -273,6 +455,56 @@
  *         schema:
  *           type: integer
  *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/students/export/excel:
+ *   get:
+ *     summary: "GET assistant students export excel"
+ *     description: "GET assistant students export excel"
+ *     tags:
+ *       - "Assistant - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/students/export/pdf:
+ *   get:
+ *     summary: "GET assistant students export pdf"
+ *     description: "GET assistant students export pdf"
+ *     tags:
+ *       - "Assistant - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
  *     responses:
  *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)
@@ -1497,6 +1729,76 @@
  */
 /**
  * @swagger
+ * /api/super-admin/exam-results/exam/{examId}/export/excel:
+ *   get:
+ *     summary: "GET super-admin exam-results exam examId export excel"
+ *     description: "GET super-admin exam-results exam examId export excel"
+ *     tags:
+ *       - "Super Admin - Exam Results"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/exam-results/exam/{examId}/export/pdf:
+ *   get:
+ *     summary: "GET super-admin exam-results exam examId export pdf"
+ *     description: "GET super-admin exam-results exam examId export pdf"
+ *     tags:
+ *       - "Super Admin - Exam Results"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/super-admin/exam-results/exam/{examId}/stats:
  *   get:
  *     summary: "Get exam results statistics (إحصائيات نتائج الامتحان)"
@@ -1649,6 +1951,76 @@
  *                       example: "ممتاز"
  *     responses:
  *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/exams/{id}/export/excel:
+ *   get:
+ *     summary: "GET super-admin exams id export excel"
+ *     description: "GET super-admin exams id export excel"
+ *     tags:
+ *       - "Super Admin - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/exams/{id}/export/pdf:
+ *   get:
+ *     summary: "GET super-admin exams id export pdf"
+ *     description: "GET super-admin exams id export pdf"
+ *     tags:
+ *       - "Super Admin - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)
  *       '400':
  *         description: Bad Request / Validation Error (بيانات غير صحيحة)
@@ -2455,6 +2827,60 @@
  *   get:
  *     summary: "Get payment collection overview (ملخص تحصيل المدفوعات)"
  *     description: "Get payment collection overview (ملخص تحصيل المدفوعات)"
+ *     tags:
+ *       - "Super Admin - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/payments/export/excel:
+ *   get:
+ *     summary: "GET super-admin payments export excel"
+ *     description: "GET super-admin payments export excel"
+ *     tags:
+ *       - "Super Admin - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/payments/export/pdf:
+ *   get:
+ *     summary: "GET super-admin payments export pdf"
+ *     description: "GET super-admin payments export pdf"
  *     tags:
  *       - "Super Admin - Payments"
  *     security:
@@ -3797,6 +4223,60 @@
  */
 /**
  * @swagger
+ * /api/super-admin/students/export/excel:
+ *   get:
+ *     summary: "GET super-admin students export excel"
+ *     description: "GET super-admin students export excel"
+ *     tags:
+ *       - "Super Admin - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/students/export/pdf:
+ *   get:
+ *     summary: "GET super-admin students export pdf"
+ *     description: "GET super-admin students export pdf"
+ *     tags:
+ *       - "Super Admin - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/super-admin/subscriptions/grade/{gradeId}/stats:
  *   get:
  *     summary: "Get subscriptions stats by grade (إحصائيات الاشتراكات لصف دراسي)"
@@ -4154,6 +4634,138 @@
  */
 /**
  * @swagger
+ * /api/teacher/exam-results/exam/{examId}/export/excel:
+ *   get:
+ *     summary: "GET teacher exam-results exam examId export excel"
+ *     description: "GET teacher exam-results exam examId export excel"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/exam-results/exam/{examId}/export/pdf:
+ *   get:
+ *     summary: "GET teacher exam-results exam examId export pdf"
+ *     description: "GET teacher exam-results exam examId export pdf"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: examId
+ *         required: true
+ *         description: "Exam ID (معرف الامتحان)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/exams/{id}/export/excel:
+ *   get:
+ *     summary: "GET teacher exams id export excel"
+ *     description: "GET teacher exams id export excel"
+ *     tags:
+ *       - "Teacher - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/exams/{id}/export/pdf:
+ *   get:
+ *     summary: "GET teacher exams id export pdf"
+ *     description: "GET teacher exams id export pdf"
+ *     tags:
+ *       - "Teacher - Paper Exams"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/teacher/exams/grade/{gradeId}/stats:
  *   get:
  *     summary: "Get paper exam stats by grade (إحصائيات الامتحانات الورقية لصف دراسي)"
@@ -4171,6 +4783,106 @@
  *         schema:
  *           type: integer
  *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/payments/export/excel:
+ *   get:
+ *     summary: "GET teacher payments export excel"
+ *     description: "GET teacher payments export excel"
+ *     tags:
+ *       - "Teacher - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/payments/export/pdf:
+ *   get:
+ *     summary: "GET teacher payments export pdf"
+ *     description: "GET teacher payments export pdf"
+ *     tags:
+ *       - "Teacher - Payments"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/students/export/excel:
+ *   get:
+ *     summary: "GET teacher students export excel"
+ *     description: "GET teacher students export excel"
+ *     tags:
+ *       - "Teacher - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/students/export/pdf:
+ *   get:
+ *     summary: "GET teacher students export pdf"
+ *     description: "GET teacher students export pdf"
+ *     tags:
+ *       - "Teacher - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
  *     responses:
  *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)

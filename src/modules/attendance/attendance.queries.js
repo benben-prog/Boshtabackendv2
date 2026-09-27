@@ -455,6 +455,24 @@ SELECT
      )) AS not_marked_today
 `;
 
+const getDashboardGlobal = `
+SELECT 
+  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM attendance 
+   WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
+     AND status = 'present') AS present_today,
+  (SELECT COUNT(*) FROM attendance 
+   WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
+     AND status = 'absent') AS absent_today,
+  (SELECT COUNT(*) FROM students s 
+   WHERE s.deleted = 0 
+     AND NOT EXISTS (
+       SELECT 1 FROM attendance a 
+       WHERE a.student_id = s.id 
+         AND a.attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
+     )) AS not_marked_today
+`;
+
 // ============================================
 // SOFT DELETE QUERIES
 // ============================================
@@ -523,6 +541,7 @@ module.exports = {
   getOverallAttendanceStats,
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
+  getDashboardGlobal,
   getAbsentStudentsByDate,
   // Soft delete
   softDeleteStudent,

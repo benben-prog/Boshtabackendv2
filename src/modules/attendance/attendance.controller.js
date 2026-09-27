@@ -12,12 +12,7 @@ const { logActivity } = require("../../utils/activityLogger");
 const getDashboard = async (req, res, next) => {
   try {
     const { group_id } = req.query;
-
-    if (!group_id) {
-      throw new Error("معرف المجموعة مطلوب");
-    }
-
-    const stats = await attendanceService.getDashboard(parseInt(group_id));
+    const stats = await attendanceService.getDashboard(group_id ? parseInt(group_id) : null);
 
     return res.status(200).json({
       success: true,

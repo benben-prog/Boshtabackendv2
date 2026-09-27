@@ -76,18 +76,29 @@ const createPayment = async (req, res, next) => {
 
 const getAllPayments = async (req, res, next) => {
   try {
-    const { search = "", grade_id = null, group_id = null } = req.query;
+    const { search = "", grade_id = null, group_id = null, month = "" } = req.query;
+    const isAll =
+      req.query.all === "true" ||
+      req.query.limit === "all" ||
+      parseInt(req.query.limit) >= 500;
     const page = parseInt(req.query.page) || 1;
+    const limit = isAll ? 100000 : (parseInt(req.query.limit) || 20);
 
     const filters = {
       search,
-      grade_id: grade_id ? parseInt(grade_id) : null,
-      group_id: group_id ? parseInt(group_id) : null,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
+      month,
       page,
+      limit,
     };
 
-    const payments = await paymentService.getAllPayments(filters);
-    const { count } = await paymentService.getPaymentsCount(filters);
+    const payments = isAll
+      ? await paymentService.getAllPaymentsForExport(filters)
+      : await paymentService.getAllPayments(filters);
+    const countData = await paymentService.getPaymentsCount(filters);
+    const totalCount = parseInt(countData?.count || 0);
+    const totalAmount = parseFloat(countData?.total_amount || 0);
 
     const formattedPayments = formatDatesInArray(payments);
 
@@ -96,12 +107,80 @@ const getAllPayments = async (req, res, next) => {
       message: "تم تحميل الدفعات بنجاح",
       data: formattedPayments,
       pagination: {
-        page,
-        limit: 20,
-        total: parseInt(count),
-        totalPages: Math.ceil(parseInt(count) / 20),
+        page: isAll ? 1 : page,
+        limit: isAll ? totalCount : limit,
+        total: totalCount,
+        totalPages: isAll ? 1 : Math.ceil(totalCount / limit),
+        total_amount: totalAmount,
+        is_all: isAll,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportPaymentsExcel = async (req, res, next) => {
+  try {
+    const { search = "", grade_id = null, group_id = null, month = "" } = req.query;
+    const filters = {
+      search,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
+      month,
+    };
+
+    const payments = await paymentService.getAllPaymentsForExport(filters);
+    const countData = await paymentService.getPaymentsCount(filters);
+    const totalAmount = parseFloat(countData?.total_amount || 0);
+
+    const { exportPaymentsToExcel, sendExcelResponse } = require("../../utils/excelExporter");
+    const { buffer, fileName } = exportPaymentsToExcel(payments, {
+      totalAmount,
+      totalCount: payments.length,
+      gradeName: payments[0]?.grade_name || null,
+      groupName: payments[0]?.group_name || null,
+      month: month || null,
+    });
+
+    return sendExcelResponse(res, buffer, fileName);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportPaymentsPdf = async (req, res, next) => {
+  try {
+    const { search = "", grade_id = null, group_id = null, month = "" } = req.query;
+    const filters = {
+      search,
+      grade_id: parseInt(grade_id) || null,
+      group_id: parseInt(group_id) || null,
+      month,
+    };
+
+    const payments = await paymentService.getAllPaymentsForExport(filters);
+    const countData = await paymentService.getPaymentsCount(filters);
+    const totalAmount = parseFloat(countData?.total_amount || 0);
+
+    const excelUrl = req.originalUrl.replace("/export/pdf", "/export/excel");
+
+    const { renderPaymentsReportHtml, sendReportHtml } = require("../../utils/pdfHtmlExporter");
+    const html = renderPaymentsReportHtml({
+      payments,
+      meta: {
+        totalAmount,
+        gradeName: payments[0]?.grade_name || null,
+        groupName: payments[0]?.group_name || null,
+        month: month || null,
+      },
+      stats: {
+        totalAmount,
+      },
+      excelUrl,
+    });
+
+    return sendReportHtml(res, html);
   } catch (error) {
     next(error);
   }
@@ -199,17 +278,30 @@ const deletePayment = async (req, res, next) => {
 const getPaymentsByGradeAndMonth = async (req, res, next) => {
   try {
     const { gradeId, month } = req.params;
-    const payments = await paymentService.getPaymentsByGradeAndMonth(
+    const isAll = req.query.all === "true" || req.query.limit === "all";
+    const page = parseInt(req.query.page) || 1;
+    const limit = isAll ? 100000 : (parseInt(req.query.limit) || 20);
+
+    const { rows, total, totalAmount } = await paymentService.getPaymentsByGradeAndMonth(
       gradeId,
       month,
+      page,
+      limit,
     );
 
-    const formattedPayments = formatDatesInArray(payments);
+    const formattedPayments = formatDatesInArray(rows);
 
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعات بنجاح",
       data: formattedPayments,
+      pagination: {
+        page: isAll ? 1 : page,
+        limit: isAll ? total : limit,
+        total,
+        totalPages: isAll ? 1 : Math.ceil(total / limit),
+        total_amount: totalAmount,
+      },
     });
   } catch (error) {
     next(error);
@@ -219,17 +311,30 @@ const getPaymentsByGradeAndMonth = async (req, res, next) => {
 const getPaymentsByGroupAndMonth = async (req, res, next) => {
   try {
     const { groupId, month } = req.params;
-    const payments = await paymentService.getPaymentsByGroupAndMonth(
+    const isAll = req.query.all === "true" || req.query.limit === "all";
+    const page = parseInt(req.query.page) || 1;
+    const limit = isAll ? 100000 : (parseInt(req.query.limit) || 20);
+
+    const { rows, total, totalAmount } = await paymentService.getPaymentsByGroupAndMonth(
       groupId,
       month,
+      page,
+      limit,
     );
 
-    const formattedPayments = formatDatesInArray(payments);
+    const formattedPayments = formatDatesInArray(rows);
 
     return res.status(200).json({
       success: true,
       message: "تم تحميل الدفعات بنجاح",
       data: formattedPayments,
+      pagination: {
+        page: isAll ? 1 : page,
+        limit: isAll ? total : limit,
+        total,
+        totalPages: isAll ? 1 : Math.ceil(total / limit),
+        total_amount: totalAmount,
+      },
     });
   } catch (error) {
     next(error);
@@ -254,14 +359,27 @@ const getMonthlyCollections = async (req, res, next) => {
 
 const getUnpaidStudentsCurrentMonth = async (req, res, next) => {
   try {
-    const students = await paymentService.getUnpaidStudentsCurrentMonth();
+    const isAll = req.query.all === "true" || req.query.limit === "all";
+    const page = parseInt(req.query.page) || 1;
+    const limit = isAll ? 100000 : (parseInt(req.query.limit) || 20);
 
-    const formattedStudents = formatDatesInArray(students);
+    const { rows, total } = await paymentService.getUnpaidStudentsCurrentMonth(
+      page,
+      limit,
+    );
+
+    const formattedStudents = formatDatesInArray(rows);
 
     return res.status(200).json({
       success: true,
       message: "تم تحميل الطلاب بنجاح",
       data: formattedStudents,
+      pagination: {
+        page: isAll ? 1 : page,
+        limit: isAll ? total : limit,
+        total,
+        totalPages: isAll ? 1 : Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     next(error);
@@ -345,6 +463,8 @@ const getAllStudentsPaymentStatus = async (req, res, next) => {
 module.exports = {
   createPayment,
   getAllPayments,
+  exportPaymentsExcel,
+  exportPaymentsPdf,
   getPaymentById,
   updatePayment,
   deletePayment,

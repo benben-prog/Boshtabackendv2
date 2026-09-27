@@ -24,7 +24,7 @@ WHERE id = $1 AND deleted = 0
 RETURNING *
 `;
 
-// Get all payments with filters - 20 per page
+// Get all payments with filters (search, grade, group, month) - paginated with dynamic limit
 const getAllPayments = `
 SELECT 
   p.id,
@@ -45,21 +45,54 @@ JOIN students s ON p.student_id = s.id AND s.deleted = 0
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
-WHERE ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1)
+WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
 ORDER BY p.payment_date DESC
-LIMIT 20 OFFSET (($4::int - 1) * 20)
+LIMIT COALESCE($6::int, 20) OFFSET (($5::int - 1) * COALESCE($6::int, 20))
 `;
 
 // Get payments count with filters
 const getPaymentsCount = `
-SELECT COUNT(*) AS count
+SELECT 
+  COUNT(*) AS count,
+  COALESCE(SUM(p.amount), 0) AS total_amount
 FROM payments p
 JOIN students s ON p.student_id = s.id AND s.deleted = 0
-WHERE ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1)
+LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
+WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
+`;
+
+// Get all payments for export (unpaginated)
+const getAllPaymentsForExport = `
+SELECT 
+  p.id,
+  p.subscription_id,
+  p.student_id,
+  s.full_name AS student_name,
+  s.barcode,
+  g.name AS grade_name,
+  gr.name AS group_name,
+  p.amount,
+  p.payment_date,
+  p.payment_mode,
+  p.notes,
+  sub.month AS subscription_month,
+  sub.required_amount
+FROM payments p
+JOIN students s ON p.student_id = s.id AND s.deleted = 0
+LEFT JOIN grades g ON s.grade_id = g.id
+LEFT JOIN groups gr ON s.group_id = gr.id
+LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
+WHERE ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%'))
+  AND ($2::int IS NULL OR s.grade_id = $2::int)
+  AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND ($4 IS NULL OR $4 = '' OR sub.month = $4 OR TO_CHAR(p.payment_date, 'YYYY-MM') = $4)
+ORDER BY p.payment_date DESC
 `;
 
 // Get payment by ID
@@ -147,6 +180,17 @@ JOIN groups gr ON s.group_id = gr.id
 WHERE s.grade_id = $1 
   AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 ORDER BY p.payment_date DESC
+LIMIT COALESCE($4::int, 20) OFFSET (($3::int - 1) * COALESCE($4::int, 20))
+`;
+
+const getPaymentsByGradeAndMonthCount = `
+SELECT 
+  COUNT(p.id) AS count,
+  COALESCE(SUM(p.amount), 0) AS total_amount
+FROM payments p
+JOIN students s ON p.student_id = s.id AND s.deleted = 0
+WHERE s.grade_id = $1 
+  AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 `;
 
 // Get payments by group and month
@@ -169,6 +213,17 @@ JOIN groups gr ON s.group_id = gr.id
 WHERE s.group_id = $1 
   AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 ORDER BY p.payment_date DESC
+LIMIT COALESCE($4::int, 20) OFFSET (($3::int - 1) * COALESCE($4::int, 20))
+`;
+
+const getPaymentsByGroupAndMonthCount = `
+SELECT 
+  COUNT(p.id) AS count,
+  COALESCE(SUM(p.amount), 0) AS total_amount
+FROM payments p
+JOIN students s ON p.student_id = s.id AND s.deleted = 0
+WHERE s.group_id = $1 
+  AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 `;
 
 // Get monthly collections
@@ -205,6 +260,17 @@ LEFT JOIN subscriptions sub ON s.id = sub.student_id
 WHERE s.deleted = 0
   AND (sub.id IS NULL OR sub.status = 'unpaid')
 ORDER BY s.full_name ASC
+LIMIT COALESCE($2::int, 20) OFFSET (($1::int - 1) * COALESCE($2::int, 20))
+`;
+
+const getUnpaidStudentsCurrentMonthCount = `
+SELECT COUNT(s.id) AS count
+FROM students s
+LEFT JOIN subscriptions sub ON s.id = sub.student_id 
+  AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+  AND sub.deleted = 0
+WHERE s.deleted = 0
+  AND (sub.id IS NULL OR sub.status = 'unpaid')
 `;
 
 // Get grade payment stats
@@ -305,6 +371,7 @@ module.exports = {
   markSubscriptionAsPaid,
   getAllPayments,
   getPaymentsCount,
+  getAllPaymentsForExport,
   getPaymentById,
   updatePayment,
   deletePayment,
@@ -312,9 +379,12 @@ module.exports = {
   checkOtherPayments,
   revertSubscriptionToUnpaid,
   getPaymentsByGradeAndMonth,
+  getPaymentsByGradeAndMonthCount,
   getPaymentsByGroupAndMonth,
+  getPaymentsByGroupAndMonthCount,
   getMonthlyCollections,
   getUnpaidStudentsCurrentMonth,
+  getUnpaidStudentsCurrentMonthCount,
   getGradePaymentStats,
   getGroupPaymentStats,
   getOverallPaymentStats,

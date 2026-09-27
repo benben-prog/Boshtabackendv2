@@ -154,24 +154,38 @@ const createPayment = async (paymentData) => {
 // ============================================
 
 const getAllPayments = async (filters) => {
-  const { search = "", grade_id = null, group_id = null, page = 1 } = filters;
+  const { search = "", grade_id = null, group_id = null, month = "", page = 1, limit = 20 } = filters;
   const result = await query(paymentQueries.getAllPayments, [
     search,
     grade_id,
     group_id,
+    month,
     page,
+    limit,
   ]);
   return result.rows;
 };
 
 const getPaymentsCount = async (filters) => {
-  const { search = "", grade_id = null, group_id = null } = filters;
+  const { search = "", grade_id = null, group_id = null, month = "" } = filters;
   const result = await query(paymentQueries.getPaymentsCount, [
     search,
     grade_id,
     group_id,
+    month,
   ]);
   return result.rows[0];
+};
+
+const getAllPaymentsForExport = async (filters) => {
+  const { search = "", grade_id = null, group_id = null, month = "" } = filters;
+  const result = await query(paymentQueries.getAllPaymentsForExport, [
+    search,
+    grade_id,
+    group_id,
+    month,
+  ]);
+  return result.rows;
 };
 
 const getPaymentById = async (id) => {
@@ -288,20 +302,40 @@ const deletePayment = async (id) => {
 // STATISTICS
 // ============================================
 
-const getPaymentsByGradeAndMonth = async (gradeId, month) => {
+const getPaymentsByGradeAndMonth = async (gradeId, month, page = 1, limit = 20) => {
   const result = await query(paymentQueries.getPaymentsByGradeAndMonth, [
     gradeId,
     month,
+    page,
+    limit,
   ]);
-  return result.rows;
+  const countResult = await query(paymentQueries.getPaymentsByGradeAndMonthCount, [
+    gradeId,
+    month,
+  ]);
+  return {
+    rows: result.rows,
+    total: parseInt(countResult.rows[0]?.count || 0),
+    totalAmount: parseFloat(countResult.rows[0]?.total_amount || 0),
+  };
 };
 
-const getPaymentsByGroupAndMonth = async (groupId, month) => {
+const getPaymentsByGroupAndMonth = async (groupId, month, page = 1, limit = 20) => {
   const result = await query(paymentQueries.getPaymentsByGroupAndMonth, [
     groupId,
     month,
+    page,
+    limit,
   ]);
-  return result.rows;
+  const countResult = await query(paymentQueries.getPaymentsByGroupAndMonthCount, [
+    groupId,
+    month,
+  ]);
+  return {
+    rows: result.rows,
+    total: parseInt(countResult.rows[0]?.count || 0),
+    totalAmount: parseFloat(countResult.rows[0]?.total_amount || 0),
+  };
 };
 
 const getMonthlyCollections = async () => {
@@ -309,9 +343,16 @@ const getMonthlyCollections = async () => {
   return result.rows;
 };
 
-const getUnpaidStudentsCurrentMonth = async () => {
-  const result = await query(paymentQueries.getUnpaidStudentsCurrentMonth);
-  return result.rows;
+const getUnpaidStudentsCurrentMonth = async (page = 1, limit = 20) => {
+  const result = await query(paymentQueries.getUnpaidStudentsCurrentMonth, [
+    page,
+    limit,
+  ]);
+  const countResult = await query(paymentQueries.getUnpaidStudentsCurrentMonthCount);
+  return {
+    rows: result.rows,
+    total: parseInt(countResult.rows[0]?.count || 0),
+  };
 };
 
 const getGradePaymentStats = async (gradeId) => {
@@ -338,6 +379,7 @@ module.exports = {
   createPayment,
   getAllPayments,
   getPaymentsCount,
+  getAllPaymentsForExport,
   getPaymentById,
   updatePayment,
   deletePayment,

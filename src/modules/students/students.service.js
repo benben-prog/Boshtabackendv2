@@ -81,12 +81,13 @@ const createStudent = async (stdInfo) => {
 };
 
 const getAllStudents = async (filters) => {
-  const { search = "", grade_id = null, group_id = null, page = 1 } = filters;
+  const { search = "", grade_id = null, group_id = null, page = 1, limit = 20 } = filters;
   const result = await query(stdQr.getAllStudents, [
     search,
     grade_id,
     group_id,
     page,
+    limit,
   ]);
   return result.rows;
 };
@@ -99,6 +100,16 @@ const getStudentsCount = async (filters = {}) => {
     group_id,
   ]);
   return result.rows[0];
+};
+
+const getAllStudentsForExport = async (filters = {}) => {
+  const { search = "", grade_id = null, group_id = null } = filters;
+  const result = await query(stdQr.getAllStudentsForExport, [
+    search,
+    grade_id,
+    group_id,
+  ]);
+  return result.rows;
 };
 
 const getStudentById = async (id) => {
@@ -466,6 +477,7 @@ module.exports = {
   // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
+  getAllStudentsForExport,
   getStudentsCount,
   getStudentById,
   getStudentByBarcode,

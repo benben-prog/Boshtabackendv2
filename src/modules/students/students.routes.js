@@ -35,6 +35,10 @@ routes.post("/", validate(createStudentSchema), stdController.createStudent);
 // Get all students with filters
 routes.get("/", stdController.getAllStudents);
 
+// Export students to Excel & PDF
+routes.get("/export/excel", stdController.exportStudentsExcel);
+routes.get("/export/pdf", stdController.exportStudentsPdf);
+
 // Get deleted students
 routes.get("/deleted", stdController.getDeletedStudents);
 

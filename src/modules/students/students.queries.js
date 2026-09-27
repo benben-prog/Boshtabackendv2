@@ -42,11 +42,11 @@ FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE s.deleted = 0
-  AND ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
+  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
 ORDER BY s.full_name ASC
-LIMIT 20 OFFSET (($4::int - 1) * 20)
+LIMIT COALESCE($5::int, 20) OFFSET (($4::int - 1) * COALESCE($5::int, 20))
 `;
 
 // Get students count with filters
@@ -54,9 +54,42 @@ const getStudentsCount = `
 SELECT COUNT(*) AS count
 FROM students s
 WHERE s.deleted = 0
-  AND ($1 = '' OR s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
+  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+`;
+
+// Get all students for export (unpaginated)
+const getAllStudentsForExport = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.profile_image,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name,
+  g.monthly_price AS required_amount,
+  COALESCE(
+    (SELECT sub.status FROM subscriptions sub 
+     WHERE sub.student_id = s.id 
+       AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
+       AND sub.deleted = 0
+     LIMIT 1), 'unpaid'
+  ) AS payment_status,
+  s.notes,
+  s.created_at
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0
+  AND ($1 IS NULL OR $1 = '' OR s.full_name ILIKE ('%' || $1 || '%') OR s.barcode ILIKE ('%' || $1 || '%') OR s.phone ILIKE ('%' || $1 || '%'))
+  AND ($2::int IS NULL OR s.grade_id = $2::int)
+  AND ($3::int IS NULL OR s.group_id = $3::int)
+ORDER BY s.full_name ASC
 `;
 
 // Get a single student by ID
@@ -860,6 +893,7 @@ module.exports = {
   // Part 1: CRUD & Search
   createStudent,
   getAllStudents,
+  getAllStudentsForExport,
   getStudentsCount,
   getStudentById,
   getStudentByBarcode,
