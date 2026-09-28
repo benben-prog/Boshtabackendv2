@@ -8,7 +8,7 @@ const whatsappDispatcher = require("../whatsapp_messages/whatsapp_dispatcher.ser
 // CONSTANTS
 // ============================================
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 6;
 const PASSWORD_SUFFIX = "@boshta.benb3n";
 const PARENT_TOKEN_LENGTH = 10;
 const PARENT_TOKEN_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -398,31 +398,39 @@ const generatePasswordForStudent = (student) => {
   return `${student.barcode}@${pin}`;
 };
 
-const generatePasswordsForAllStudents = async () => {
-  const studentsResult = await query(stdQr.getStudentsWithoutPassword);
-  const studentsWithoutPassword = studentsResult.rows;
+const generatePasswordsForAllStudents = async (force = false) => {
+  const studentsResult = await query(stdQr.getAllStudentsForPasswordGeneration, [
+    Boolean(force),
+  ]);
+  const studentsList = studentsResult.rows;
 
-  if (studentsWithoutPassword.length === 0) {
+  if (studentsList.length === 0) {
     return { generated_count: 0, passwords: [] };
   }
 
-  // Hash all passwords in parallel
-  const passwordData = await Promise.all(
-    studentsWithoutPassword.map(async (student) => {
-      const plainPassword = generatePasswordForStudent(student);
-      const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
-      return {
-        id: student.id,
-        barcode: student.barcode,
-        full_name: student.full_name,
-        phone: student.phone,
-        grade_name: student.grade_name,
-        group_name: student.group_name,
-        plain_password: plainPassword,
-        hashed_password: hashedPassword,
-      };
-    }),
-  );
+  // Hash in chunks of 50 to maintain high performance
+  const chunkSize = 50;
+  const passwordData = [];
+  for (let i = 0; i < studentsList.length; i += chunkSize) {
+    const chunk = studentsList.slice(i, i + chunkSize);
+    const chunkData = await Promise.all(
+      chunk.map(async (student) => {
+        const plainPassword = generatePasswordForStudent(student);
+        const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+        return {
+          id: student.id,
+          barcode: student.barcode,
+          full_name: student.full_name,
+          phone: student.phone,
+          grade_name: student.grade_name,
+          group_name: student.group_name,
+          plain_password: plainPassword,
+          hashed_password: hashedPassword,
+        };
+      }),
+    );
+    passwordData.push(...chunkData);
+  }
 
   // Bulk update in one query
   const ids = passwordData.map((p) => p.id);
@@ -444,33 +452,40 @@ const generatePasswordsForAllStudents = async () => {
   };
 };
 
-const generatePasswordsForGrade = async (gradeId) => {
-  const studentsResult = await query(stdQr.getStudentsWithoutPasswordByGrade, [
+const generatePasswordsForGrade = async (gradeId, force = false) => {
+  const studentsResult = await query(stdQr.getStudentsForPasswordGenerationByGrade, [
     gradeId,
+    Boolean(force),
   ]);
-  const studentsWithoutPassword = studentsResult.rows;
+  const studentsList = studentsResult.rows;
 
-  if (studentsWithoutPassword.length === 0) {
+  if (studentsList.length === 0) {
     return { generated_count: 0, passwords: [] };
   }
 
-  // Hash all passwords in parallel
-  const passwordData = await Promise.all(
-    studentsWithoutPassword.map(async (student) => {
-      const plainPassword = generatePasswordForStudent(student);
-      const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
-      return {
-        id: student.id,
-        barcode: student.barcode,
-        full_name: student.full_name,
-        phone: student.phone,
-        grade_name: student.grade_name,
-        group_name: student.group_name,
-        plain_password: plainPassword,
-        hashed_password: hashedPassword,
-      };
-    }),
-  );
+  // Hash in chunks of 50
+  const chunkSize = 50;
+  const passwordData = [];
+  for (let i = 0; i < studentsList.length; i += chunkSize) {
+    const chunk = studentsList.slice(i, i + chunkSize);
+    const chunkData = await Promise.all(
+      chunk.map(async (student) => {
+        const plainPassword = generatePasswordForStudent(student);
+        const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+        return {
+          id: student.id,
+          barcode: student.barcode,
+          full_name: student.full_name,
+          phone: student.phone,
+          grade_name: student.grade_name,
+          group_name: student.group_name,
+          plain_password: plainPassword,
+          hashed_password: hashedPassword,
+        };
+      }),
+    );
+    passwordData.push(...chunkData);
+  }
 
   // Bulk update in one query
   const ids = passwordData.map((p) => p.id);
@@ -493,29 +508,40 @@ const generatePasswordsForGrade = async (gradeId) => {
 };
 
 
-const generatePasswordsForGroup = async (groupId) => {
-  const studentsResult = await query(stdQr.getStudentsWithoutPasswordByGroup, [
+const generatePasswordsForGroup = async (groupId, force = false) => {
+  const studentsResult = await query(stdQr.getStudentsForPasswordGenerationByGroup, [
     groupId,
+    Boolean(force),
   ]);
-  const studentsWithoutPassword = studentsResult.rows;
+  const studentsList = studentsResult.rows;
 
-  if (studentsWithoutPassword.length === 0) {
+  if (studentsList.length === 0) {
     return { generated_count: 0, passwords: [] };
   }
 
-  const passwordData = await Promise.all(
-    studentsWithoutPassword.map(async (student) => {
-      const plainPassword = generatePasswordForStudent(student);
-      const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
-      return {
-        id: student.id,
-        barcode: student.barcode,
-        full_name: student.full_name,
-        plain_password: plainPassword,
-        hashed_password: hashedPassword,
-      };
-    }),
-  );
+  // Hash in chunks of 50
+  const chunkSize = 50;
+  const passwordData = [];
+  for (let i = 0; i < studentsList.length; i += chunkSize) {
+    const chunk = studentsList.slice(i, i + chunkSize);
+    const chunkData = await Promise.all(
+      chunk.map(async (student) => {
+        const plainPassword = generatePasswordForStudent(student);
+        const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+        return {
+          id: student.id,
+          barcode: student.barcode,
+          full_name: student.full_name,
+          phone: student.phone,
+          grade_name: student.grade_name,
+          group_name: student.group_name,
+          plain_password: plainPassword,
+          hashed_password: hashedPassword,
+        };
+      }),
+    );
+    passwordData.push(...chunkData);
+  }
 
   const ids = passwordData.map((p) => p.id);
   const hashedPasswords = passwordData.map((p) => p.hashed_password);
@@ -528,6 +554,9 @@ const generatePasswordsForGroup = async (groupId) => {
       student_id: p.id,
       barcode: p.barcode,
       full_name: p.full_name,
+      phone: p.phone,
+      grade_name: p.grade_name,
+      group_name: p.group_name,
       password: p.plain_password,
     })),
   };

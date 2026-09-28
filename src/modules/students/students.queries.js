@@ -921,6 +921,109 @@ WHERE s.deleted = 0
 ORDER BY s.full_name ASC
 `;
 
+// Get students without password by group
+const getStudentsWithoutPasswordByGroup = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0 
+  AND s.password IS NULL
+  AND s.group_id = $1
+ORDER BY s.full_name ASC
+`;
+
+// Get student for single password generation by ID or Barcode
+const getStudentForPasswordGenerationByIdOrBarcode = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0 
+  AND (s.id::text = $1 OR s.barcode = $1)
+LIMIT 1
+`;
+
+// Get students for password generation by grade (supports optional force/regenerate)
+const getStudentsForPasswordGenerationByGrade = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0 
+  AND s.grade_id = $1
+  AND ($2::boolean IS TRUE OR s.password IS NULL)
+ORDER BY s.full_name ASC
+`;
+
+// Get students for password generation by group (supports optional force/regenerate)
+const getStudentsForPasswordGenerationByGroup = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0 
+  AND s.group_id = $1
+  AND ($2::boolean IS TRUE OR s.password IS NULL)
+ORDER BY s.full_name ASC
+`;
+
+// Get all students for password generation (supports optional force/regenerate)
+const getAllStudentsForPasswordGeneration = `
+SELECT 
+  s.id,
+  s.barcode,
+  s.full_name,
+  s.phone,
+  s.parent_phone,
+  s.grade_id,
+  g.name AS grade_name,
+  s.group_id,
+  gr.name AS group_name
+FROM students s
+LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE s.deleted = 0 
+  AND ($1::boolean IS TRUE OR s.password IS NULL)
+ORDER BY s.full_name ASC
+`;
+
 // Reset student password
 const resetStudentPassword = `
 UPDATE students 
@@ -1020,6 +1123,11 @@ module.exports = {
   // Password Management
   getStudentsWithoutPassword,
   getStudentsWithoutPasswordByGrade,
+  getStudentsWithoutPasswordByGroup,
+  getStudentForPasswordGenerationByIdOrBarcode,
+  getStudentsForPasswordGenerationByGrade,
+  getStudentsForPasswordGenerationByGroup,
+  getAllStudentsForPasswordGeneration,
   resetStudentPassword,
   bulkUpdatePasswords,
   // Bulk Operations

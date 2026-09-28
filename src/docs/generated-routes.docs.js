@@ -4247,47 +4247,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/{studentId}/generate-password:
- *   post:
- *     summary: "POST super-admin students studentId generate-password"
- *     description: "POST super-admin students studentId generate-password"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: studentId
- *         required: true
- *         description: "Student ID (معرف الطالب)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '201':
- *         description: Operation completed successfully (تمت العملية بنجاح)
- *       '400':
- *         description: Bad Request / Validation Error (بيانات غير صحيحة)
- *       '401':
- *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
- *       '403':
- *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
- *       '404':
- *         description: Resource Not Found (العنصر غير موجود)
- *       '500':
- *         description: Internal Server Error (خطأ داخلي في السيرفر)
- */
-/**
- * @swagger
  * /api/super-admin/students/{studentId}/payments:
  *   get:
  *     summary: "Get student payment history (سجل مدفوعات الطالب)"
@@ -4511,47 +4470,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/barcode/{barcode}/generate-password:
- *   post:
- *     summary: "Generate student password by barcode (توليد كلمة مرور للطالب بالباركود)"
- *     description: "Generate student password by barcode (توليد كلمة مرور للطالب بالباركود)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: barcode
- *         required: true
- *         description: "Student Barcode (باركود الطالب)"
- *         schema:
- *           type: string
- *           example: "STU1024"
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '201':
- *         description: Operation completed successfully (تمت العملية بنجاح)
- *       '400':
- *         description: Bad Request / Validation Error (بيانات غير صحيحة)
- *       '401':
- *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
- *       '403':
- *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
- *       '404':
- *         description: Resource Not Found (العنصر غير موجود)
- *       '500':
- *         description: Internal Server Error (خطأ داخلي في السيرفر)
- */
-/**
- * @swagger
  * /api/super-admin/students/export/excel:
  *   get:
  *     summary: "GET super-admin students export excel"
@@ -4684,48 +4602,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/barcode/{barcode}/excel:
- *   post:
- *     summary: "Generate and export student password to Excel by barcode (توليد وتصدير بيانات حساب الطالب Excel)"
- *     description: "Generate and export student password to Excel by barcode (توليد وتصدير بيانات حساب الطالب Excel)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: barcode
- *         required: true
- *         description: "Student Barcode (باركود الطالب)"
- *         schema:
- *           type: string
- *           example: "STU1024"
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/barcode/{barcode}/pdf:
  *   get:
  *     summary: "Get printable PDF of student password by barcode (عرض وطباعة كارت كلمة مرور الطالب بالباركود PDF)"
@@ -4761,47 +4637,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/barcode/{barcode}/pdf:
- *   post:
- *     summary: "Generate and get printable PDF of student password by barcode (توليد وعرض كارت كلمة مرور الطالب بالباركود PDF)"
- *     description: "Generate and get printable PDF of student password by barcode (توليد وعرض كارت كلمة مرور الطالب بالباركود PDF)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: barcode
- *         required: true
- *         description: "Student Barcode (باركود الطالب)"
- *         schema:
- *           type: string
- *           example: "STU1024"
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/excel:
  *   get:
  *     summary: "Export all student passwords to Excel (تصدير كلمات مرور جميع الطلاب Excel)"
@@ -4813,40 +4648,6 @@
  *         ClientToken: []
  *       - ApiAuth: []
  *         SuperAdminKey: []
- *     responses:
- *       '200':
- *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
- * /api/super-admin/students/generate-passwords/excel:
- *   post:
- *     summary: "Generate and export all student passwords to Excel (توليد وتصدير كلمات مرور جميع الطلاب Excel)"
- *     description: "Generate and export all student passwords to Excel (توليد وتصدير كلمات مرور جميع الطلاب Excel)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
  *     responses:
  *       '200':
  *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
@@ -4900,48 +4701,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/grade/{gradeId}/excel:
- *   post:
- *     summary: "Generate and export grade passwords to Excel (توليد وتصدير كلمات مرور طلاب الصف Excel)"
- *     description: "Generate and export grade passwords to Excel (توليد وتصدير كلمات مرور طلاب الصف Excel)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: gradeId
- *         required: true
- *         description: "Grade ID (معرف الصف الدراسي)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/grade/{gradeId}/pdf:
  *   get:
  *     summary: "Get printable PDF of grade passwords (عرض وطباعة كشف كلمات مرور الصف PDF)"
@@ -4961,47 +4720,6 @@
  *         schema:
  *           type: integer
  *           example: 1
- *     responses:
- *       '200':
- *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
- * /api/super-admin/students/generate-passwords/grade/{gradeId}/pdf:
- *   post:
- *     summary: "Generate and get printable PDF of grade passwords (توليد وطباعة كشف كلمات مرور طلاب الصف PDF)"
- *     description: "Generate and get printable PDF of grade passwords (توليد وطباعة كشف كلمات مرور طلاب الصف PDF)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: gradeId
- *         required: true
- *         description: "Grade ID (معرف الصف الدراسي)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
  *     responses:
  *       '200':
  *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
@@ -5095,48 +4813,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/group/{groupId}/excel:
- *   post:
- *     summary: "Generate and export group passwords to Excel (توليد وتصدير كلمات مرور طلاب المجموعة Excel)"
- *     description: "Generate and export group passwords to Excel (توليد وتصدير كلمات مرور طلاب المجموعة Excel)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: groupId
- *         required: true
- *         description: "Group ID (معرف المجموعة)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/group/{groupId}/pdf:
  *   get:
  *     summary: "Get printable PDF of group passwords (عرض وطباعة كشف كلمات مرور المجموعة PDF)"
@@ -5172,47 +4848,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/group/{groupId}/pdf:
- *   post:
- *     summary: "Generate and get printable PDF of group passwords (توليد وطباعة كشف كلمات مرور طلاب المجموعة PDF)"
- *     description: "Generate and get printable PDF of group passwords (توليد وطباعة كشف كلمات مرور طلاب المجموعة PDF)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: groupId
- *         required: true
- *         description: "Group ID (معرف المجموعة)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/pdf:
  *   get:
  *     summary: "Get printable PDF of all student passwords (عرض وطباعة كشف كلمات مرور جميع الطلاب PDF)"
@@ -5224,39 +4859,6 @@
  *         ClientToken: []
  *       - ApiAuth: []
  *         SuperAdminKey: []
- *     responses:
- *       '200':
- *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
- * /api/super-admin/students/generate-passwords/pdf:
- *   post:
- *     summary: "Generate and get printable PDF of all student passwords (توليد وطباعة كشف كلمات مرور جميع الطلاب PDF)"
- *     description: "Generate and get printable PDF of all student passwords (توليد وطباعة كشف كلمات مرور جميع الطلاب PDF)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
  *     responses:
  *       '200':
  *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
@@ -5350,48 +4952,6 @@
  */
 /**
  * @swagger
- * /api/super-admin/students/generate-passwords/student/{studentId}/excel:
- *   post:
- *     summary: "POST super-admin students generate-passwords student studentId excel"
- *     description: "POST super-admin students generate-passwords student studentId excel"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: studentId
- *         required: true
- *         description: "Student ID (معرف الطالب)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
- *     responses:
- *       '200':
- *         description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
  * /api/super-admin/students/generate-passwords/student/{studentId}/pdf:
  *   get:
  *     summary: "Get printable PDF of student password (عرض وطباعة كلمة مرور الطالب PDF)"
@@ -5411,47 +4971,6 @@
  *         schema:
  *           type: integer
  *           example: 1
- *     responses:
- *       '200':
- *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized / Token required
- *       '404':
- *         description: Resource not found
- *       '500':
- *         description: Internal Server Error
- */
-/**
- * @swagger
- * /api/super-admin/students/generate-passwords/student/{studentId}/pdf:
- *   post:
- *     summary: "Generate and get printable PDF of student password (توليد وطباعة كلمة مرور الطالب PDF)"
- *     description: "Generate and get printable PDF of student password (توليد وطباعة كلمة مرور الطالب PDF)"
- *     tags:
- *       - "Super Admin - Students"
- *     security:
- *       - ApiAuth: []
- *         ClientToken: []
- *       - ApiAuth: []
- *         SuperAdminKey: []
- *     parameters:
- *       - in: path
- *         name: studentId
- *         required: true
- *         description: "Student ID (معرف الطالب)"
- *         schema:
- *           type: integer
- *           example: 1
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             additionalProperties: true
  *     responses:
  *       '200':
  *         description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"

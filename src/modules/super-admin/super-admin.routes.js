@@ -177,69 +177,71 @@ routes.get(
   studentsController.getStudentsWithoutPassword,
 );
 
-// 1. Password Generation (JSON response, or PDF/Excel via ?format=pdf / ?format=excel)
+// 1. Password Generation (POST returns JSON, or PDF/Excel via ?format=pdf / ?format=excel)
 routes.post(
-  "/students/generate-passwords/barcode/:barcode",
-  studentsController.generatePasswordForSingleStudent,
-);
-routes.post(
-  "/students/barcode/:barcode/generate-password",
-  studentsController.generatePasswordForSingleStudent,
-);
-routes.post(
-  "/students/generate-passwords/student/:studentId",
-  studentsController.generatePasswordForSingleStudent,
-);
-routes.post(
-  "/students/:studentId/generate-password",
-  studentsController.generatePasswordForSingleStudent,
-);
-routes.post(
-  "/students/generate-passwords/group/:groupId",
-  studentsController.generatePasswordsForGroup,
+  "/students/generate-passwords",
+  studentsController.generatePasswordsForAllStudents,
 );
 routes.post(
   "/students/generate-passwords/grade/:gradeId",
   studentsController.generatePasswordsForGrade,
 );
 routes.post(
-  "/students/generate-passwords",
-  studentsController.generatePasswordsForAllStudents,
+  "/students/generate-passwords/group/:groupId",
+  studentsController.generatePasswordsForGroup,
+);
+routes.post(
+  "/students/generate-passwords/student/:studentId",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.post(
+  "/students/generate-passwords/barcode/:barcode",
+  studentsController.generatePasswordForSingleStudent,
 );
 
-// 2. Direct PDF Report Endpoints (supports both GET and POST)
-routes.route("/students/generate-passwords/barcode/:barcode/pdf")
-  .get(studentsController.generatePasswordForSingleStudent)
-  .post(studentsController.generatePasswordForSingleStudent);
-routes.route("/students/generate-passwords/student/:studentId/pdf")
-  .get(studentsController.generatePasswordForSingleStudent)
-  .post(studentsController.generatePasswordForSingleStudent);
-routes.route("/students/generate-passwords/group/:groupId/pdf")
-  .get(studentsController.generatePasswordsForGroup)
-  .post(studentsController.generatePasswordsForGroup);
-routes.route("/students/generate-passwords/grade/:gradeId/pdf")
-  .get(studentsController.generatePasswordsForGrade)
-  .post(studentsController.generatePasswordsForGrade);
-routes.route("/students/generate-passwords/pdf")
-  .get(studentsController.generatePasswordsForAllStudents)
-  .post(studentsController.generatePasswordsForAllStudents);
+// 2. Direct PDF Report Endpoints (GET for direct browser preview / download)
+routes.get(
+  "/students/generate-passwords/pdf",
+  studentsController.generatePasswordsForAllStudents,
+);
+routes.get(
+  "/students/generate-passwords/grade/:gradeId/pdf",
+  studentsController.generatePasswordsForGrade,
+);
+routes.get(
+  "/students/generate-passwords/group/:groupId/pdf",
+  studentsController.generatePasswordsForGroup,
+);
+routes.get(
+  "/students/generate-passwords/student/:studentId/pdf",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.get(
+  "/students/generate-passwords/barcode/:barcode/pdf",
+  studentsController.generatePasswordForSingleStudent,
+);
 
-// 3. Direct Excel Export Endpoints (supports both GET and POST)
-routes.route("/students/generate-passwords/barcode/:barcode/excel")
-  .get(studentsController.generatePasswordForSingleStudent)
-  .post(studentsController.generatePasswordForSingleStudent);
-routes.route("/students/generate-passwords/student/:studentId/excel")
-  .get(studentsController.generatePasswordForSingleStudent)
-  .post(studentsController.generatePasswordForSingleStudent);
-routes.route("/students/generate-passwords/group/:groupId/excel")
-  .get(studentsController.generatePasswordsForGroup)
-  .post(studentsController.generatePasswordsForGroup);
-routes.route("/students/generate-passwords/grade/:gradeId/excel")
-  .get(studentsController.generatePasswordsForGrade)
-  .post(studentsController.generatePasswordsForGrade);
-routes.route("/students/generate-passwords/excel")
-  .get(studentsController.generatePasswordsForAllStudents)
-  .post(studentsController.generatePasswordsForAllStudents);
+// 3. Direct Excel Export Endpoints (GET for direct Excel download)
+routes.get(
+  "/students/generate-passwords/excel",
+  studentsController.generatePasswordsForAllStudents,
+);
+routes.get(
+  "/students/generate-passwords/grade/:gradeId/excel",
+  studentsController.generatePasswordsForGrade,
+);
+routes.get(
+  "/students/generate-passwords/group/:groupId/excel",
+  studentsController.generatePasswordsForGroup,
+);
+routes.get(
+  "/students/generate-passwords/student/:studentId/excel",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.get(
+  "/students/generate-passwords/barcode/:barcode/excel",
+  studentsController.generatePasswordForSingleStudent,
+);
 
 // 4. Custom Passwords Export (from frontend list payload)
 routes.post("/students/passwords/export/pdf", studentsController.exportPasswordsPdf);

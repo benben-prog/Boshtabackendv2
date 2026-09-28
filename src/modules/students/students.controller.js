@@ -993,7 +993,8 @@ const resetStudentPassword = async (req, res, next) => {
 
 const generatePasswordsForAllStudents = async (req, res, next) => {
   try {
-    const result = await studentService.generatePasswordsForAllStudents();
+    const force = req.query.force === "true" || req.query.regenerate === "true" || req.body?.force === true || req.body?.regenerate === true;
+    const result = await studentService.generatePasswordsForAllStudents(force);
 
     await logActivity({
       user_id: req.clientId,
@@ -1002,7 +1003,7 @@ const generatePasswordsForAllStudents = async (req, res, next) => {
       action: "generate_student_passwords",
       entity_type: "student",
       entity_id: null,
-      description: `توليد باسوردات لجميع الطلاب بدون باسورد - ${result.generated_count} طالب`,
+      description: `توليد باسوردات لجميع الطلاب - ${result.generated_count} طالب`,
     });
 
     const isPdf = req.query.format === "pdf" || req.query.pdf === "true" || req.path?.endsWith("/pdf");
@@ -1043,7 +1044,8 @@ const generatePasswordsForGrade = async (req, res, next) => {
       throw new Error("معرف الصف مطلوب");
     }
 
-    const result = await studentService.generatePasswordsForGrade(gradeId);
+    const force = req.query.force === "true" || req.query.regenerate === "true" || req.body?.force === true || req.body?.regenerate === true;
+    const result = await studentService.generatePasswordsForGrade(gradeId, force);
 
     await logActivity({
       user_id: req.clientId,
@@ -1098,7 +1100,8 @@ const generatePasswordsForGroup = async (req, res, next) => {
       throw new Error("معرف المجموعة مطلوب");
     }
 
-    const result = await studentService.generatePasswordsForGroup(groupId);
+    const force = req.query.force === "true" || req.query.regenerate === "true" || req.body?.force === true || req.body?.regenerate === true;
+    const result = await studentService.generatePasswordsForGroup(groupId, force);
 
     await logActivity({
       user_id: req.clientId,
