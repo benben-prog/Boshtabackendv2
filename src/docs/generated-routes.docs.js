@@ -474,6 +474,123 @@
  */
 /**
  * @swagger
+ * /api/assistant/students/{studentId}/activate:
+ *   post:
+ *     summary: "POST assistant students studentId activate"
+ *     description: "POST assistant students studentId activate"
+ *     tags:
+ *       - "Assistant - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/students/{studentId}/deactivate:
+ *   post:
+ *     summary: "POST assistant students studentId deactivate"
+ *     description: "POST assistant students studentId deactivate"
+ *     tags:
+ *       - "Assistant - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/students/{studentId}/status:
+ *   patch:
+ *     summary: "PATCH assistant students studentId status"
+ *     description: "PATCH assistant students studentId status"
+ *     tags:
+ *       - "Assistant - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/students/export/excel:
  *   get:
  *     summary: "GET assistant students export excel"
@@ -3642,6 +3759,47 @@
  */
 /**
  * @swagger
+ * /api/super-admin/students/{studentId}/activate:
+ *   post:
+ *     summary: "POST super-admin students studentId activate"
+ *     description: "POST super-admin students studentId activate"
+ *     tags:
+ *       - "Super Admin - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/super-admin/students/{studentId}/assignments:
  *   get:
  *     summary: "Get student assignments list (عرض واجبات الطالب)"
@@ -3845,6 +4003,47 @@
  *           example: 1
  *     responses:
  *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/students/{studentId}/deactivate:
+ *   post:
+ *     summary: "POST super-admin students studentId deactivate"
+ *     description: "POST super-admin students studentId deactivate"
+ *     tags:
+ *       - "Super Admin - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
  *         description: Operation completed successfully (تمت العملية بنجاح)
  *       '400':
  *         description: Bad Request / Validation Error (بيانات غير صحيحة)
@@ -4178,6 +4377,47 @@
  *         schema:
  *           type: integer
  *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/students/{studentId}/status:
+ *   patch:
+ *     summary: "PATCH super-admin students studentId status"
+ *     description: "PATCH super-admin students studentId status"
+ *     tags:
+ *       - "Super Admin - Students"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: "Student ID (معرف الطالب)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
  *     responses:
  *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)

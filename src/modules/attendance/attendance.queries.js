@@ -307,6 +307,8 @@ SELECT
   s.profile_image,
   s.phone,
   s.parent_phone,
+  s.is_active,
+  s.deactivation_reason,
   COALESCE(
     (SELECT sub.status FROM subscriptions sub 
      WHERE sub.student_id = s.id 
@@ -428,6 +430,7 @@ LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE lt.total_days = 3 
   AND lt.absent_count = 3
   AND s.group_id = lt.group_id
+  AND s.is_active = TRUE
 `;
 
 // ============================================
@@ -477,12 +480,14 @@ SELECT
 // SOFT DELETE QUERIES
 // ============================================
 
-// Soft delete student
+// Soft delete student (deactivates without deleting records)
 const softDeleteStudent = `
 UPDATE students 
-SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+SET is_active = FALSE, 
+    deactivation_reason = COALESCE($2, 'غياب متكرر (3 حصص متتالية)'), 
+    updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = ANY($1) AND deleted = 0
-RETURNING id, barcode, full_name
+RETURNING id, barcode, full_name, is_active, deactivation_reason
 `;
 const getAbsentStudentsByDate = `
 SELECT 

@@ -83,33 +83,36 @@ const createStudent = async (stdInfo) => {
 };
 
 const getAllStudents = async (filters) => {
-  const { search = "", grade_id = null, group_id = null, page = 1, limit = 20 } = filters;
+  const { search = "", grade_id = null, group_id = null, status = null, page = 1, limit = 20 } = filters;
   const result = await query(stdQr.getAllStudents, [
     search,
     grade_id,
     group_id,
     page,
     limit,
+    status,
   ]);
   return result.rows;
 };
 
 const getStudentsCount = async (filters = {}) => {
-  const { search = "", grade_id = null, group_id = null } = filters;
+  const { search = "", grade_id = null, group_id = null, status = null } = filters;
   const result = await query(stdQr.getStudentsCount, [
     search,
     grade_id,
     group_id,
+    status,
   ]);
   return result.rows[0];
 };
 
 const getAllStudentsForExport = async (filters = {}) => {
-  const { search = "", grade_id = null, group_id = null } = filters;
+  const { search = "", grade_id = null, group_id = null, status = null } = filters;
   const result = await query(stdQr.getAllStudentsForExport, [
     search,
     grade_id,
     group_id,
+    status,
   ]);
   return result.rows;
 };
@@ -209,11 +212,11 @@ const updateStudentPassword = async (id, oldPassword, newPassword) => {
 };
 
 // ============================================
-// SOFT/HARD DELETE
+// SOFT/HARD DELETE & ACTIVATION
 // ============================================
 
-const softDeleteStudent = async (id) => {
-  const result = await query(stdQr.softDeleteStudent, [id]);
+const softDeleteStudent = async (id, reason = "تم إلغاء التفعيل بواسطة الإدارة") => {
+  const result = await query(stdQr.softDeleteStudent, [id, reason]);
   return result.rows[0];
 };
 
@@ -224,6 +227,11 @@ const hardDeleteStudent = async (id) => {
 
 const restoreStudent = async (id) => {
   const result = await query(stdQr.restoreStudent, [id]);
+  return result.rows[0];
+};
+
+const toggleStudentStatus = async (id, isActive, reason = null) => {
+  const result = await query(stdQr.toggleStudentStatus, [id, isActive, reason]);
   return result.rows[0];
 };
 
@@ -577,6 +585,7 @@ module.exports = {
   softDeleteStudent,
   hardDeleteStudent,
   restoreStudent,
+  toggleStudentStatus,
   // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,

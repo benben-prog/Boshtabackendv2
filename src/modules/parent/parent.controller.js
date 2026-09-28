@@ -1,5 +1,37 @@
 const parentService = require("./parent.service");
 
+function formatStudentWithStatus(student) {
+  if (!student) return null;
+  const isInactive =
+    student.is_active === false ||
+    student.is_active === 0 ||
+    student.is_active === "false";
+  const reason = isInactive
+    ? student.deactivation_reason || "غياب متكرر"
+    : null;
+  const statusInfo = {
+    is_active: !isInactive,
+    status: isInactive ? "inactive" : "active",
+    status_text: isInactive ? "غير مفعل" : "مفعل",
+    deactivation_reason: reason,
+    alert_message: isInactive
+      ? `الحساب غير مفعل حالياً بسبب: ${reason}. برجاء التواصل مع إدارة السنتر.`
+      : null,
+    contact_center_required: isInactive,
+  };
+
+  return {
+    ...student,
+    is_active: !isInactive,
+    status: statusInfo.status,
+    status_text: statusInfo.status_text,
+    deactivation_reason: reason,
+    alert_message: statusInfo.alert_message,
+    contact_center_required: isInactive,
+    status_info: statusInfo,
+  };
+}
+
 // ============================================
 // GET PARENT DASHBOARD BY PHONE
 // ============================================
@@ -57,12 +89,19 @@ const getPerentTokenByParentPhone = async (req, res, next) => {
       parentService.getStudentOverallStats(studentId),
     ]);
 
+    const formattedStudent = formatStudentWithStatus(student);
+    const formattedStudents = students.map(formatStudentWithStatus);
+    const isInactive = formattedStudent.is_active === false;
+
     return res.status(200).json({
       success: true,
-      message: "تم تحميل البيانات بنجاح",
+      message: isInactive
+        ? `تنبيه: حساب الطالب غير مفعل (${formattedStudent.deactivation_reason || "غير مفعل"}). برجاء التواصل مع السنتر.`
+        : "تم تحميل البيانات بنجاح",
       data: {
-        student,
-        students,
+        student: formattedStudent,
+        deactivation_notice: formattedStudent.status_info,
+        students: formattedStudents,
         attendance,
         attendanceHistory,
         payments,
@@ -130,12 +169,19 @@ const getParentDashboard = async (req, res, next) => {
       parentService.getStudentOverallStats(studentId),
     ]);
 
+    const formattedStudent = formatStudentWithStatus(student);
+    const formattedStudents = students.map(formatStudentWithStatus);
+    const isInactive = formattedStudent.is_active === false;
+
     return res.status(200).json({
       success: true,
-      message: "تم تحميل البيانات بنجاح",
+      message: isInactive
+        ? `تنبيه: حساب الطالب غير مفعل (${formattedStudent.deactivation_reason || "غير مفعل"}). برجاء التواصل مع السنتر.`
+        : "تم تحميل البيانات بنجاح",
       data: {
-        student,
-        students,
+        student: formattedStudent,
+        deactivation_notice: formattedStudent.status_info,
+        students: formattedStudents,
         attendance,
         attendanceHistory,
         payments,

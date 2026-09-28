@@ -3,6 +3,7 @@ process.env.TZ = "Africa/Cairo";
 const app = require("./app");
 const env = require("./config/env");
 const { testConnection, closePool } = require("./config/database");
+const { runSchemaMigrations } = require("./config/schemaMigrations");
 const { startExamCron, stopExamCron } = require("./jobs/examCron.job");
 
 const PORT = env.PORT;
@@ -20,6 +21,9 @@ async function startServer() {
       console.error("Failed to connect to database");
       process.exit(1);
     }
+
+    // Run safe idempotent schema migrations
+    await runSchemaMigrations();
 
     // Start HTTP server
     server = app.listen(PORT, () => {

@@ -95,8 +95,9 @@ SELECT
   g.created_at,
   g.updated_at,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students,
   COUNT(DISTINCT gr.id) AS total_groups
 FROM grades g
 LEFT JOIN students s ON g.id = s.grade_id
@@ -162,8 +163,9 @@ SELECT
   g.id,
   g.name,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students
 FROM grades g
 LEFT JOIN students s ON g.id = s.grade_id
 WHERE g.id = $1 AND g.deleted = 0
@@ -175,8 +177,9 @@ SELECT
   g.id,
   g.name,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students
 FROM grades g
 LEFT JOIN students s ON g.id = s.grade_id
 WHERE g.deleted = 0

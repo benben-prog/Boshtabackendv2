@@ -424,11 +424,17 @@ function renderStudentsReportHtml({ students, meta = {}, excelUrl = null }) {
     { label: "المرحلة الدراسية", align: "right" },
     { label: "المجموعة", align: "right" },
     { label: "المبلغ الشهري", align: "center" },
+    { label: "حالة التفعيل", align: "center" },
     { label: "حالة الاشتراك", align: "center" },
   ];
 
   const tableRows = students.map((s, idx) => {
     const isPaid = s.payment_status === "paid";
+    const isInactive = s.is_active === false;
+    const activationBadge = isInactive
+      ? `<span class="status-badge" style="background-color: #fee2e2; color: #991b1b; font-weight: bold;">غير مفعل (${s.deactivation_reason || "غياب متكرر"})</span>`
+      : `<span class="status-badge" style="background-color: #dcfce7; color: #166534; font-weight: bold;">مفعل</span>`;
+
     return [
       idx + 1,
       s.barcode || "-",
@@ -438,10 +444,13 @@ function renderStudentsReportHtml({ students, meta = {}, excelUrl = null }) {
       s.grade_name || "-",
       s.group_name || "-",
       s.required_amount ? `${s.required_amount} ج.م` : "-",
+      activationBadge,
       `<span class="status-badge ${isPaid ? 'status-paid' : 'status-unpaid'}">${isPaid ? 'مدفوع' : 'غير مدفوع'}</span>`,
     ];
   });
 
+  const activeCount = students.filter(s => s.is_active !== false).length;
+  const inactiveCount = students.length - activeCount;
   const paidCount = students.filter(s => s.payment_status === "paid").length;
   const unpaidCount = students.length - paidCount;
 
@@ -455,8 +464,10 @@ function renderStudentsReportHtml({ students, meta = {}, excelUrl = null }) {
     ],
     statsCards: [
       { label: "إجمالي الطلاب", value: students.length, color: "primary" },
+      { label: "مفعلين", value: activeCount, color: "success" },
+      { label: "غير مفعلين", value: inactiveCount, color: "danger" },
       { label: "مسددي اشتراك الشهر", value: paidCount, color: "success" },
-      { label: "غير المسددين", value: unpaidCount, color: "danger" },
+      { label: "غير المسددين", value: unpaidCount, color: "warning" },
     ],
     tableHeaders,
     tableRows,
@@ -529,6 +540,7 @@ function renderPaymentsReportHtml({ payments, meta = {}, stats = {}, excelUrl = 
     { label: "رقم الدفعة", align: "center" },
     { label: "الباركود", align: "center" },
     { label: "اسم الطالب", align: "right" },
+    { label: "حالة الطالب", align: "center" },
     { label: "المرحلة", align: "right" },
     { label: "المجموعة", align: "right" },
     { label: "المبلغ المدفوع", align: "center" },
@@ -541,18 +553,26 @@ function renderPaymentsReportHtml({ payments, meta = {}, stats = {}, excelUrl = 
     ? meta.totalAmount 
     : payments.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
 
-  const tableRows = payments.map((p, idx) => [
-    idx + 1,
-    p.id,
-    p.barcode || "-",
-    `<strong>${p.student_name || p.full_name || "-"}</strong>`,
-    p.grade_name || "-",
-    p.group_name || "-",
-    `<strong>${p.amount} ج.م</strong>`,
-    p.payment_mode === "custom" ? "مخصص" : "عادي",
-    p.subscription_month || "-",
-    p.payment_date ? formatEgyptTime(p.payment_date, "YYYY-MM-DD HH:mm") : "-",
-  ]);
+  const tableRows = payments.map((p, idx) => {
+    const isInactive = p.student_is_active === false || p.student_status === "غير مفعل";
+    const statusBadge = isInactive
+      ? `<span class="status-badge" style="background-color: #fee2e2; color: #991b1b; font-weight: bold;">غير مفعل</span>`
+      : `<span class="status-badge" style="background-color: #dcfce7; color: #166534; font-weight: bold;">مفعل</span>`;
+
+    return [
+      idx + 1,
+      p.id,
+      p.barcode || "-",
+      `<strong>${p.student_name || p.full_name || "-"}</strong>`,
+      statusBadge,
+      p.grade_name || "-",
+      p.group_name || "-",
+      `<strong>${p.amount} ج.م</strong>`,
+      p.payment_mode === "custom" ? "مخصص" : "عادي",
+      p.subscription_month || "-",
+      p.payment_date ? formatEgyptTime(p.payment_date, "YYYY-MM-DD HH:mm") : "-",
+    ];
+  });
 
   return wrapHtmlReport({
     title: "تقرير سجل المدفوعات والتحصيل",

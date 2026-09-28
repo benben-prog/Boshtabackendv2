@@ -32,6 +32,9 @@ SELECT
   p.student_id,
   s.full_name AS student_name,
   s.barcode,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   gr.name AS group_name,
   p.amount,
@@ -41,7 +44,7 @@ SELECT
   sub.month AS subscription_month,
   sub.required_amount
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
@@ -59,7 +62,7 @@ SELECT
   COUNT(*) AS count,
   COALESCE(SUM(p.amount), 0) AS total_amount
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
 WHERE ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
@@ -75,6 +78,9 @@ SELECT
   p.student_id,
   s.full_name AS student_name,
   s.barcode,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   gr.name AS group_name,
   p.amount,
@@ -84,7 +90,7 @@ SELECT
   sub.month AS subscription_month,
   sub.required_amount
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
 LEFT JOIN subscriptions sub ON p.subscription_id = sub.id
@@ -167,6 +173,9 @@ SELECT
   p.student_id,
   s.full_name,
   s.barcode,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   gr.name AS group_name,
   p.amount,
@@ -174,7 +183,7 @@ SELECT
   p.payment_mode,
   p.notes
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 JOIN grades g ON s.grade_id = g.id
 JOIN groups gr ON s.group_id = gr.id
 WHERE s.grade_id = $1 
@@ -188,7 +197,7 @@ SELECT
   COUNT(p.id) AS count,
   COALESCE(SUM(p.amount), 0) AS total_amount
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 WHERE s.grade_id = $1 
   AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 `;
@@ -200,6 +209,9 @@ SELECT
   p.student_id,
   s.full_name,
   s.barcode,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   gr.name AS group_name,
   p.amount,
@@ -207,7 +219,7 @@ SELECT
   p.payment_mode,
   p.notes
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 JOIN grades g ON s.grade_id = g.id
 JOIN groups gr ON s.group_id = gr.id
 WHERE s.group_id = $1 
@@ -221,7 +233,7 @@ SELECT
   COUNT(p.id) AS count,
   COALESCE(SUM(p.amount), 0) AS total_amount
 FROM payments p
-JOIN students s ON p.student_id = s.id AND s.deleted = 0
+JOIN students s ON p.student_id = s.id
 WHERE s.group_id = $1 
   AND TO_CHAR(p.payment_date, 'YYYY-MM') = $2
 `;
@@ -340,6 +352,9 @@ SELECT
   s.id,
   s.barcode,
   s.full_name,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   s.grade_id,
   g.name AS grade_name,
   g.monthly_price AS required_amount,

@@ -39,6 +39,8 @@ function exportStudentsToExcel(students, meta = {}) {
     "المرحلة الدراسية": s.grade_name || "-",
     "المجموعة": s.group_name || "-",
     "المبلغ الشهري": s.required_amount !== undefined && s.required_amount !== null ? `${s.required_amount} ج.م` : "-",
+    "حالة التفعيل": s.is_active === false ? "غير مفعل" : "مفعل",
+    "سبب عدم التفعيل": s.is_active === false ? (s.deactivation_reason || "غياب متكرر") : "-",
     "حالة اشتراك الشهر": s.payment_status === "paid" ? "مدفوع" : "غير مدفوع",
     "ملاحظات": s.notes || "-",
   }));
@@ -56,6 +58,8 @@ function exportStudentsToExcel(students, meta = {}) {
     { wch: 20 }, // المرحلة
     { wch: 18 }, // المجموعة
     { wch: 15 }, // المبلغ
+    { wch: 16 }, // حالة التفعيل
+    { wch: 28 }, // سبب عدم التفعيل
     { wch: 16 }, // حالة الاشتراك
     { wch: 25 }, // ملاحظات
   ];
@@ -142,6 +146,7 @@ function exportPaymentsToExcel(payments, meta = {}) {
     "رقم الدفعة": p.id,
     "كود الطالب (الباركود)": p.barcode || "-",
     "اسم الطالب": p.student_name || p.full_name || "-",
+    "حالة الطالب": p.student_status || (p.student_is_active === false ? "غير مفعل" : "مفعل"),
     "المرحلة الدراسية": p.grade_name || "-",
     "المجموعة": p.group_name || "-",
     "المبلغ المدفوع": `${p.amount} ج.م`,
@@ -159,6 +164,7 @@ function exportPaymentsToExcel(payments, meta = {}) {
     { wch: 12 }, // رقم الدفعة
     { wch: 20 }, // الباركود
     { wch: 28 }, // اسم الطالب
+    { wch: 16 }, // حالة الطالب
     { wch: 20 }, // المرحلة
     { wch: 18 }, // المجموعة
     { wch: 16 }, // المبلغ

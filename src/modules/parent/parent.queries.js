@@ -12,6 +12,10 @@ SELECT
   s.parent_phone,
   s.parent_token,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -20,7 +24,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.parent_token = $1::text AND s.deleted = 0
+WHERE s.parent_token = $1::text
 `;
 
 // Get all students associated with a parent phone number
@@ -33,6 +37,10 @@ SELECT
   s.parent_phone,
   s.parent_token,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -41,7 +49,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.parent_phone = $1::text AND s.deleted = 0
+WHERE s.parent_phone = $1::text
 ORDER BY s.id ASC
 `;
 
@@ -107,7 +115,7 @@ LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN subscriptions sub ON sub.student_id = s.id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
-WHERE s.id = $1::int AND s.deleted = 0
+WHERE s.id = $1::int
 `;
 
 // Get payment history (up to 500 records)
@@ -148,7 +156,7 @@ SELECT
   e.exam_date AS sort_date
 FROM exams e
 LEFT JOIN exam_results er ON e.id = er.exam_id AND er.student_id = $1::int
-WHERE e.grade_id = (SELECT grade_id FROM students WHERE id = $1::int AND deleted = 0)
+WHERE e.grade_id = (SELECT grade_id FROM students WHERE id = $1::int)
   AND e.deleted = 0
 
 UNION ALL
@@ -198,8 +206,8 @@ SELECT
   END AS status
 FROM assignments a
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = $1::int
-WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1::int AND deleted = 0)
-  AND (a.group_id IS NULL OR a.group_id = (SELECT group_id FROM students WHERE id = $1::int AND deleted = 0))
+WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1::int)
+  AND (a.group_id IS NULL OR a.group_id = (SELECT group_id FROM students WHERE id = $1::int))
   AND a.deleted = 0
 ORDER BY a.deadline DESC
 `;
@@ -215,7 +223,7 @@ SELECT
   COUNT(DISTINCT s.id) AS students_count
 FROM groups gr
 LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
-WHERE gr.id = (SELECT group_id FROM students WHERE id = $1::int AND deleted = 0)
+WHERE gr.id = (SELECT group_id FROM students WHERE id = $1::int)
   AND gr.deleted = 0
 GROUP BY gr.id, gr.name, gr.days, gr.start_time, gr.end_time, gr.room
 `;

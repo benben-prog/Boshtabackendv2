@@ -47,10 +47,19 @@ const getAllStudents = async (req, res, next) => {
       req.query.limit === "all" ||
       parseInt(req.query.limit) >= 500;
 
+    const rawStatus =
+      req.query.status ||
+      (req.query.is_active !== undefined
+        ? String(req.query.is_active) === "true" || req.query.is_active === "1"
+          ? "active"
+          : "inactive"
+        : null);
+
     const filters = {
       search,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
+      status: rawStatus,
     };
 
     if (isAll) {
@@ -97,10 +106,19 @@ const getAllStudents = async (req, res, next) => {
 const exportStudentsExcel = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null } = req.query;
+    const rawStatus =
+      req.query.status ||
+      (req.query.is_active !== undefined
+        ? String(req.query.is_active) === "true" || req.query.is_active === "1"
+          ? "active"
+          : "inactive"
+        : null);
+
     const filters = {
       search,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
+      status: rawStatus,
     };
 
     const students = await studentService.getAllStudentsForExport(filters);
@@ -122,10 +140,19 @@ const exportStudentsExcel = async (req, res, next) => {
 const exportStudentsPdf = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null } = req.query;
+    const rawStatus =
+      req.query.status ||
+      (req.query.is_active !== undefined
+        ? String(req.query.is_active) === "true" || req.query.is_active === "1"
+          ? "active"
+          : "inactive"
+        : null);
+
     const filters = {
       search,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
+      status: rawStatus,
     };
 
     const students = await studentService.getAllStudentsForExport(filters);
@@ -384,8 +411,14 @@ const updateStudentPassword = async (req, res, next) => {
 
 const softDeleteStudent = async (req, res, next) => {
   try {
+    const reason =
+      req.body?.reason ||
+      req.body?.deactivation_reason ||
+      req.query?.reason ||
+      "تم إلغاء التفعيل بواسطة الإدارة";
     const student = await studentService.softDeleteStudent(
       req.params.studentId,
+      reason,
     );
     if (!student) throw new Error("الطالب غير موجود");
 
@@ -393,15 +426,15 @@ const softDeleteStudent = async (req, res, next) => {
       user_id: req.clientId,
       user_role: req.clientRole,
       user_permissions: req.clientPermissions,
-      action: "soft_delete_student",
+      action: "deactivate_student",
       entity_type: "student",
       entity_id: req.params.studentId,
-      description: `حذف مؤقت لطالب (ID: ${req.params.studentId})`,
+      description: `إلغاء تفعيل الطالب (ID: ${req.params.studentId}) - السبب: ${reason}`,
     });
 
     return res.status(200).json({
       success: true,
-      message: "تم حذف الطالب بنجاح",
+      message: `تم إلغاء تفعيل الطالب بنجاح (السبب: ${reason})`,
       data: student,
     });
   } catch (error) {
@@ -448,12 +481,62 @@ const restoreStudent = async (req, res, next) => {
       action: "restore_student",
       entity_type: "student",
       entity_id: req.params.studentId,
-      description: `استرجاع طالب محذوف (ID: ${req.params.studentId})`,
+      description: `إعادة تفعيل الطالب (ID: ${req.params.studentId})`,
     });
 
     return res.status(200).json({
       success: true,
-      message: "تم استرجاع الطالب بنجاح",
+      message: "تم إعادة تفعيل الطالب بنجاح",
+      data: student,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const toggleStudentStatus = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    let isActive = req.body?.is_active;
+    if (isActive === undefined && req.body?.status !== undefined) {
+      isActive = req.body.status === "active";
+    }
+    if (isActive === undefined) {
+      const existing = await studentService.getStudentById(studentId);
+      if (!existing) throw new Error("الطالب غير موجود");
+      isActive = !existing.is_active;
+    } else {
+      isActive = Boolean(isActive === true || isActive === "true" || isActive === 1);
+    }
+
+    const reason = isActive
+      ? null
+      : (req.body?.reason || req.body?.deactivation_reason || "تم إلغاء التفعيل بواسطة الإدارة");
+
+    const student = await studentService.toggleStudentStatus(
+      studentId,
+      isActive,
+      reason,
+    );
+    if (!student) throw new Error("الطالب غير موجود");
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: isActive ? "activate_student" : "deactivate_student",
+      entity_type: "student",
+      entity_id: studentId,
+      description: isActive
+        ? `تفعيل حساب الطالب (ID: ${studentId})`
+        : `إلغاء تفعيل حساب الطالب (ID: ${studentId}) - السبب: ${reason}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: isActive
+        ? "تم تفعيل حساب الطالب بنجاح"
+        : `تم إلغاء تفعيل حساب الطالب بنجاح (السبب: ${reason})`,
       data: student,
     });
   } catch (error) {
@@ -1181,6 +1264,7 @@ module.exports = {
   softDeleteStudent,
   hardDeleteStudent,
   restoreStudent,
+  toggleStudentStatus,
   // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,

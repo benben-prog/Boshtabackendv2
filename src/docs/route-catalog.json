@@ -640,6 +640,10 @@
     "path": "/api/assistant/students/{studentId}"
   },
   {
+    "method": "POST",
+    "path": "/api/assistant/students/{studentId}/activate"
+  },
+  {
     "method": "GET",
     "path": "/api/assistant/students/{studentId}/assignments"
   },
@@ -662,6 +666,10 @@
   {
     "method": "GET",
     "path": "/api/assistant/students/{studentId}/attendance/total"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/students/{studentId}/deactivate"
   },
   {
     "method": "GET",
@@ -710,6 +718,10 @@
   {
     "method": "GET",
     "path": "/api/assistant/students/{studentId}/stats"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/assistant/students/{studentId}/status"
   },
   {
     "method": "GET",
@@ -1680,6 +1692,10 @@
     "path": "/api/super-admin/students/{studentId}"
   },
   {
+    "method": "POST",
+    "path": "/api/super-admin/students/{studentId}/activate"
+  },
+  {
     "method": "GET",
     "path": "/api/super-admin/students/{studentId}/assignments"
   },
@@ -1702,6 +1718,10 @@
   {
     "method": "GET",
     "path": "/api/super-admin/students/{studentId}/attendance/total"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/{studentId}/deactivate"
   },
   {
     "method": "GET",
@@ -1758,6 +1778,10 @@
   {
     "method": "GET",
     "path": "/api/super-admin/students/{studentId}/stats"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/super-admin/students/{studentId}/status"
   },
   {
     "method": "GET",

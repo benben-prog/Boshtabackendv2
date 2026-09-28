@@ -67,14 +67,19 @@ routes.put(
   stdController.updateStudent,
 );
 
-// Soft delete a student
+// Soft delete / deactivate a student
 routes.delete("/:studentId", stdController.softDeleteStudent);
+routes.post("/:studentId/deactivate", stdController.softDeleteStudent);
 
 // Hard delete a student
 routes.delete("/:studentId/permanent", stdController.hardDeleteStudent);
 
-// Restore a soft-deleted student
+// Restore / activate a student
 routes.post("/:studentId/restore", stdController.restoreStudent);
+routes.post("/:studentId/activate", stdController.restoreStudent);
+
+// Toggle / set student active status
+routes.patch("/:studentId/status", stdController.toggleStudentStatus);
 
 // ============================================
 // PART 2: PROFILE & STATISTICS ROUTES

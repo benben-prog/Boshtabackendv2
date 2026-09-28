@@ -107,9 +107,10 @@ const checkAndSoftDeleteAbsentStudents = async () => {
 
   const studentIds = students.map((s) => s.id);
 
-  // Soft delete all students in one query
+  // Deactivate students without deleting records
   const deleteResult = await query(attendanceQueries.softDeleteStudent, [
     studentIds,
+    "غياب متكرر (3 حصص متتالية)",
   ]);
 
   // Log activity for each student
@@ -118,15 +119,15 @@ const checkAndSoftDeleteAbsentStudents = async () => {
       user_id: null,
       user_role: "system",
       user_permissions: null,
-      action: "auto_soft_delete_student",
+      action: "auto_deactivate_student",
       entity_type: "student",
       entity_id: student.id,
-      description: `حذف تلقائي للطالب ${student.full_name} (${student.barcode}) بسبب 3 غياب متتالي`,
+      description: `إلغاء تفعيل تلقائي للطالب ${student.full_name} (${student.barcode}) بسبب 3 غياب متتالي`,
     });
   }
 
   console.log(
-    `[Attendance] Auto soft-deleted ${deleteResult.rows.length} students`,
+    `[Attendance] Auto-deactivated ${deleteResult.rows.length} students due to 3 consecutive absences`,
   );
 
   return {
@@ -312,6 +313,12 @@ const scanBarcode = async (barcode, sessionData) => {
 
   if (!student) {
     throw new Error("الطالب غير موجود");
+  }
+
+  if (student.is_active === false) {
+    throw new Error(
+      `حساب الطالب غير مفعل (${student.deactivation_reason || "غير مفعل"}). يرجى مراجعة إدارة السنتر لتفعيل الحساب أولاً.`,
+    );
   }
 
   // Determine if makeup

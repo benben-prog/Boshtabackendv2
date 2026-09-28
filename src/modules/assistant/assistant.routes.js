@@ -560,6 +560,9 @@ routes.delete(
   studentsController.hardDeleteStudent,
 );
 routes.post("/students/:studentId/restore", studentsController.restoreStudent);
+routes.post("/students/:studentId/activate", studentsController.restoreStudent);
+routes.post("/students/:studentId/deactivate", studentsController.softDeleteStudent);
+routes.patch("/students/:studentId/status", studentsController.toggleStudentStatus);
 
 /* ---------- Attendance ---------- */
 // Static routes first

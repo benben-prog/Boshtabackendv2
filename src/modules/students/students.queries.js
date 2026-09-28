@@ -19,6 +19,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -45,6 +49,11 @@ WHERE s.deleted = 0
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND (
+    $6::text IS NULL OR $6::text = '' OR $6::text = 'all' OR
+    ($6::text = 'active' AND s.is_active = TRUE) OR
+    ($6::text = 'inactive' AND s.is_active = FALSE)
+  )
 ORDER BY s.full_name ASC
 LIMIT COALESCE($5::int, 20) OFFSET (($4::int - 1) * COALESCE($5::int, 20))
 `;
@@ -57,6 +66,11 @@ WHERE s.deleted = 0
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND (
+    $4::text IS NULL OR $4::text = '' OR $4::text = 'all' OR
+    ($4::text = 'active' AND s.is_active = TRUE) OR
+    ($4::text = 'inactive' AND s.is_active = FALSE)
+  )
 `;
 
 // Get all students for export (unpaginated)
@@ -68,6 +82,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -89,6 +107,11 @@ WHERE s.deleted = 0
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
+  AND (
+    $4::text IS NULL OR $4::text = '' OR $4::text = 'all' OR
+    ($4::text = 'active' AND s.is_active = TRUE) OR
+    ($4::text = 'inactive' AND s.is_active = FALSE)
+  )
 ORDER BY s.full_name ASC
 `;
 
@@ -102,6 +125,10 @@ SELECT
   s.parent_phone,
   s.password,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.notes,
   s.grade_id,
   g.name AS grade_name,
@@ -122,6 +149,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -141,6 +172,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -168,6 +203,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.group_id,
   gr.name AS group_name
 FROM students s
@@ -187,6 +226,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   g.monthly_price AS required_amount,
@@ -211,7 +254,7 @@ ORDER BY s.full_name ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
-// Get all deleted students - 20 per page
+// Get all deleted/inactive students - 20 per page
 const getDeletedStudents = `
 SELECT 
   s.id,
@@ -220,6 +263,10 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -228,7 +275,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id
 LEFT JOIN groups gr ON s.group_id = gr.id
-WHERE s.deleted = 1
+WHERE s.deleted = 1 OR s.is_active = FALSE
 ORDER BY s.full_name ASC
 LIMIT 20 OFFSET (($1::int - 1) * 20)
 `;
@@ -280,12 +327,14 @@ WHERE id = $2 AND deleted = 0
 RETURNING id
 `;
 
-// Soft delete a student (set deleted = 1)
+// Soft delete a student (deactivates without deleting records)
 const softDeleteStudent = `
 UPDATE students 
-SET deleted = 1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+SET is_active = FALSE, 
+    deactivation_reason = COALESCE($2, 'تم إلغاء التفعيل بواسطة الإدارة'), 
+    updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
-RETURNING id, deleted
+RETURNING id, barcode, full_name, is_active, deactivation_reason
 `;
 
 // Hard delete a student permanently
@@ -295,12 +344,25 @@ WHERE id = $1
 RETURNING id
 `;
 
-// Restore a soft-deleted student
+// Restore a soft-deleted / deactivated student
 const restoreStudent = `
 UPDATE students 
-SET deleted = 0, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-WHERE id = $1 AND deleted = 1
-RETURNING id, deleted
+SET is_active = TRUE, 
+    deactivation_reason = NULL, 
+    deleted = 0, 
+    updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1
+RETURNING id, barcode, full_name, is_active, deactivation_reason
+`;
+
+// Toggle student active status directly
+const toggleStudentStatus = `
+UPDATE students
+SET is_active = $2,
+    deactivation_reason = CASE WHEN $2 = TRUE THEN NULL ELSE COALESCE($3, 'تم إلغاء التفعيل بواسطة الإدارة') END,
+    updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
+WHERE id = $1 AND deleted = 0
+RETURNING id, barcode, full_name, is_active, deactivation_reason
 `;
 
 // ============================================
@@ -317,6 +379,10 @@ SELECT
   s.parent_phone,
   s.parent_token,
   s.profile_image,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.notes,
   s.grade_id,
   g.name AS grade_name,
@@ -927,6 +993,7 @@ module.exports = {
   softDeleteStudent,
   hardDeleteStudent,
   restoreStudent,
+  toggleStudentStatus,
   // Part 2: Profile & Statistics
   getStudentProfile,
   getStudentQuickStats,

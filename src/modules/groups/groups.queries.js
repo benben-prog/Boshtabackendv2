@@ -143,8 +143,9 @@ SELECT
   gr.grade_id,
   g.name AS grade_name,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students
 FROM groups gr
 LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id
@@ -159,8 +160,9 @@ SELECT
   gr.grade_id,
   g.name AS grade_name,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students
 FROM groups gr
 LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id
@@ -215,8 +217,9 @@ SELECT
   gr.created_at,
   gr.updated_at,
   COUNT(DISTINCT s.id) AS total_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 0 THEN s.id END) AS active_students,
-  COUNT(DISTINCT CASE WHEN s.deleted = 1 THEN s.id END) AS deleted_students
+  COUNT(DISTINCT CASE WHEN s.deleted = 0 AND s.is_active = TRUE THEN s.id END) AS active_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS inactive_students,
+  COUNT(DISTINCT CASE WHEN s.deleted = 1 OR s.is_active = FALSE THEN s.id END) AS deleted_students
 FROM groups gr
 LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
 LEFT JOIN students s ON gr.id = s.group_id
