@@ -24,12 +24,21 @@ SELECT
   s.full_name,
   s.barcode,
   se.score,
+  oe.full_mark,
   se.started_at,
-  se.submitted_at
+  se.submitted_at,
+  se.is_absent,
+  CASE 
+    WHEN se.is_absent = TRUE THEN 'absent'
+    WHEN se.score IS NULL THEN 'pending'
+    WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
+    ELSE 'failed'
+  END AS status
 FROM student_exams se
+JOIN online_exams oe ON se.exam_id = oe.id
 JOIN students s ON se.student_id = s.id AND s.deleted = 0
 WHERE se.exam_id = $1
-ORDER BY se.score DESC
+ORDER BY se.is_absent ASC, se.score DESC NULLS LAST, s.full_name ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
@@ -41,19 +50,25 @@ SELECT
   oe.full_mark,
   oe.start_at,
   oe.end_at,
-  (SELECT COUNT(*) FROM students WHERE grade_id = oe.grade_id AND deleted = 0) AS total_students,
-  COUNT(se.id) AS total_attempts,
-  COUNT(DISTINCT se.student_id) AS students_attempted,
-  (SELECT COUNT(*) FROM students WHERE grade_id = oe.grade_id AND deleted = 0) - COUNT(DISTINCT se.student_id) AS students_not_attempted,
-  ROUND(AVG(se.score)::numeric, 2) AS average_score,
-  MAX(se.score) AS highest_score,
-  MIN(se.score) AS lowest_score,
-  COUNT(CASE WHEN se.score >= (oe.full_mark * 0.5) THEN 1 END) AS passed_count,
-  COUNT(CASE WHEN se.score < (oe.full_mark * 0.5) THEN 1 END) AS failed_count
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (SELECT COUNT(*) FROM students WHERE grade_id = oe.grade_id AND (oe.group_id IS NULL OR group_id = oe.group_id) AND deleted = 0) AS total_students,
+  COUNT(se.id) AS total_recorded,
+  COUNT(CASE WHEN se.is_absent = FALSE OR se.is_absent IS NULL THEN 1 END) AS attended_count,
+  COUNT(CASE WHEN se.is_absent = TRUE THEN 1 END) AS absent_count,
+  ROUND(AVG(CASE WHEN se.is_absent = FALSE OR se.is_absent IS NULL THEN se.score END)::numeric, 2) AS average_score,
+  MAX(CASE WHEN se.is_absent = FALSE OR se.is_absent IS NULL THEN se.score END) AS highest_score,
+  MIN(CASE WHEN se.is_absent = FALSE OR se.is_absent IS NULL THEN se.score END) AS lowest_score,
+  COUNT(CASE WHEN (se.is_absent = FALSE OR se.is_absent IS NULL) AND se.score >= (oe.full_mark * 0.5) THEN 1 END) AS passed_count,
+  COUNT(CASE WHEN (se.is_absent = FALSE OR se.is_absent IS NULL) AND se.score < (oe.full_mark * 0.5) THEN 1 END) AS failed_count
 FROM online_exams oe
 LEFT JOIN student_exams se ON oe.id = se.exam_id
 WHERE oe.id = $1 AND oe.deleted = 0
-GROUP BY oe.id, oe.title, oe.full_mark, oe.start_at, oe.end_at, oe.grade_id
+GROUP BY oe.id, oe.title, oe.full_mark, oe.start_at, oe.end_at, oe.grade_id, oe.group_id
 `;
 
 // Get grade exam attempts stats
@@ -200,6 +215,7 @@ RETURNING *
 const autoSubmitExpiredExams = `
 UPDATE student_exams se
 SET submitted_at = NOW() AT TIME ZONE 'Africa/Cairo',
+    is_absent = FALSE,
     score = CASE 
       WHEN EXISTS (
         SELECT 1 FROM questions q 
@@ -246,13 +262,14 @@ RETURNING se.id, se.student_id, se.exam_id
 
 // Mark absent students (who didn't enter exam)
 const markAbsentStudents = `
-INSERT INTO student_exams (exam_id, student_id, score, started_at, submitted_at)
+INSERT INTO student_exams (exam_id, student_id, score, started_at, submitted_at, is_absent)
 SELECT 
   oe.id,
   s.id,
   0,
-  NOW() AT TIME ZONE 'Africa/Cairo',
-  NOW() AT TIME ZONE 'Africa/Cairo'
+  oe.end_at,
+  oe.end_at,
+  TRUE
 FROM online_exams oe
 CROSS JOIN students s
 WHERE oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
@@ -267,6 +284,10 @@ WHERE oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo'
     SELECT 1 FROM student_exams se 
     WHERE se.exam_id = oe.id AND se.student_id = s.id
   )
+ON CONFLICT (exam_id, student_id) DO UPDATE SET
+  is_absent = TRUE,
+  score = 0
+WHERE student_exams.submitted_at IS NULL
 RETURNING id, student_id, exam_id
 `;
 
@@ -320,7 +341,20 @@ WHERE question_id = $1
 ORDER BY "order" ASC
 `;
 
+
+// Verify student has active attempt for question's exam
+const checkStudentActiveAttemptForQuestion = `
+SELECT se.id AS attempt_id
+FROM questions q
+JOIN student_exams se ON q.exam_id = se.exam_id
+WHERE q.id = $1 
+  AND se.student_id = $2 
+  AND se.submitted_at IS NULL
+LIMIT 1
+`;
+
 module.exports = {
+  checkStudentActiveAttemptForQuestion,
   createExamAttempt,
   checkExistingAttempt,
   getStudentExamsByExamId,

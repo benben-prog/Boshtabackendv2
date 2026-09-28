@@ -29,6 +29,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   oe.randomize_questions,
   oe.created_by,
@@ -55,6 +61,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   oe.randomize_questions,
   oe.created_by,
@@ -79,6 +91,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   oe.randomize_questions,
   oe.created_at,
@@ -104,6 +122,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   oe.randomize_questions,
   oe.created_at,
@@ -125,6 +149,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   oe.randomize_questions,
   CASE 
@@ -147,6 +177,12 @@ SELECT
   oe.duration_minutes,
   oe.start_at,
   oe.end_at,
+  CASE 
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at THEN 'ended'
+    WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
+    ELSE 'active'
+  END AS status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   oe.full_mark,
   COUNT(se.id) AS attempts_count
 FROM online_exams oe

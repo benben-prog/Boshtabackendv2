@@ -21,7 +21,7 @@ const generateParentToken = () => {
   let token = "";
   for (let i = 0; i < PARENT_TOKEN_LENGTH; i++) {
     token += PARENT_TOKEN_CHARS.charAt(
-      Math.floor(Math.random() * PARENT_TOKEN_CHARS.length),
+      crypto.randomInt(0, PARENT_TOKEN_CHARS.length),
     );
   }
   return token;
@@ -50,6 +50,7 @@ const createStudent = async (stdInfo) => {
 
   const student = result.rows[0];
 
+  /*
   if (student) {
     try {
       const studentForWhatsapp = {
@@ -73,6 +74,7 @@ const createStudent = async (stdInfo) => {
       console.error("Error enqueueing welcome message:", error.message);
     }
   }
+  */
 
   return {
     ...student,
@@ -384,7 +386,8 @@ const resetStudentPassword = async (studentId, password) => {
 
 // Generate password for a student based on barcode, grade, group
 const generatePasswordForStudent = (student) => {
-  return `${student.barcode}${student.grade_id}${student.group_id}${PASSWORD_SUFFIX}`;
+  const pin = crypto.randomInt(1000, 9999);
+  return `${student.barcode}@${pin}`;
 };
 
 const generatePasswordsForAllStudents = async () => {
@@ -404,6 +407,9 @@ const generatePasswordsForAllStudents = async () => {
         id: student.id,
         barcode: student.barcode,
         full_name: student.full_name,
+        phone: student.phone,
+        grade_name: student.grade_name,
+        group_name: student.group_name,
         plain_password: plainPassword,
         hashed_password: hashedPassword,
       };
@@ -422,6 +428,9 @@ const generatePasswordsForAllStudents = async () => {
       student_id: p.id,
       barcode: p.barcode,
       full_name: p.full_name,
+      phone: p.phone,
+      grade_name: p.grade_name,
+      group_name: p.group_name,
       password: p.plain_password,
     })),
   };
@@ -446,6 +455,9 @@ const generatePasswordsForGrade = async (gradeId) => {
         id: student.id,
         barcode: student.barcode,
         full_name: student.full_name,
+        phone: student.phone,
+        grade_name: student.grade_name,
+        group_name: student.group_name,
         plain_password: plainPassword,
         hashed_password: hashedPassword,
       };
@@ -464,8 +476,79 @@ const generatePasswordsForGrade = async (gradeId) => {
       student_id: p.id,
       barcode: p.barcode,
       full_name: p.full_name,
+      phone: p.phone,
+      grade_name: p.grade_name,
+      group_name: p.group_name,
       password: p.plain_password,
     })),
+  };
+};
+
+
+const generatePasswordsForGroup = async (groupId) => {
+  const studentsResult = await query(stdQr.getStudentsWithoutPasswordByGroup, [
+    groupId,
+  ]);
+  const studentsWithoutPassword = studentsResult.rows;
+
+  if (studentsWithoutPassword.length === 0) {
+    return { generated_count: 0, passwords: [] };
+  }
+
+  const passwordData = await Promise.all(
+    studentsWithoutPassword.map(async (student) => {
+      const plainPassword = generatePasswordForStudent(student);
+      const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+      return {
+        id: student.id,
+        barcode: student.barcode,
+        full_name: student.full_name,
+        plain_password: plainPassword,
+        hashed_password: hashedPassword,
+      };
+    }),
+  );
+
+  const ids = passwordData.map((p) => p.id);
+  const hashedPasswords = passwordData.map((p) => p.hashed_password);
+
+  await query(stdQr.bulkUpdatePasswords, [ids, hashedPasswords]);
+
+  return {
+    generated_count: passwordData.length,
+    passwords: passwordData.map((p) => ({
+      student_id: p.id,
+      barcode: p.barcode,
+      full_name: p.full_name,
+      password: p.plain_password,
+    })),
+  };
+};
+
+const generatePasswordForSingleStudent = async (identifier) => {
+  const cleanId = String(identifier).trim();
+  const studentResult = await query(stdQr.getStudentForPasswordGenerationByIdOrBarcode, [
+    cleanId,
+  ]);
+  const student = studentResult.rows[0];
+
+  if (!student) {
+    throw new Error("الطالب غير موجود");
+  }
+
+  const plainPassword = generatePasswordForStudent(student);
+  const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+
+  await query(stdQr.resetStudentPassword, [hashedPassword, student.id]);
+
+  return {
+    student_id: student.id,
+    barcode: student.barcode,
+    full_name: student.full_name,
+    phone: student.phone,
+    grade_name: student.grade_name,
+    group_name: student.group_name,
+    password: plainPassword,
   };
 };
 
@@ -522,4 +605,6 @@ module.exports = {
   resetStudentPassword,
   generatePasswordsForAllStudents,
   generatePasswordsForGrade,
+  generatePasswordsForGroup,
+  generatePasswordForSingleStudent,
 };

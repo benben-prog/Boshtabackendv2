@@ -270,7 +270,8 @@ const processStudentsBulk = async (data) => {
         successCount++;
       });
 
-      // Enqueue welcome messages for all inserted students
+      // Enqueue welcome messages for all inserted students (Commented out per request)
+      /*
       for (const student of insertedStudents) {
         try {
           const welcomeMessage = whatsappDispatcher.generateWelcomeMessage({
@@ -291,6 +292,7 @@ const processStudentsBulk = async (data) => {
           );
         }
       }
+      */
     } catch (error) {
       console.error("Bulk insert error:", error);
       throw new Error(`فشل إدخال البيانات: ${error.message}`);

@@ -41,7 +41,6 @@ const submitAnswer = async (req, res, next) => {
         answer_id: answer.id,
         question_id: answer.question_id,
         selected_option_id: answer.selected_option_id,
-        is_correct: answer.is_correct,
       },
     });
   } catch (error) {

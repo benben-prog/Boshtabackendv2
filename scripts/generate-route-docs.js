@@ -198,6 +198,30 @@ const humanize = (method, route) => {
     "POST /api/super-admin/attendance/sessions/start": "Start new attendance session (بدء جلسة حضور لمجموعة)",
     "GET /api/super-admin/attendance/summary/group/{groupId}/date/{date}": "Get attendance summary for group and date (ملخص حضور المجموعة في تاريخ معين)",
 
+    // Super Admin - Password Management & Exports
+    "POST /api/super-admin/students/generate-passwords/barcode/{barcode}": "Generate student password by barcode (توليد وتعيين كلمة مرور للطالب بالباركود)",
+    "POST /api/super-admin/students/barcode/{barcode}/generate-password": "Generate student password by barcode (توليد كلمة مرور للطالب بالباركود)",
+    "GET /api/super-admin/students/generate-passwords/barcode/{barcode}/pdf": "Get printable PDF of student password by barcode (عرض وطباعة كارت كلمة مرور الطالب بالباركود PDF)",
+    "POST /api/super-admin/students/generate-passwords/barcode/{barcode}/pdf": "Generate and get printable PDF of student password by barcode (توليد وعرض كارت كلمة مرور الطالب بالباركود PDF)",
+    "GET /api/super-admin/students/generate-passwords/barcode/{barcode}/excel": "Export student password to Excel by barcode (تصدير بيانات حساب الطالب بالباركود Excel)",
+    "POST /api/super-admin/students/generate-passwords/barcode/{barcode}/excel": "Generate and export student password to Excel by barcode (توليد وتصدير بيانات حساب الطالب Excel)",
+    "GET /api/super-admin/students/generate-passwords/student/{studentId}/pdf": "Get printable PDF of student password (عرض وطباعة كلمة مرور الطالب PDF)",
+    "POST /api/super-admin/students/generate-passwords/student/{studentId}/pdf": "Generate and get printable PDF of student password (توليد وطباعة كلمة مرور الطالب PDF)",
+    "GET /api/super-admin/students/generate-passwords/group/{groupId}/pdf": "Get printable PDF of group passwords (عرض وطباعة كشف كلمات مرور المجموعة PDF)",
+    "POST /api/super-admin/students/generate-passwords/group/{groupId}/pdf": "Generate and get printable PDF of group passwords (توليد وطباعة كشف كلمات مرور طلاب المجموعة PDF)",
+    "GET /api/super-admin/students/generate-passwords/grade/{gradeId}/pdf": "Get printable PDF of grade passwords (عرض وطباعة كشف كلمات مرور الصف PDF)",
+    "POST /api/super-admin/students/generate-passwords/grade/{gradeId}/pdf": "Generate and get printable PDF of grade passwords (توليد وطباعة كشف كلمات مرور طلاب الصف PDF)",
+    "GET /api/super-admin/students/generate-passwords/pdf": "Get printable PDF of all student passwords (عرض وطباعة كشف كلمات مرور جميع الطلاب PDF)",
+    "POST /api/super-admin/students/generate-passwords/pdf": "Generate and get printable PDF of all student passwords (توليد وطباعة كشف كلمات مرور جميع الطلاب PDF)",
+    "GET /api/super-admin/students/generate-passwords/group/{groupId}/excel": "Export group passwords to Excel (تصدير كلمات مرور طلاب المجموعة Excel)",
+    "POST /api/super-admin/students/generate-passwords/group/{groupId}/excel": "Generate and export group passwords to Excel (توليد وتصدير كلمات مرور طلاب المجموعة Excel)",
+    "GET /api/super-admin/students/generate-passwords/grade/{gradeId}/excel": "Export grade passwords to Excel (تصدير كلمات مرور طلاب الصف Excel)",
+    "POST /api/super-admin/students/generate-passwords/grade/{gradeId}/excel": "Generate and export grade passwords to Excel (توليد وتصدير كلمات مرور طلاب الصف Excel)",
+    "GET /api/super-admin/students/generate-passwords/excel": "Export all student passwords to Excel (تصدير كلمات مرور جميع الطلاب Excel)",
+    "POST /api/super-admin/students/generate-passwords/excel": "Generate and export all student passwords to Excel (توليد وتصدير كلمات مرور جميع الطلاب Excel)",
+    "POST /api/super-admin/students/passwords/export/pdf": "Export custom passwords list to printable PDF (تصدير كشف مخصص لكلمات المرور PDF)",
+    "POST /api/super-admin/students/passwords/export/excel": "Export custom passwords list to Excel (تصدير كشف مخصص لكلمات المرور Excel)",
+
     // Super Admin - Exam Results
     "GET /api/super-admin/exam-results/exam/{examId}": "Get exam results list (عرض نتائج الامتحان الورقي)",
     "GET /api/super-admin/exam-results/exam/{examId}/stats": "Get exam results statistics (إحصائيات نتائج الامتحان)",
@@ -552,6 +576,49 @@ const bodyFor = (method, route) => {
 `;
   }
 
+  // Passwords export
+  if (route === "/api/super-admin/students/passwords/export/pdf" || route === "/api/super-admin/students/passwords/export/excel") {
+    return `    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: "عنوان الكشف"
+                example: "كشف كلمات مرور الطلاب"
+              passwords:
+                type: array
+                description: "قائمة الطلاب وكلمات المرور"
+                items:
+                  type: object
+                  properties:
+                    student_id:
+                      type: integer
+                      example: 15
+                    full_name:
+                      type: string
+                      example: "أحمد علي محمد"
+                    barcode:
+                      type: string
+                      example: "STU1024"
+                    phone:
+                      type: string
+                      example: "01012345678"
+                    grade_name:
+                      type: string
+                      example: "الصف الأول الثانوي"
+                    group_name:
+                      type: string
+                      example: "مجموعة أ"
+                    password:
+                      type: string
+                      example: "STU1024@5821"
+`;
+  }
+
   // Webhook
   if (route === "/webhook/webhook") {
     return `    requestBody:
@@ -596,6 +663,7 @@ const bodyFor = (method, route) => {
 
 // Parameter descriptions
 const paramDetails = {
+  barcode: { type: "string", desc: "Student Barcode (باركود الطالب)", example: "STU1024" },
   gradeId: { type: "integer", desc: "Grade ID (معرف الصف الدراسي)", example: 1 },
   groupId: { type: "integer", desc: "Group ID (معرف المجموعة)", example: 1 },
   examId: { type: "integer", desc: "Exam ID (معرف الامتحان)", example: 1 },
@@ -661,6 +729,41 @@ const responsesFor = (route, method) => {
         description: Webhook processing failed
 `;
   }
+  if (route.endsWith("/pdf")) {
+    return `    responses:
+      '200':
+        description: "تقرير HTML قابل للطباعة والحفظ كـ PDF (Printable HTML / PDF Report)"
+        content:
+          text/html:
+            schema:
+              type: string
+      '401':
+        description: Unauthorized / Token required
+      '404':
+        description: Resource not found
+      '500':
+        description: Internal Server Error
+`;
+  }
+
+  if (route.endsWith("/excel")) {
+    return `    responses:
+      '200':
+        description: "ملف إكسيل قابل للتنزيل (Downloadable Excel Workbook)"
+        content:
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              type: string
+              format: binary
+      '401':
+        description: Unauthorized / Token required
+      '404':
+        description: Resource not found
+      '500':
+        description: Internal Server Error
+`;
+  }
+
   const successCode = method === "POST" ? "201" : "200";
   return `    responses:
       '${successCode}':

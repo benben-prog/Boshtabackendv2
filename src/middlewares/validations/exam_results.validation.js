@@ -8,11 +8,13 @@ const createExamResultSchema = Joi.object({
   student_id: Joi.number().integer().positive().required().messages({
     "any.required": "الطالب مطلوب",
   }),
-  degree: Joi.number().min(0).required().messages({
+  degree: Joi.alternatives().try(
+    Joi.number().min(0),
+    Joi.string().valid("-", "غياب", "غ")
+  ).required().messages({
     "any.required": "الدرجة مطلوبة",
-    "number.min": "الدرجة لا يمكن أن تكون سالبة",
-    "number.base": "الدرجة يجب أن تكون رقماً",
   }),
+  is_absent: Joi.boolean().optional(),
   notes: Joi.string().allow("", null).max(1000),
 });
 

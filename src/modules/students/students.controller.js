@@ -3,9 +3,11 @@ const { logActivity } = require("../../utils/activityLogger");
 const {
   exportStudentsToExcel,
   sendExcelResponse,
+  exportPasswordsToExcel,
 } = require("../../utils/excelExporter");
 const {
   renderStudentsReportHtml,
+  renderPasswordsReportHtml,
   sendReportHtml,
 } = require("../../utils/pdfHtmlExporter");
 
@@ -917,8 +919,28 @@ const generatePasswordsForAllStudents = async (req, res, next) => {
       action: "generate_student_passwords",
       entity_type: "student",
       entity_id: null,
-      description: `توليد باسوردات لـ ${result.generated_count} طالب`,
+      description: `توليد باسوردات لجميع الطلاب بدون باسورد - ${result.generated_count} طالب`,
     });
+
+    const isPdf = req.query.format === "pdf" || req.query.pdf === "true" || req.path?.endsWith("/pdf");
+    const isExcel = req.query.format === "excel" || req.query.excel === "true" || req.path?.endsWith("/excel");
+
+    if (isPdf) {
+      const excelUrl = req.originalUrl.replace("/pdf", "/excel").replace("format=pdf", "format=excel");
+      const html = renderPasswordsReportHtml({
+        passwords: result.passwords,
+        meta: { title: "كشف كلمات مرور جميع الطلاب" },
+        excelUrl,
+      });
+      return sendReportHtml(res, html);
+    }
+
+    if (isExcel) {
+      const { buffer, fileName } = exportPasswordsToExcel(result.passwords, {
+        fileName: "كشف_كلمات_مرور_جميع_الطلاب.xlsx",
+      });
+      return sendExcelResponse(res, buffer, fileName);
+    }
 
     return res.status(200).json({
       success: true,
@@ -950,11 +972,185 @@ const generatePasswordsForGrade = async (req, res, next) => {
       description: `توليد باسوردات لطلاب الصف (ID: ${gradeId}) - ${result.generated_count} طالب`,
     });
 
+    const isPdf = req.query.format === "pdf" || req.query.pdf === "true" || req.path?.endsWith("/pdf");
+    const isExcel = req.query.format === "excel" || req.query.excel === "true" || req.path?.endsWith("/excel");
+
+    if (isPdf) {
+      const gradeName = result.passwords[0]?.grade_name || `الصف ${gradeId}`;
+      const excelUrl = req.originalUrl.replace("/pdf", "/excel").replace("format=pdf", "format=excel");
+      const html = renderPasswordsReportHtml({
+        passwords: result.passwords,
+        meta: {
+          title: `كشف كلمات مرور طلاب ${gradeName}`,
+          gradeName,
+        },
+        excelUrl,
+      });
+      return sendReportHtml(res, html);
+    }
+
+    if (isExcel) {
+      const gradeName = result.passwords[0]?.grade_name || `الصف_${gradeId}`;
+      const { buffer, fileName } = exportPasswordsToExcel(result.passwords, {
+        fileName: `كشف_كلمات_مرور_${gradeName}.xlsx`,
+      });
+      return sendExcelResponse(res, buffer, fileName);
+    }
+
     return res.status(200).json({
       success: true,
       message: `تم توليد ${result.generated_count} باسورد بنجاح`,
       data: result,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generatePasswordsForGroup = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      throw new Error("معرف المجموعة مطلوب");
+    }
+
+    const result = await studentService.generatePasswordsForGroup(groupId);
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "generate_passwords_for_group",
+      entity_type: "student",
+      entity_id: groupId,
+      description: `توليد باسوردات لطلاب المجموعة (ID: ${groupId}) - ${result.generated_count} طالب`,
+    });
+
+    const isPdf = req.query.format === "pdf" || req.query.pdf === "true" || req.path?.endsWith("/pdf");
+    const isExcel = req.query.format === "excel" || req.query.excel === "true" || req.path?.endsWith("/excel");
+
+    if (isPdf) {
+      const groupName = result.passwords[0]?.group_name || `المجموعة ${groupId}`;
+      const gradeName = result.passwords[0]?.grade_name || null;
+      const excelUrl = req.originalUrl.replace("/pdf", "/excel").replace("format=pdf", "format=excel");
+      const html = renderPasswordsReportHtml({
+        passwords: result.passwords,
+        meta: {
+          title: `كشف كلمات مرور طلاب ${groupName}`,
+          gradeName,
+          groupName,
+        },
+        excelUrl,
+      });
+      return sendReportHtml(res, html);
+    }
+
+    if (isExcel) {
+      const groupName = result.passwords[0]?.group_name || `المجموعة_${groupId}`;
+      const { buffer, fileName } = exportPasswordsToExcel(result.passwords, {
+        fileName: `كشف_كلمات_مرور_${groupName}.xlsx`,
+      });
+      return sendExcelResponse(res, buffer, fileName);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `تم توليد ${result.generated_count} باسورد بنجاح`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generatePasswordForSingleStudent = async (req, res, next) => {
+  try {
+    const identifier =
+      req.params.barcode ||
+      req.params.studentId ||
+      req.params.id ||
+      req.body?.barcode ||
+      req.body?.student_id;
+
+    if (!identifier) {
+      throw new Error("معرف الطالب أو الباركود مطلوب");
+    }
+
+    const result = await studentService.generatePasswordForSingleStudent(identifier);
+
+    await logActivity({
+      user_id: req.clientId,
+      user_role: req.clientRole,
+      user_permissions: req.clientPermissions,
+      action: "generate_password_for_student",
+      entity_type: "student",
+      entity_id: result.student_id,
+      description: `توليد باسورد للطالب ${result.full_name} (Barcode: ${result.barcode})`,
+    });
+
+    const isPdf = req.query.format === "pdf" || req.query.pdf === "true" || req.path?.endsWith("/pdf");
+    const isExcel = req.query.format === "excel" || req.query.excel === "true" || req.path?.endsWith("/excel");
+
+    if (isPdf) {
+      const html = renderPasswordsReportHtml({
+        passwords: [result],
+        meta: {
+          title: `بيانات حساب الطالب - ${result.full_name}`,
+          gradeName: result.grade_name,
+          groupName: result.group_name,
+        },
+      });
+      return sendReportHtml(res, html);
+    }
+
+    if (isExcel) {
+      const { buffer, fileName } = exportPasswordsToExcel([result], {
+        fileName: `بيانات_حساب_${result.barcode}.xlsx`,
+      });
+      return sendExcelResponse(res, buffer, fileName);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "تم توليد كلمة المرور بنجاح",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportPasswordsPdf = async (req, res, next) => {
+  try {
+    const passwords = Array.isArray(req.body?.passwords) ? req.body.passwords : [];
+    const meta = {
+      title: req.body?.title || "كشف كلمات مرور الطلاب",
+      gradeName: req.body?.grade_name || null,
+      groupName: req.body?.group_name || null,
+    };
+
+    const html = renderPasswordsReportHtml({
+      passwords,
+      meta,
+    });
+    return sendReportHtml(res, html);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportPasswordsExcel = async (req, res, next) => {
+  try {
+    const passwords = Array.isArray(req.body?.passwords) ? req.body.passwords : [];
+    const meta = {
+      fileName: req.body?.file_name || `كشف_كلمات_مرور_${Date.now()}.xlsx`,
+      gradeName: req.body?.grade_name || null,
+      groupName: req.body?.group_name || null,
+    };
+
+    const { buffer, fileName } = exportPasswordsToExcel(passwords, meta);
+    return sendExcelResponse(res, buffer, fileName);
   } catch (error) {
     next(error);
   }
@@ -1013,4 +1209,8 @@ module.exports = {
   resetStudentPassword,
   generatePasswordsForAllStudents,
   generatePasswordsForGrade,
+  generatePasswordsForGroup,
+  generatePasswordForSingleStudent,
+  exportPasswordsPdf,
+  exportPasswordsExcel,
 };

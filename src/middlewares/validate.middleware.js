@@ -2,7 +2,10 @@ const { cleanupUploadedFiles } = require("../utils/fileStorage");
 
 // Middleware to validate request body using Joi schema
 const validate = (schema) => (req, res, next) => {
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body, {
+    abortEarly: true,
+    stripUnknown: true,
+  });
 
   if (error) {
     cleanupUploadedFiles(req);
@@ -12,6 +15,7 @@ const validate = (schema) => (req, res, next) => {
     });
   }
 
+  req.body = value;
   next();
 };
 

@@ -514,6 +514,7 @@ const markAbsentStudents = async () => {
 // ============================================
 
 const getStudentExamsByExamId = async (examId, page = 1) => {
+  await syncExamStatus();
   const result = await query(studentExamQueries.getStudentExamsByExamId, [
     examId,
     page,
@@ -522,6 +523,7 @@ const getStudentExamsByExamId = async (examId, page = 1) => {
 };
 
 const getExamAttemptStats = async (examId) => {
+  await syncExamStatus();
   const result = await query(studentExamQueries.getExamAttemptStats, [examId]);
   return result.rows[0];
 };
@@ -593,7 +595,16 @@ const getExamQuestionsForStudent = async (examId, studentId) => {
 // GET SINGLE QUESTION FOR STUDENT
 // ============================================
 
-const getQuestionForStudent = async (questionId) => {
+const getQuestionForStudent = async (questionId, studentId) => {
+  if (studentId) {
+    const attemptCheck = await query(
+      studentExamQueries.checkStudentActiveAttemptForQuestion,
+      [questionId, studentId],
+    );
+    if (!attemptCheck.rows[0]) {
+      throw new Error("لا يمكنك الوصول لهذا السؤال خارج جلسة الامتحان النشطة");
+    }
+  }
   const questionResult = await query(studentExamQueries.getQuestionById, [
     questionId,
   ]);
@@ -620,11 +631,31 @@ const getQuestionForStudent = async (questionId) => {
 // GET OPTIONS FOR STUDENT
 // ============================================
 
-const getOptionsForStudent = async (questionId) => {
+const getOptionsForStudent = async (questionId, studentId) => {
+  if (studentId) {
+    const attemptCheck = await query(
+      studentExamQueries.checkStudentActiveAttemptForQuestion,
+      [questionId, studentId],
+    );
+    if (!attemptCheck.rows[0]) {
+      throw new Error("لا يمكنك الوصول لخيارات هذا السؤال خارج جلسة الامتحان النشطة");
+    }
+  }
   const result = await query(studentExamQueries.getOptionsByQuestionId, [
     questionId,
   ]);
   return result.rows;
+};
+
+
+// Helper to sync expired/absent online exam attempts
+const syncExamStatus = async () => {
+  try {
+    await autoSubmitExpiredExams();
+    await markAbsentStudents();
+  } catch (err) {
+    // Silent maintenance log
+  }
 };
 
 module.exports = {

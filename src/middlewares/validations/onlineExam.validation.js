@@ -70,7 +70,21 @@ const updateOnlineExamSchema = Joi.object({
     "object.min": "يجب إرسال حقل واحد على الأقل للتعديل",
   });
 
+
+// Submit answer schema
+const submitAnswerSchema = Joi.object({
+  question_id: Joi.number().integer().positive().required().messages({
+    "any.required": "معرف السؤال مطلوب",
+    "number.base": "معرف السؤال يجب أن يكون رقماً",
+  }),
+  selected_option_id: Joi.number().integer().positive().required().messages({
+    "any.required": "معرف الاختيار مطلوب",
+    "number.base": "معرف الاختيار يجب أن يكون رقماً",
+  }),
+});
+
 module.exports = {
+  submitAnswerSchema,
   createOnlineExamSchema,
   updateOnlineExamSchema,
 };

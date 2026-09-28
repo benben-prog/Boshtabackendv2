@@ -1724,6 +1724,10 @@
     "path": "/api/super-admin/students/{studentId}/exams/results"
   },
   {
+    "method": "POST",
+    "path": "/api/super-admin/students/{studentId}/generate-password"
+  },
+  {
     "method": "GET",
     "path": "/api/super-admin/students/{studentId}/payments"
   },
@@ -1765,6 +1769,10 @@
   },
   {
     "method": "POST",
+    "path": "/api/super-admin/students/barcode/{barcode}/generate-password"
+  },
+  {
+    "method": "POST",
     "path": "/api/super-admin/students/bulk-upload"
   },
   {
@@ -1785,7 +1793,99 @@
   },
   {
     "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/barcode/{barcode}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/barcode/{barcode}/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/barcode/{barcode}/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/barcode/{barcode}/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/barcode/{barcode}/pdf"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/excel"
+  },
+  {
+    "method": "POST",
     "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/grade/{gradeId}/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/group/{groupId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/group/{groupId}/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/group/{groupId}/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/group/{groupId}/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/group/{groupId}/pdf"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/student/{studentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/student/{studentId}/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/student/{studentId}/excel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/students/generate-passwords/student/{studentId}/pdf"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/generate-passwords/student/{studentId}/pdf"
   },
   {
     "method": "GET",
@@ -1794,6 +1894,14 @@
   {
     "method": "GET",
     "path": "/api/super-admin/students/group/{groupId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/passwords/export/excel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/students/passwords/export/pdf"
   },
   {
     "method": "GET",

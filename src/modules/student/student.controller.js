@@ -659,17 +659,18 @@ const getPaymentHistory = async (req, res, next) => {
   }
 };
 
-// Get remaining balance
+// Get remaining balance (Cancelled - always returns 0 remaining)
 const getRemainingBalance = async (req, res, next) => {
   try {
     const studentId = req.clientId;
 
-    const balance = await studentsService.getRemainingBalance(studentId);
-
     return res.status(200).json({
       success: true,
-      message: "Balance loaded successfully",
-      data: balance,
+      message: "نظام المدفوعات لا يحتوي على متبقي",
+      data: {
+        student_id: studentId,
+        remaining_balance: 0,
+      },
     });
   } catch (error) {
     next(error);

@@ -7,6 +7,7 @@ async function createStudentExamsTable() {
       exam_id INTEGER NOT NULL REFERENCES online_exams(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       score DECIMAL(10,2) DEFAULT 0,
+      is_absent BOOLEAN DEFAULT FALSE,
       started_at TIMESTAMP NOT NULL,
       submitted_at TIMESTAMP,
       UNIQUE(exam_id, student_id)

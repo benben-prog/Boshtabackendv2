@@ -122,7 +122,26 @@ const processExamResultsBulk = async (examId, data) => {
       const studentName = String(
         row.student_name || row.full_name || row.name || "",
       ).trim();
-      const degree = cleanNumber(row.degree);
+      const rawDegree = row.degree !== undefined && row.degree !== null ? String(row.degree).trim() : "";
+      const isAbsent = rawDegree === "-" || rawDegree === "غياب" || rawDegree === "غ" || rawDegree.toLowerCase() === "absent" || row.is_absent === true || row.is_absent === "true";
+      
+      let degree;
+      if (isAbsent) {
+        degree = 0;
+      } else {
+        degree = cleanNumber(row.degree);
+        if (degree === null || degree === undefined || isNaN(degree)) {
+          throw new Error(`الدرجة غير صحيحة: ${row.degree}`);
+        }
+        if (degree < 0) {
+          throw new Error(`الدرجة لا يمكن أن تكون سالبة: ${degree}`);
+        }
+        if (Number(degree) > Number(exam.total_degree)) {
+          throw new Error(
+            `الدرجة (${degree}) تتجاوز الدرجة الكلية (${exam.total_degree})`,
+          );
+        }
+      }
       const notes = row.notes ? String(row.notes).trim() : null;
 
       // ============================================
@@ -131,21 +150,6 @@ const processExamResultsBulk = async (examId, data) => {
 
       if (!barcode) {
         throw new Error("الباركود مطلوب");
-      }
-
-      if (degree === null || degree === undefined || isNaN(degree)) {
-        throw new Error(`الدرجة غير صحيحة: ${row.degree}`);
-      }
-
-      if (degree < 0) {
-        throw new Error(`الدرجة لا يمكن أن تكون سالبة: ${degree}`);
-      }
-
-      // ✅ Validation: Check against exam total
-      if (Number(degree) > Number(exam.total_degree)) {
-        throw new Error(
-          `الدرجة (${degree}) تتجاوز الدرجة الكلية (${exam.total_degree})`,
-        );
       }
 
       if (usedBarcodes.has(barcode)) {
@@ -262,9 +266,9 @@ const processExamResultsBulk = async (examId, data) => {
       }
 
       // ============================================
-      // Send WhatsApp notifications
+      // Send WhatsApp notifications (Commented out per request)
       // ============================================
-
+      /*
       const examDate = exam.exam_date
         ? formatEgyptTime(exam.exam_date, "DD/MM/YYYY")
         : "غير محدد";
@@ -296,6 +300,7 @@ const processExamResultsBulk = async (examId, data) => {
           console.error("Error enqueueing exam result message:", error.message);
         }
       }
+      */
     } catch (error) {
       console.error("Bulk insert error:", error);
       throw new Error(`فشل إدخال الدرجات: ${error.message}`);

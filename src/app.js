@@ -27,6 +27,7 @@ const clientAuth = require("./middlewares/clientAuth.middleware");
 const assistantAuth = require("./middlewares/assistantAuth.middleware");
 const teacherAuth = require("./middlewares/teacherAuth.middleware");
 const superAdminAuth = require("./middlewares/superAdminAuth.middleware");
+const studentAuth = require("./middlewares/studentAuth.middleware");
 
 // Database
 const { query } = require("./config/database");
@@ -291,7 +292,7 @@ app.use(checkPlatformStatus);
 // ============================================
 
 app.use("/api/auth", authRoutes);
-app.use("/api/student", apiMiddelware, clientAuth, studentModuleRoutes);
+app.use("/api/student", apiMiddelware, clientAuth, studentAuth, studentModuleRoutes);
 app.use("/api/parent", parentRoutes);
 app.use(
   "/api/assistant",

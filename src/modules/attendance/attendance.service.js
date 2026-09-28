@@ -382,7 +382,8 @@ const createAttendance = async (attendanceData) => {
 
   const attendance = result.rows[0];
 
-  // Send WhatsApp notification if absent
+  // Send WhatsApp notification if absent (Commented out per request)
+  /*
   if (attendance && status === "absent") {
     try {
       const studentResult = await query(
@@ -414,6 +415,7 @@ const createAttendance = async (attendanceData) => {
       console.error("Error enqueueing absence message:", error.message);
     }
   }
+  */
 
   return attendance;
 };

@@ -7,6 +7,7 @@ async function createExamResultsTable() {
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
       degree DECIMAL(10,2) NOT NULL,
+      is_absent BOOLEAN DEFAULT FALSE,
       notes TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),

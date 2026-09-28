@@ -40,6 +40,73 @@ const whatsappController = require("../whatsapp_messages/whatsapp_messages.contr
 const centerManagementAuth = require("../../middlewares/centerManagementAuth.middleware");
 const onlineManagementAuth = require("../../middlewares/onlineManagementAuth.middleware");
 const validate = require("../../middlewares/validate.middleware");
+// Validation Schemas
+const {
+  createStudentSchema,
+  updateStudentSchema,
+} = require("../../middlewares/validations/students.validation");
+const {
+  createGradeSchema,
+  updateGradeSchema,
+  findGradeByNameSchema,
+} = require("../../middlewares/validations/grades.validation");
+const {
+  createGroupSchema,
+  updateGroupSchema,
+  findGroupByNameSchema,
+} = require("../../middlewares/validations/groups.validation");
+const {
+  createAttendanceSchema,
+  updateAttendanceSchema,
+  startSessionSchema,
+  scanBarcodeSchema,
+  closeSessionSchema,
+} = require("../../middlewares/validations/attendance.validation");
+const {
+  createPaymentSchema,
+  updatePaymentSchema,
+} = require("../../middlewares/validations/payments.validation");
+const {
+  createSubscriptionSchema,
+  updateSubscriptionStatusSchema,
+} = require("../../middlewares/validations/subscriptions.validation");
+const {
+  createExamSchema,
+  updateExamSchema,
+} = require("../../middlewares/validations/exams.validation");
+const {
+  createExamResultSchema,
+  upsertExamResultSchema,
+  updateExamResultSchema,
+} = require("../../middlewares/validations/exam_results.validation");
+const {
+  createOnlineExamSchema,
+  updateOnlineExamSchema,
+} = require("../../middlewares/validations/onlineExam.validation");
+const {
+  createQuestionSchema,
+  updateQuestionSchema,
+} = require("../../middlewares/validations/question.validation");
+const {
+  createOptionSchema,
+  updateOptionSchema,
+} = require("../../middlewares/validations/option.validation");
+const {
+  createAssignmentSchema,
+  updateAssignmentSchema,
+} = require("../../middlewares/validations/assignment.validation");
+const {
+  createVideoSchema,
+  updateVideoSchema,
+} = require("../../middlewares/validations/video.validation");
+const {
+  createPlaylistSchema,
+  updatePlaylistSchema,
+} = require("../../middlewares/validations/playlist.validation");
+const {
+  addVideoToPlaylistSchema,
+} = require("../../middlewares/validations/playlistVideo.validation");
+
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
 const {
   updateUserPasswordSchema,
@@ -114,8 +181,8 @@ routes.get(
 );
 // Dynamic routes last
 routes.get("/online-exams/:examId", onlineExamController.getOnlineExamById);
-routes.post("/online-exams", onlineExamController.createOnlineExam);
-routes.put("/online-exams/:examId", onlineExamController.updateOnlineExam);
+routes.post("/online-exams", validate(createOnlineExamSchema), onlineExamController.createOnlineExam);
+routes.put("/online-exams/:examId", validate(updateOnlineExamSchema), onlineExamController.updateOnlineExam);
 routes.delete(
   "/online-exams/:examId",
   onlineExamController.softDeleteOnlineExam,
@@ -154,8 +221,8 @@ routes.get(
 );
 // Dynamic routes last
 routes.get("/options/:optionId", optionController.getOptionById);
-routes.post("/options", optionController.createOption);
-routes.put("/options/:optionId", optionController.updateOption);
+routes.post("/options", validate(createOptionSchema), optionController.createOption);
+routes.put("/options/:optionId", validate(updateOptionSchema), optionController.updateOption);
 routes.delete("/options/:optionId", optionController.deleteOption);
 
 /* ---------- Assignments ---------- */
@@ -282,7 +349,7 @@ routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
 );
-routes.post("/playlist-videos", playlistVideoController.addVideoToPlaylist);
+routes.post("/playlist-videos", validate(addVideoToPlaylistSchema), playlistVideoController.addVideoToPlaylist);
 routes.delete(
   "/playlist-videos/:id",
   playlistVideoController.removeVideoFromPlaylist,
@@ -338,14 +405,14 @@ routes.get(
   gradesController.getGradesWithStudentsCount,
 );
 routes.get("/grades/stats", gradesController.getAllGradesStats);
-routes.post("/grades/find", gradesController.findGradeByName);
+routes.post("/grades/find", validate(findGradeByNameSchema), gradesController.findGradeByName);
 // Dynamic routes (longer paths first)
 routes.get("/grades/:id/details", gradesController.getGradeDetails);
 routes.get("/grades/:id/stats", gradesController.getGradeStats);
 routes.get("/grades/:id", gradesController.getGradeById);
 // Mutations
-routes.post("/grades", gradesController.createGrade);
-routes.put("/grades/:id", gradesController.updateGrade);
+routes.post("/grades", validate(createGradeSchema), gradesController.createGrade);
+routes.put("/grades/:id", validate(updateGradeSchema), gradesController.updateGrade);
 routes.delete("/grades/:id", gradesController.softDeleteGrade);
 routes.delete("/grades/:id/permanent", gradesController.hardDeleteGrade);
 
@@ -358,15 +425,15 @@ routes.get(
   groupsController.getGroupsWithStudentsCount,
 );
 routes.get("/groups/stats", groupsController.getAllGroupsStats);
-routes.post("/groups/find", groupsController.findGroupByName);
+routes.post("/groups/find", validate(findGroupByNameSchema), groupsController.findGroupByName);
 routes.get("/groups/grade/:gradeId", groupsController.getGroupsByGradeId);
 // Dynamic routes (longer paths first)
 routes.get("/groups/:id/full-stats", groupsController.getGroupFullStats);
 routes.get("/groups/:id/stats", groupsController.getGroupStats);
 routes.get("/groups/:id", groupsController.getGroupById);
 // Mutations
-routes.post("/groups", groupsController.createGroup);
-routes.put("/groups/:id", groupsController.updateGroup);
+routes.post("/groups", validate(createGroupSchema), groupsController.createGroup);
+routes.put("/groups/:id", validate(updateGroupSchema), groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
 
@@ -485,8 +552,8 @@ routes.get(
 );
 routes.get("/students/:studentId", studentsController.getStudentById);
 // Mutations
-routes.post("/students", studentsController.createStudent);
-routes.put("/students/:studentId", studentsController.updateStudent);
+routes.post("/students", validate(createStudentSchema), studentsController.createStudent);
+routes.put("/students/:studentId", validate(updateStudentSchema), studentsController.updateStudent);
 routes.delete("/students/:studentId", studentsController.softDeleteStudent);
 routes.delete(
   "/students/:studentId/permanent",
@@ -527,7 +594,7 @@ routes.get(
   attendanceController.getAttendanceSummary,
 );
 // Sessions
-routes.post("/attendance/sessions/start", attendanceController.startSession);
+routes.post("/attendance/sessions/start", validate(startSessionSchema), attendanceController.startSession);
 routes.get(
   "/attendance/sessions/active/:groupId",
   attendanceController.getActiveSession,
@@ -536,13 +603,13 @@ routes.put(
   "/attendance/sessions/:id/toggle-makeup",
   attendanceController.toggleMakeupMode,
 );
-routes.post("/attendance/sessions/lock", attendanceController.lockSession);
+routes.post("/attendance/sessions/lock", validate(closeSessionSchema), attendanceController.lockSession);
 // Barcode
-routes.post("/attendance/scan-barcode", attendanceController.scanBarcode);
+routes.post("/attendance/scan-barcode", validate(scanBarcodeSchema), attendanceController.scanBarcode);
 // Dynamic routes last
 routes.get("/attendance/:id", attendanceController.getAttendanceById);
-routes.post("/attendance", attendanceController.createAttendance);
-routes.put("/attendance/:id", attendanceController.updateAttendance);
+routes.post("/attendance", validate(createAttendanceSchema), attendanceController.createAttendance);
+routes.put("/attendance/:id", validate(updateAttendanceSchema), attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 
 /* ---------- Payments ---------- */
@@ -578,8 +645,8 @@ routes.get(
 );
 // Dynamic routes last
 routes.get("/payments/:id", paymentsController.getPaymentById);
-routes.post("/payments", paymentsController.createPayment);
-routes.put("/payments/:id", paymentsController.updatePayment);
+routes.post("/payments", validate(createPaymentSchema), paymentsController.createPayment);
+routes.put("/payments/:id", validate(updatePaymentSchema), paymentsController.updatePayment);
 routes.delete("/payments/:id", paymentsController.deletePayment);
 
 /* ---------- Subscriptions ---------- */
@@ -609,7 +676,7 @@ routes.get(
   subscriptionsController.getStudentSubscriptions,
 );
 // Mutations & dynamic
-routes.post("/subscriptions", subscriptionsController.createSubscription);
+routes.post("/subscriptions", validate(createSubscriptionSchema), subscriptionsController.createSubscription);
 routes.put(
   "/subscriptions/:id/status",
   subscriptionsController.updateSubscriptionStatus,
@@ -631,8 +698,8 @@ routes.get("/exams/:id/export/pdf", examResultsController.exportExamResultsPdf);
 routes.get("/exams/:id/stats", examsController.getExamStats);
 routes.get("/exams/:id", examsController.getExamById);
 // Mutations
-routes.post("/exams", examsController.createExam);
-routes.put("/exams/:id", examsController.updateExam);
+routes.post("/exams", validate(createExamSchema), examsController.createExam);
+routes.put("/exams/:id", validate(updateExamSchema), examsController.updateExam);
 routes.delete("/exams/:id", examsController.softDeleteExam);
 routes.delete("/exams/:id/permanent", examsController.hardDeleteExam);
 
@@ -660,13 +727,13 @@ routes.get(
 );
 routes.get("/exam-results/exam/:examId", examResultsController.getExamResults);
 // Mutations & dynamic
-routes.post("/exam-results", examResultsController.createExamResult);
-routes.post("/exam-results/upsert", examResultsController.upsertExamResult);
+routes.post("/exam-results", validate(createExamResultSchema), examResultsController.createExamResult);
+routes.post("/exam-results/upsert", validate(upsertExamResultSchema), examResultsController.upsertExamResult);
 routes.post(
   "/exam-results/upsert-batch/:examId",
   examResultsController.upsertBatchExamResults,
 );
-routes.put("/exam-results/:id", examResultsController.updateExamResult);
+routes.put("/exam-results/:id", validate(updateExamResultSchema), examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
 /* ---------- Student Exams ---------- */

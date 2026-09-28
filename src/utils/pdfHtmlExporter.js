@@ -480,15 +480,22 @@ function renderExamResultsReportHtml({ exam, results, stats = {}, excelUrl = nul
   ];
 
   const tableRows = results.map((r, idx) => {
-    const isPassed = Number(r.percentage) >= 50;
+    const isAbsent = r.is_absent === true || r.is_absent === "true" || r.is_absent === 1;
+    const isPassed = !isAbsent && Number(r.percentage) >= 50;
+    const degreeDisplay = isAbsent 
+      ? `<span style="color: var(--danger); font-weight: 700;">غياب</span>`
+      : `<span style="font-weight: 700;">${r.degree}</span>`;
+    const statusDisplay = isAbsent
+      ? `<span class="status-badge" style="background-color: #fee2e2; color: #991b1b; font-weight: bold;">غياب</span>`
+      : `<span class="status-badge ${isPassed ? 'status-passed' : 'status-failed'}">${isPassed ? 'ناجح' : 'راسب'}</span>`;
     return [
       idx + 1,
       r.barcode || "-",
       `<strong>${r.full_name || "-"}</strong>`,
-      `<span style="font-weight: 700;">${r.degree}</span>`,
+      degreeDisplay,
       r.total_degree || exam?.total_degree || "-",
-      `${r.percentage}%`,
-      `<span class="status-badge ${isPassed ? 'status-passed' : 'status-failed'}">${isPassed ? 'ناجح' : 'راسب'}</span>`,
+      isAbsent ? "0%" : `${r.percentage}%`,
+      statusDisplay,
       r.notes || "-",
     ];
   });
@@ -565,6 +572,48 @@ function renderPaymentsReportHtml({ payments, meta = {}, stats = {}, excelUrl = 
   });
 }
 
+/**
+ * 4. Render Passwords Printable HTML Report
+ */
+function renderPasswordsReportHtml({ passwords = [], meta = {}, excelUrl = null }) {
+  const tableHeaders = [
+    { label: "م", align: "center" },
+    { label: "اسم الطالب", align: "right" },
+    { label: "كود الطالب (الباركود)", align: "center" },
+    { label: "رقم الموبايل", align: "center" },
+    { label: "المرحلة الدراسية", align: "right" },
+    { label: "المجموعة", align: "right" },
+    { label: "كلمة المرور المؤقتة", align: "center" },
+  ];
+
+  const tableRows = passwords.map((p, idx) => [
+    idx + 1,
+    `<strong>${p.full_name || "-"}</strong>`,
+    `<span style="font-family: monospace; font-size: 14px; font-weight: bold; color: var(--primary);">${p.barcode || "-"}</span>`,
+    p.phone ? `<span dir="ltr" style="font-family: monospace; font-size: 13px;">${p.phone}</span>` : "-",
+    p.grade_name || meta.gradeName || "-",
+    p.group_name || meta.groupName || "-",
+    `<span style="font-family: monospace; font-size: 14px; font-weight: 700; background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 4px; border: 1px solid #fcd34d; letter-spacing: 0.5px;">${p.password || "-"}</span>`,
+  ]);
+
+  return wrapHtmlReport({
+    title: meta.title || "كشف بيانات دخول وكلمات مرور الطلاب",
+    subtitle: `إجمالي عدد الحسابات: ${passwords.length}`,
+    badges: [
+      { label: "المرحلة الدراسية", value: meta.gradeName || null },
+      { label: "المجموعة", value: meta.groupName || null },
+      { label: "عدد الطلاب", value: passwords.length.toString() },
+    ],
+    statsCards: [
+      { label: "إجمالي الحسابات", value: passwords.length, color: "primary" },
+      { label: "تم توليد وتعيين الباسورد", value: passwords.length, color: "success" },
+    ],
+    tableHeaders,
+    tableRows,
+    excelUrl,
+  });
+}
+
 function sendReportHtml(res, html) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.send(html);
@@ -574,5 +623,6 @@ module.exports = {
   renderStudentsReportHtml,
   renderExamResultsReportHtml,
   renderPaymentsReportHtml,
+  renderPasswordsReportHtml,
   sendReportHtml,
 };

@@ -34,6 +34,83 @@ const whatsappController = require("../whatsapp_messages/whatsapp_messages.contr
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
 const validate = require("../../middlewares/validate.middleware");
+// Validation Schemas
+const {
+  createUserSchema,
+  updateUserSchema,
+  updateUserPasswordSchema,
+  findUserByPhoneSchema,
+} = require("../../middlewares/validations/users.validation");
+const {
+  updateSettingsSchema,
+  updateAcademicYearStatusSchema,
+} = require("../../middlewares/validations/settings.validation");
+const {
+  createStudentSchema,
+  updateStudentSchema,
+} = require("../../middlewares/validations/students.validation");
+const {
+  createGradeSchema,
+  updateGradeSchema,
+  findGradeByNameSchema,
+} = require("../../middlewares/validations/grades.validation");
+const {
+  createGroupSchema,
+  updateGroupSchema,
+  findGroupByNameSchema,
+} = require("../../middlewares/validations/groups.validation");
+const {
+  createAttendanceSchema,
+  updateAttendanceSchema,
+  startSessionSchema,
+  scanBarcodeSchema,
+  closeSessionSchema,
+} = require("../../middlewares/validations/attendance.validation");
+const {
+  createPaymentSchema,
+  updatePaymentSchema,
+} = require("../../middlewares/validations/payments.validation");
+const {
+  createSubscriptionSchema,
+  updateSubscriptionStatusSchema,
+} = require("../../middlewares/validations/subscriptions.validation");
+const {
+  createExamSchema,
+  updateExamSchema,
+} = require("../../middlewares/validations/exams.validation");
+const {
+  createExamResultSchema,
+  upsertExamResultSchema,
+  updateExamResultSchema,
+} = require("../../middlewares/validations/exam_results.validation");
+const {
+  createOnlineExamSchema,
+  updateOnlineExamSchema,
+} = require("../../middlewares/validations/onlineExam.validation");
+const {
+  createQuestionSchema,
+  updateQuestionSchema,
+} = require("../../middlewares/validations/question.validation");
+const {
+  createOptionSchema,
+  updateOptionSchema,
+} = require("../../middlewares/validations/option.validation");
+const {
+  createAssignmentSchema,
+  updateAssignmentSchema,
+} = require("../../middlewares/validations/assignment.validation");
+const {
+  createVideoSchema,
+  updateVideoSchema,
+} = require("../../middlewares/validations/video.validation");
+const {
+  createPlaylistSchema,
+  updatePlaylistSchema,
+} = require("../../middlewares/validations/playlist.validation");
+const {
+  addVideoToPlaylistSchema,
+} = require("../../middlewares/validations/playlistVideo.validation");
+
 
 /* ============================================
    SUPER ADMIN - DASHBOARD & ACTIVITY LOG
@@ -51,11 +128,11 @@ routes.get("/users", usersController.getAllUsers);
 routes.get("/users/deleted", usersController.getDeletedUsers);
 routes.get("/users/assistants", usersController.getAllAssistants);
 routes.get("/users/teachers", usersController.getAllTeachers);
-routes.post("/users/find", usersController.findUserByPhone);
+routes.post("/users/find", validate(findUserByPhoneSchema), usersController.findUserByPhone);
 routes.get("/users/:userId", usersController.getUserById);
-routes.post("/users", usersController.createUser);
-routes.put("/users/:userId", usersController.updateUser);
-routes.put("/users/:userId/password", usersController.updateUserPassword);
+routes.post("/users", validate(createUserSchema), usersController.createUser);
+routes.put("/users/:userId", validate(updateUserSchema), usersController.updateUser);
+routes.put("/users/:userId/password", validate(updateUserPasswordSchema), usersController.updateUserPassword);
 routes.put("/users/:userId/reset-password", usersController.resetUserPassword);
 routes.put("/users/:userId/toggle-active", usersController.toggleUserActive);
 routes.delete("/users/:userId", usersController.softDeleteUser);
@@ -67,7 +144,7 @@ routes.post("/users/:userId/restore", usersController.restoreUser);
    ============================================ */
 
 routes.get("/settings", settingsController.getSettings);
-routes.put("/settings", settingsController.updateSettings);
+routes.put("/settings", validate(updateSettingsSchema), settingsController.updateSettings);
 routes.put(
   "/settings/toggle-platform",
   settingsController.togglePlatformStatus,
@@ -100,18 +177,73 @@ routes.get(
   studentsController.getStudentsWithoutPassword,
 );
 
+// 1. Password Generation (JSON response, or PDF/Excel via ?format=pdf / ?format=excel)
+routes.post(
+  "/students/generate-passwords/barcode/:barcode",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.post(
+  "/students/barcode/:barcode/generate-password",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.post(
+  "/students/generate-passwords/student/:studentId",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.post(
+  "/students/:studentId/generate-password",
+  studentsController.generatePasswordForSingleStudent,
+);
+routes.post(
+  "/students/generate-passwords/group/:groupId",
+  studentsController.generatePasswordsForGroup,
+);
 routes.post(
   "/students/generate-passwords/grade/:gradeId",
-  validate(
-    Joi.object({ gradeId: Joi.number().integer().positive().required() }),
-  ),
   studentsController.generatePasswordsForGrade,
 );
-
 routes.post(
   "/students/generate-passwords",
   studentsController.generatePasswordsForAllStudents,
 );
+
+// 2. Direct PDF Report Endpoints (supports both GET and POST)
+routes.route("/students/generate-passwords/barcode/:barcode/pdf")
+  .get(studentsController.generatePasswordForSingleStudent)
+  .post(studentsController.generatePasswordForSingleStudent);
+routes.route("/students/generate-passwords/student/:studentId/pdf")
+  .get(studentsController.generatePasswordForSingleStudent)
+  .post(studentsController.generatePasswordForSingleStudent);
+routes.route("/students/generate-passwords/group/:groupId/pdf")
+  .get(studentsController.generatePasswordsForGroup)
+  .post(studentsController.generatePasswordsForGroup);
+routes.route("/students/generate-passwords/grade/:gradeId/pdf")
+  .get(studentsController.generatePasswordsForGrade)
+  .post(studentsController.generatePasswordsForGrade);
+routes.route("/students/generate-passwords/pdf")
+  .get(studentsController.generatePasswordsForAllStudents)
+  .post(studentsController.generatePasswordsForAllStudents);
+
+// 3. Direct Excel Export Endpoints (supports both GET and POST)
+routes.route("/students/generate-passwords/barcode/:barcode/excel")
+  .get(studentsController.generatePasswordForSingleStudent)
+  .post(studentsController.generatePasswordForSingleStudent);
+routes.route("/students/generate-passwords/student/:studentId/excel")
+  .get(studentsController.generatePasswordForSingleStudent)
+  .post(studentsController.generatePasswordForSingleStudent);
+routes.route("/students/generate-passwords/group/:groupId/excel")
+  .get(studentsController.generatePasswordsForGroup)
+  .post(studentsController.generatePasswordsForGroup);
+routes.route("/students/generate-passwords/grade/:gradeId/excel")
+  .get(studentsController.generatePasswordsForGrade)
+  .post(studentsController.generatePasswordsForGrade);
+routes.route("/students/generate-passwords/excel")
+  .get(studentsController.generatePasswordsForAllStudents)
+  .post(studentsController.generatePasswordsForAllStudents);
+
+// 4. Custom Passwords Export (from frontend list payload)
+routes.post("/students/passwords/export/pdf", studentsController.exportPasswordsPdf);
+routes.post("/students/passwords/export/excel", studentsController.exportPasswordsExcel);
 routes.get("/students/search/barcode", studentsController.getStudentByBarcode);
 routes.get("/students/search/phone", studentsController.findStudentByPhone);
 routes.get(
@@ -194,8 +326,8 @@ routes.get(
   studentsController.getStudentPlaylists,
 );
 routes.get("/students/:studentId", studentsController.getStudentById);
-routes.post("/students", studentsController.createStudent);
-routes.put("/students/:studentId", studentsController.updateStudent);
+routes.post("/students", validate(createStudentSchema), studentsController.createStudent);
+routes.put("/students/:studentId", validate(updateStudentSchema), studentsController.updateStudent);
 routes.put(
   "/students/:studentId/reset-password",
   studentsController.resetStudentPassword,
@@ -232,11 +364,11 @@ routes.get(
   gradesController.getGradesWithStudentsCount,
 );
 routes.get("/grades/stats", gradesController.getAllGradesStats);
-routes.post("/grades/find", gradesController.findGradeByName);
+routes.post("/grades/find", validate(findGradeByNameSchema), gradesController.findGradeByName);
 routes.get("/grades/:id", gradesController.getGradeById);
 routes.get("/grades/:id/stats", gradesController.getGradeStats);
-routes.post("/grades", gradesController.createGrade);
-routes.put("/grades/:id", gradesController.updateGrade);
+routes.post("/grades", validate(createGradeSchema), gradesController.createGrade);
+routes.put("/grades/:id", validate(updateGradeSchema), gradesController.updateGrade);
 routes.delete("/grades/:id", gradesController.softDeleteGrade);
 routes.delete("/grades/:id/permanent", gradesController.hardDeleteGrade);
 
@@ -248,12 +380,12 @@ routes.get(
 );
 routes.get("/groups/stats", groupsController.getAllGroupsStats);
 routes.get("/groups/:id/full-stats", groupsController.getGroupFullStats);
-routes.post("/groups/find", groupsController.findGroupByName);
+routes.post("/groups/find", validate(findGroupByNameSchema), groupsController.findGroupByName);
 routes.get("/groups/grade/:gradeId", groupsController.getGroupsByGradeId);
 routes.get("/groups/:id", groupsController.getGroupById);
 routes.get("/groups/:id/stats", groupsController.getGroupStats);
-routes.post("/groups", groupsController.createGroup);
-routes.put("/groups/:id", groupsController.updateGroup);
+routes.post("/groups", validate(createGroupSchema), groupsController.createGroup);
+routes.put("/groups/:id", validate(updateGroupSchema), groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
 
@@ -287,12 +419,12 @@ routes.get(
   attendanceController.getAttendanceSummary,
 );
 routes.get("/attendance/:id", attendanceController.getAttendanceById);
-routes.post("/attendance", attendanceController.createAttendance);
+routes.post("/attendance", validate(createAttendanceSchema), attendanceController.createAttendance);
 
-routes.put("/attendance/:id", attendanceController.updateAttendance);
+routes.put("/attendance/:id", validate(updateAttendanceSchema), attendanceController.updateAttendance);
 routes.delete("/attendance/:id", attendanceController.deleteAttendance);
 
-routes.post("/attendance/sessions/start", attendanceController.startSession);
+routes.post("/attendance/sessions/start", validate(startSessionSchema), attendanceController.startSession);
 routes.get(
   "/attendance/sessions/active/:groupId",
   attendanceController.getActiveSession,
@@ -301,8 +433,8 @@ routes.put(
   "/attendance/sessions/:id/toggle-makeup",
   attendanceController.toggleMakeupMode,
 );
-routes.post("/attendance/scan-barcode", attendanceController.scanBarcode);
-routes.post("/attendance/sessions/lock", attendanceController.lockSession);
+routes.post("/attendance/scan-barcode", validate(scanBarcodeSchema), attendanceController.scanBarcode);
+routes.post("/attendance/sessions/lock", validate(closeSessionSchema), attendanceController.lockSession);
 
 /* ============================================
    SUPER ADMIN - PAYMENTS & SUBSCRIPTIONS
@@ -338,8 +470,8 @@ routes.get(
   paymentsController.getPaymentsByGroupAndMonth,
 );
 routes.get("/payments/:id", paymentsController.getPaymentById);
-routes.post("/payments", paymentsController.createPayment);
-routes.put("/payments/:id", paymentsController.updatePayment);
+routes.post("/payments", validate(createPaymentSchema), paymentsController.createPayment);
+routes.put("/payments/:id", validate(updatePaymentSchema), paymentsController.updatePayment);
 routes.delete("/payments/:id", paymentsController.deletePayment);
 
 routes.get(
@@ -366,7 +498,7 @@ routes.get(
   "/subscriptions/student/:studentId",
   subscriptionsController.getStudentSubscriptions,
 );
-routes.post("/subscriptions", subscriptionsController.createSubscription);
+routes.post("/subscriptions", validate(createSubscriptionSchema), subscriptionsController.createSubscription);
 routes.put(
   "/subscriptions/:id/status",
   subscriptionsController.updateSubscriptionStatus,
@@ -416,8 +548,8 @@ routes.get(
 routes.get("/exams/:id/export/pdf", examResultsController.exportExamResultsPdf);
 routes.get("/exams/:id", examsController.getExamById);
 routes.get("/exams/:id/stats", examsController.getExamStats);
-routes.post("/exams", examsController.createExam);
-routes.put("/exams/:id", examsController.updateExam);
+routes.post("/exams", validate(createExamSchema), examsController.createExam);
+routes.put("/exams/:id", validate(updateExamSchema), examsController.updateExam);
 routes.delete("/exams/:id", examsController.softDeleteExam);
 routes.delete("/exams/:id/permanent", examsController.hardDeleteExam);
 
@@ -442,13 +574,13 @@ routes.get(
   "/exam-results/exam/:examId/stats",
   examResultsController.getExamResultStats,
 );
-routes.post("/exam-results", examResultsController.createExamResult);
-routes.post("/exam-results/upsert", examResultsController.upsertExamResult);
+routes.post("/exam-results", validate(createExamResultSchema), examResultsController.createExamResult);
+routes.post("/exam-results/upsert", validate(upsertExamResultSchema), examResultsController.upsertExamResult);
 routes.post(
   "/exam-results/upsert-batch/:examId",
   examResultsController.upsertBatchExamResults,
 );
-routes.put("/exam-results/:id", examResultsController.updateExamResult);
+routes.put("/exam-results/:id", validate(updateExamResultSchema), examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
 routes.get("/online-exams", onlineExamController.getAllOnlineExams);
@@ -474,8 +606,8 @@ routes.get(
   onlineExamController.getOnlineExamStats,
 );
 routes.get("/online-exams/:examId", onlineExamController.getOnlineExamById);
-routes.post("/online-exams", onlineExamController.createOnlineExam);
-routes.put("/online-exams/:examId", onlineExamController.updateOnlineExam);
+routes.post("/online-exams", validate(createOnlineExamSchema), onlineExamController.createOnlineExam);
+routes.put("/online-exams/:examId", validate(updateOnlineExamSchema), onlineExamController.updateOnlineExam);
 routes.delete(
   "/online-exams/:examId",
   onlineExamController.softDeleteOnlineExam,
@@ -491,8 +623,8 @@ routes.get(
   "/questions/:questionId/download",
   questionController.downloadQuestionFile,
 );
-routes.post("/questions", questionController.createQuestion);
-routes.put("/questions/:questionId", questionController.updateQuestion);
+routes.post("/questions", validate(createQuestionSchema), questionController.createQuestion);
+routes.put("/questions/:questionId", validate(updateQuestionSchema), questionController.updateQuestion);
 routes.delete("/questions/:questionId", questionController.deleteQuestion);
 
 routes.get(
@@ -500,8 +632,8 @@ routes.get(
   optionController.getOptionsByQuestionId,
 );
 routes.get("/options/:optionId", optionController.getOptionById);
-routes.post("/options", optionController.createOption);
-routes.put("/options/:optionId", optionController.updateOption);
+routes.post("/options", validate(createOptionSchema), optionController.createOption);
+routes.put("/options/:optionId", validate(updateOptionSchema), optionController.updateOption);
 routes.delete("/options/:optionId", optionController.deleteOption);
 
 routes.get(
@@ -563,8 +695,8 @@ routes.get(
   "/assignments/:assignmentId",
   assignmentController.getAssignmentById,
 );
-routes.post("/assignments", assignmentController.createAssignment);
-routes.put("/assignments/:assignmentId", assignmentController.updateAssignment);
+routes.post("/assignments", validate(createAssignmentSchema), assignmentController.createAssignment);
+routes.put("/assignments/:assignmentId", validate(updateAssignmentSchema), assignmentController.updateAssignment);
 routes.delete(
   "/assignments/:assignmentId",
   assignmentController.softDeleteAssignment,
@@ -615,8 +747,8 @@ routes.get("/videos", videoController.getAllVideos);
 routes.get("/videos/grade/:gradeId", videoController.getVideosByGradeId);
 routes.get("/videos/:videoId/download", videoController.downloadVideoFile);
 routes.get("/videos/:videoId", videoController.getVideoById);
-routes.post("/videos", videoController.createVideo);
-routes.put("/videos/:videoId", videoController.updateVideo);
+routes.post("/videos", validate(createVideoSchema), videoController.createVideo);
+routes.put("/videos/:videoId", validate(updateVideoSchema), videoController.updateVideo);
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
 routes.get("/playlists", playlistController.getAllPlaylists);
@@ -625,15 +757,15 @@ routes.get(
   playlistController.getPlaylistsByGradeId,
 );
 routes.get("/playlists/:playlistId", playlistController.getPlaylistById);
-routes.post("/playlists", playlistController.createPlaylist);
-routes.put("/playlists/:playlistId", playlistController.updatePlaylist);
+routes.post("/playlists", validate(createPlaylistSchema), playlistController.createPlaylist);
+routes.put("/playlists/:playlistId", validate(updatePlaylistSchema), playlistController.updatePlaylist);
 routes.delete("/playlists/:playlistId", playlistController.hardDeletePlaylist);
 
 routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
 );
-routes.post("/playlist-videos", playlistVideoController.addVideoToPlaylist);
+routes.post("/playlist-videos", validate(addVideoToPlaylistSchema), playlistVideoController.addVideoToPlaylist);
 routes.delete(
   "/playlist-videos/:id",
   playlistVideoController.removeVideoFromPlaylist,

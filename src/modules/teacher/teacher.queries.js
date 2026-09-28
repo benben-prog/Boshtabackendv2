@@ -51,7 +51,7 @@ const getPaymentsMonthStats = `
 SELECT 
   COALESCE(SUM(sub.required_amount), 0) AS total_required,
   COALESCE(SUM(paid.total_paid), 0) AS total_paid,
-  COALESCE(SUM(sub.required_amount), 0) - COALESCE(SUM(paid.total_paid), 0) AS total_remaining,
+  0 AS total_remaining,
   ROUND(
     (COALESCE(SUM(paid.total_paid), 0)::numeric / 
     NULLIF(COALESCE(SUM(sub.required_amount), 0), 0)) * 100, 2

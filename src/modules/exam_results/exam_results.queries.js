@@ -29,19 +29,21 @@ WHERE er.id = $1
 
 // Create a new exam result
 const createExamResult = `
-INSERT INTO exam_results (exam_id, student_id, degree, notes)
-VALUES ($1, $2, $3, $4)
+INSERT INTO exam_results (exam_id, student_id, degree, notes, is_absent)
+VALUES ($1, $2, $3, $4, COALESCE($5, FALSE))
 RETURNING *
 `;
 
 // Upsert exam result (insert or update if exists)
 const upsertExamResult = `
-INSERT INTO exam_results (exam_id, student_id, degree, notes)
-VALUES ($1, $2, $3, $4)
+INSERT INTO exam_results (exam_id, student_id, degree, notes, is_absent)
+VALUES ($1, $2, $3, $4, COALESCE($5, FALSE))
 ON CONFLICT (exam_id, student_id)
 DO UPDATE SET 
   degree = EXCLUDED.degree,
-  notes = EXCLUDED.notes
+  notes = EXCLUDED.notes,
+  is_absent = EXCLUDED.is_absent,
+  updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 RETURNING *
 `;
 
@@ -51,8 +53,9 @@ UPDATE exam_results
 SET 
   degree = $1,
   notes = $2,
+  is_absent = COALESCE($3, is_absent),
   updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-WHERE id = $3
+WHERE id = $4
 RETURNING *
 `;
 
@@ -72,24 +75,35 @@ SELECT
   s.barcode,
   er.degree,
   e.total_degree,
-  ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage,
+  er.is_absent,
+  CASE 
+    WHEN er.is_absent = TRUE THEN 'absent'
+    WHEN (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 >= 50 THEN 'passed'
+    ELSE 'failed'
+  END AS status,
+  CASE 
+    WHEN er.is_absent = TRUE THEN 0
+    ELSE ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2)
+  END AS percentage,
   er.notes
 FROM exam_results er
 JOIN students s ON er.student_id = s.id AND s.deleted = 0
 JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.exam_id = $1
-ORDER BY s.full_name ASC
+ORDER BY er.is_absent ASC, s.full_name ASC
 `;
 
 // Get exam result statistics
 const getExamResultStats = `
 SELECT 
   COUNT(er.id) AS students_count,
-  ROUND(AVG(er.degree)::numeric, 2) AS average_degree,
-  MAX(er.degree) AS highest_degree,
-  MIN(er.degree) AS lowest_degree,
-  COUNT(CASE WHEN (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 >= 50 THEN 1 END) AS passed_count,
-  COUNT(CASE WHEN (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 < 50 THEN 1 END) AS failed_count
+  COUNT(CASE WHEN er.is_absent = TRUE THEN 1 END) AS absent_count,
+  COUNT(CASE WHEN er.is_absent = FALSE OR er.is_absent IS NULL THEN 1 END) AS present_count,
+  ROUND(AVG(CASE WHEN er.is_absent = FALSE OR er.is_absent IS NULL THEN er.degree END)::numeric, 2) AS average_degree,
+  MAX(CASE WHEN er.is_absent = FALSE OR er.is_absent IS NULL THEN er.degree END) AS highest_degree,
+  MIN(CASE WHEN er.is_absent = FALSE OR er.is_absent IS NULL THEN er.degree END) AS lowest_degree,
+  COUNT(CASE WHEN (er.is_absent = FALSE OR er.is_absent IS NULL) AND (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 >= 50 THEN 1 END) AS passed_count,
+  COUNT(CASE WHEN (er.is_absent = FALSE OR er.is_absent IS NULL) AND (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 < 50 THEN 1 END) AS failed_count
 FROM exam_results er
 JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.exam_id = $1
@@ -159,14 +173,15 @@ WHERE id = ANY($1) AND deleted = 0
 
 // Bulk upsert exam results (single query)
 const bulkUpsertExamResults = `
-INSERT INTO exam_results (exam_id, student_id, degree, notes)
-SELECT unnest($1::int[]), unnest($2::int[]), unnest($3::numeric[]), unnest($4::text[])
+INSERT INTO exam_results (exam_id, student_id, degree, notes, is_absent)
+SELECT unnest($1::int[]), unnest($2::int[]), unnest($3::numeric[]), unnest($4::text[]), unnest($5::boolean[])
 ON CONFLICT (exam_id, student_id)
 DO UPDATE SET
   degree = EXCLUDED.degree,
   notes = EXCLUDED.notes,
+  is_absent = EXCLUDED.is_absent,
   updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-RETURNING id, exam_id, student_id, degree, notes
+RETURNING id, exam_id, student_id, degree, notes, is_absent
 `;
 
 module.exports = {

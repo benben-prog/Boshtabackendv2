@@ -77,6 +77,8 @@ const validateDegree = (exam, degree) => {
 // ============================================
 
 const enqueueExamNotification = async (student, exam, degree) => {
+  // WhatsApp notification disabled (Commented out per request)
+  /*
   try {
     const formattedDate = formatExamDate(exam.exam_date);
     const formattedDay = formatExamDay(exam.exam_date);
@@ -100,6 +102,7 @@ const enqueueExamNotification = async (student, exam, degree) => {
   } catch (error) {
     console.error("Error enqueueing exam result message:", error.message);
   }
+  */
 };
 
 // ============================================
@@ -107,7 +110,7 @@ const enqueueExamNotification = async (student, exam, degree) => {
 // ============================================
 
 const createExamResult = async (examResultData) => {
-  const { exam_id, student_id, degree, notes } = examResultData;
+  const { exam_id, student_id, degree, notes, is_absent } = examResultData;
 
   // Get exam
   const examResult = await query(examResultQueries.getExamById, [exam_id]);
@@ -117,8 +120,8 @@ const createExamResult = async (examResultData) => {
     throw new Error("الامتحان غير موجود");
   }
 
-  // Validate degree
-  const numericDegree = validateDegree(exam, degree);
+  const isAbsent = is_absent === true || is_absent === "true" || String(degree).trim() === "-" || String(degree).trim() === "غياب";
+  const numericDegree = isAbsent ? 0 : validateDegree(exam, degree);
 
   // Create result
   const result = await query(examResultQueries.createExamResult, [
@@ -126,6 +129,7 @@ const createExamResult = async (examResultData) => {
     student_id,
     numericDegree,
     notes,
+    isAbsent,
   ]);
 
   const examResultRow = result.rows[0];
@@ -151,7 +155,7 @@ const createExamResult = async (examResultData) => {
 // ============================================
 
 const upsertExamResult = async (examResultData) => {
-  const { exam_id, student_id, degree, notes } = examResultData;
+  const { exam_id, student_id, degree, notes, is_absent } = examResultData;
 
   // Get exam
   const examResult = await query(examResultQueries.getExamById, [exam_id]);
@@ -161,8 +165,8 @@ const upsertExamResult = async (examResultData) => {
     throw new Error("الامتحان غير موجود");
   }
 
-  // Validate degree
-  const numericDegree = validateDegree(exam, degree);
+  const isAbsent = is_absent === true || is_absent === "true" || String(degree).trim() === "-" || String(degree).trim() === "غياب";
+  const numericDegree = isAbsent ? 0 : validateDegree(exam, degree);
 
   // Upsert result
   const result = await query(examResultQueries.upsertExamResult, [
@@ -170,6 +174,7 @@ const upsertExamResult = async (examResultData) => {
     student_id,
     numericDegree,
     notes,
+    isAbsent,
   ]);
 
   const examResultRow = result.rows[0];

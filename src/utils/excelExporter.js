@@ -75,15 +75,17 @@ function exportStudentsToExcel(students, meta = {}) {
  */
 function exportExamResultsToExcel(exam, results, stats = {}) {
   const data = results.map((r, index) => {
-    const isPassed = Number(r.percentage) >= 50;
+    const isAbsent = r.is_absent === true || r.is_absent === "true" || r.is_absent === 1;
+    const isPassed = !isAbsent && Number(r.percentage) >= 50;
     return {
       "م": index + 1,
       "كود الطالب (الباركود)": r.barcode || "-",
       "اسم الطالب": r.full_name || "-",
-      "الدرجة": Number(r.degree),
+      "الدرجة": isAbsent ? "-" : Number(r.degree),
       "الدرجة الكلية": Number(r.total_degree || exam?.total_degree || 0),
-      "النسبة المئوية": `${r.percentage}%`,
-      "التقدير / الحالة": isPassed ? "ناجح" : "راسب",
+      "النسبة المئوية": isAbsent ? "0%" : `${r.percentage}%`,
+      "حالة الحضور": isAbsent ? "غياب" : "حاضر",
+      "التقدير / الحالة": isAbsent ? "غياب" : (isPassed ? "ناجح" : "راسب"),
       "ملاحظات": r.notes || "-",
     };
   });
@@ -193,9 +195,47 @@ function exportPaymentsToExcel(payments, meta = {}) {
   return { buffer, fileName };
 }
 
+/**
+ * 4. Export Passwords to Excel
+ */
+function exportPasswordsToExcel(passwords = [], meta = {}) {
+  const data = passwords.map((p, index) => ({
+    "م": index + 1,
+    "اسم الطالب": p.full_name || "-",
+    "كود الطالب (الباركود)": p.barcode || "-",
+    "رقم الهاتف": p.phone || "-",
+    "المرحلة الدراسية": p.grade_name || meta.gradeName || "-",
+    "المجموعة": p.group_name || meta.groupName || "-",
+    "كلمة المرور": p.password || "-",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  worksheet["!views"] = [{ RTL: true }];
+
+  worksheet["!cols"] = [
+    { wch: 6 },  // م
+    { wch: 28 }, // اسم الطالب
+    { wch: 20 }, // الباركود
+    { wch: 18 }, // رقم الهاتف
+    { wch: 20 }, // المرحلة
+    { wch: 18 }, // المجموعة
+    { wch: 22 }, // كلمة المرور
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "كلمات المرور");
+
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const dateStr = formatEgyptTime(new Date(), "YYYY-MM-DD");
+  const fileName = meta.fileName || `كشف_كلمات_المرور_${dateStr}.xlsx`;
+
+  return { buffer, fileName };
+}
+
 module.exports = {
   sendExcelResponse,
   exportStudentsToExcel,
   exportExamResultsToExcel,
   exportPaymentsToExcel,
+  exportPasswordsToExcel,
 };

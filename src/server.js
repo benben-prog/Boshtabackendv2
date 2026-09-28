@@ -33,7 +33,8 @@ async function startServer() {
     server.headersTimeout = server.keepAliveTimeout + 5000;
     server.requestTimeout = env.REQUEST_TIMEOUT_MS;
 
-    // Start WhatsApp system
+    // Start WhatsApp system (Commented out per request)
+    /*
     try {
       whatsappDispatcher = require("./modules/whatsapp_messages/whatsapp_dispatcher.service");
       await whatsappDispatcher.startSystem();
@@ -41,6 +42,7 @@ async function startServer() {
     } catch (error) {
       console.error("Failed to start WhatsApp system:", error.message);
     }
+    */
 
     try {
       startExamCron();
@@ -56,7 +58,8 @@ async function startServer() {
 async function gracefulShutdown(signal) {
   console.log(`\n${signal} received, shutting down gracefully...`);
 
-  // Stop WhatsApp system
+  // Stop WhatsApp system (Commented out per request)
+  /*
   if (whatsappDispatcher) {
     try {
       whatsappDispatcher.stopSystem();
@@ -64,6 +67,7 @@ async function gracefulShutdown(signal) {
       console.error("Error stopping WhatsApp system:", error.message);
     }
   }
+  */
 
   // Stop exam cron jobs
   try {

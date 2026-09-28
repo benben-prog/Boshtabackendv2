@@ -509,8 +509,16 @@ SELECT
   e.title AS exam_title,
   e.total_degree AS full_mark,
   e.exam_date AS exam_date,
-  ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2) AS percentage,
-  NULL AS result_status
+  CASE 
+    WHEN er.is_absent = TRUE THEN 0
+    ELSE ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2)
+  END AS percentage,
+  er.is_absent,
+  CASE 
+    WHEN er.is_absent = TRUE THEN 'absent'
+    WHEN (er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100 >= 50 THEN 'passed'
+    ELSE 'failed'
+  END AS result_status
 FROM exam_results er
 JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.student_id = $1
@@ -523,9 +531,14 @@ SELECT
   se.score AS score,
   oe.title AS exam_title,
   oe.full_mark AS full_mark,
-  se.submitted_at AS exam_date,
-  ROUND((se.score::numeric / NULLIF(oe.full_mark::numeric, 0)) * 100, 2) AS percentage,
+  COALESCE(se.submitted_at, oe.end_at) AS exam_date,
   CASE 
+    WHEN se.is_absent = TRUE THEN 0
+    ELSE ROUND((se.score::numeric / NULLIF(oe.full_mark::numeric, 0)) * 100, 2)
+  END AS percentage,
+  se.is_absent,
+  CASE 
+    WHEN se.is_absent = TRUE THEN 'absent'
     WHEN se.score IS NULL THEN 'pending'
     WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
     ELSE 'failed'
@@ -533,7 +546,7 @@ SELECT
 FROM student_exams se
 JOIN online_exams oe ON se.exam_id = oe.id AND oe.deleted = 0
 WHERE se.student_id = $1
-  AND se.submitted_at IS NOT NULL
+  AND (se.submitted_at IS NOT NULL OR se.is_absent = TRUE)
 
 ORDER BY exam_date DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
@@ -553,13 +566,16 @@ SELECT
   (SELECT COUNT(*) FROM questions q WHERE q.exam_id = oe.id) AS questions_count,
   CASE 
     WHEN oe.start_at > NOW() AT TIME ZONE 'Africa/Cairo' THEN 'upcoming'
-    WHEN oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'expired'
+    WHEN oe.end_at < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'ended'
     ELSE 'available'
   END AS exam_status,
+  (NOW() AT TIME ZONE 'Africa/Cairo' > oe.end_at) AS is_ended,
   CASE 
-    WHEN EXISTS (SELECT 1 FROM student_exams se WHERE se.exam_id = oe.id AND se.student_id = $1 AND se.submitted_at IS NOT NULL) THEN true
+    WHEN EXISTS (SELECT 1 FROM student_exams se WHERE se.exam_id = oe.id AND se.student_id = $1 AND (se.submitted_at IS NOT NULL OR se.is_absent = TRUE)) THEN true
     ELSE false
-  END AS attempted
+  END AS attempted,
+  (SELECT se.score FROM student_exams se WHERE se.exam_id = oe.id AND se.student_id = $1 LIMIT 1) AS student_score,
+  (SELECT se.is_absent FROM student_exams se WHERE se.exam_id = oe.id AND se.student_id = $1 LIMIT 1) AS is_absent
 FROM online_exams oe
 WHERE oe.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND oe.deleted = 0
@@ -633,6 +649,7 @@ SELECT
 FROM assignments a
 LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = $1
 WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1)
+  AND (a.group_id IS NULL OR a.group_id = (SELECT group_id FROM students WHERE id = $1))
   AND a.deleted = 0
   AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(a.deadline, 'YYYY-MM') = $2::text)
 ORDER BY a.deadline DESC

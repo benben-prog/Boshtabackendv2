@@ -32,7 +32,7 @@ const getPaymentsMonthStats = `
 SELECT 
   COALESCE(SUM(sub.required_amount), 0) AS total_required,
   COALESCE(SUM(paid.total_paid), 0) AS total_paid,
-  COALESCE(SUM(sub.required_amount), 0) - COALESCE(SUM(paid.total_paid), 0) AS total_remaining,
+  0 AS total_remaining,
   COUNT(DISTINCT CASE WHEN COALESCE(paid.total_paid, 0) >= sub.required_amount THEN s.id END) AS fully_paid_students,
   COUNT(DISTINCT CASE WHEN COALESCE(paid.total_paid, 0) < sub.required_amount OR paid.total_paid IS NULL THEN s.id END) AS unpaid_students
 FROM students s

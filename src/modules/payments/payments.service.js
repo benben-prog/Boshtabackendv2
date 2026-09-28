@@ -108,7 +108,8 @@ const createPayment = async (paymentData) => {
     return paymentResult.rows[0];
   });
 
-  // Send WhatsApp notification (fire and forget)
+  // Send WhatsApp notification (fire and forget) (Commented out per request)
+  /*
   if (payment) {
     try {
       const studentResult = await query(
@@ -145,6 +146,7 @@ const createPayment = async (paymentData) => {
       console.error("Error enqueueing payment message:", error.message);
     }
   }
+  */
 
   return payment;
 };
