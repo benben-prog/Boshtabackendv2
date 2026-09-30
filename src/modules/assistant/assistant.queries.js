@@ -93,7 +93,9 @@ SELECT
 // Get dashboard stats for center assistant
 const getCenterAssistantDashboard = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students) AS total_students,
+  (SELECT COUNT(*) FROM students WHERE deleted = 0 AND is_active = TRUE) AS active_students,
+  (SELECT COUNT(*) FROM students WHERE deleted = 1 OR is_active = FALSE) AS deleted_students,
   (SELECT COUNT(*) FROM grades WHERE deleted = 0) AS total_grades,
   (SELECT COUNT(*) FROM groups WHERE deleted = 0) AS total_groups,
   (SELECT COUNT(*) FROM online_exams WHERE deleted = 0 AND end_at > NOW() AT TIME ZONE 'Africa/Cairo' AND start_at <= NOW() AT TIME ZONE 'Africa/Cairo') AS active_online_exams,
@@ -104,7 +106,7 @@ SELECT
   (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'present') AS present_today,
   (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'absent') AS absent_today,
   (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE TO_CHAR(payment_date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS total_paid_month,
-  (SELECT COUNT(*) FROM students WHERE deleted = 0 AND id NOT IN (
+  (SELECT COUNT(*) FROM students WHERE id NOT IN (
     SELECT student_id FROM subscriptions WHERE month = TO_CHAR(CURRENT_DATE, 'YYYY-MM') AND deleted = 0
   )) AS unpaid_students
 `;

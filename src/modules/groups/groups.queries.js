@@ -32,7 +32,7 @@ SELECT
   COUNT(s.id) AS students_count
 FROM groups gr
 LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
-LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
+LEFT JOIN students s ON gr.id = s.group_id
 WHERE gr.deleted = 0
   AND ($1::int IS NULL OR gr.grade_id = $1::int)
   AND ($2::text IS NULL OR $2::text = '' OR gr.name ILIKE $2::text)
@@ -92,7 +92,7 @@ SELECT
   COUNT(s.id) AS students_count
 FROM groups gr
 LEFT JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
-LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
+LEFT JOIN students s ON gr.id = s.group_id
 WHERE gr.grade_id = $1 AND gr.deleted = 0
 GROUP BY gr.id, gr.name, gr.grade_id, g.name, gr.days, gr.start_time, gr.end_time, gr.room, gr.created_at, gr.updated_at
 ORDER BY gr.name ASC
@@ -238,7 +238,6 @@ SELECT
 FROM attendance a
 JOIN students s ON a.student_id = s.id
 WHERE s.group_id = $1 
-  AND s.deleted = 0
   AND TO_CHAR(a.attendance_date, 'YYYY-MM') = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
 `;
 
@@ -262,7 +261,7 @@ LEFT JOIN LATERAL (
   FROM payments p
   WHERE p.student_id = s.id AND p.subscription_id = sub.id
 ) paid ON true
-WHERE s.group_id = $1 AND s.deleted = 0
+WHERE s.group_id = $1
 `;
 
 const getGroupExamStats = `
@@ -272,7 +271,7 @@ SELECT
   MIN(er.degree) AS lowest_score
 FROM exam_results er
 WHERE er.student_id IN (
-  SELECT id FROM students WHERE group_id = $1 AND deleted = 0
+  SELECT id FROM students WHERE group_id = $1
 )
 `;
 
@@ -284,6 +283,11 @@ SELECT
   s.phone,
   s.parent_phone,
   s.profile_image,
+  s.is_active,
+  s.deleted,
+  s.deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   s.group_id,
   s.created_at,
@@ -295,7 +299,7 @@ SELECT
      LIMIT 1), 'unpaid'
   ) AS payment_status
 FROM students s
-WHERE s.group_id = $1 AND s.deleted = 0
+WHERE s.group_id = $1
 ORDER BY s.full_name ASC
 `;
 

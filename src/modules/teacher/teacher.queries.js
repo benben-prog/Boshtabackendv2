@@ -5,7 +5,9 @@
 // Get teacher dashboard overview
 const getDashboardOverview = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students) AS total_students,
+  (SELECT COUNT(*) FROM students WHERE deleted = 0 AND is_active = TRUE) AS active_students,
+  (SELECT COUNT(*) FROM students WHERE deleted = 1 OR is_active = FALSE) AS deleted_students,
   (SELECT COUNT(*) FROM grades WHERE deleted = 0) AS total_grades,
   (SELECT COUNT(*) FROM groups WHERE deleted = 0) AS total_groups,
   (SELECT COUNT(*) FROM users WHERE role = 'assistant' AND deleted = 0 AND is_active = 1) AS total_assistants,
@@ -17,12 +19,11 @@ SELECT
 // Get attendance today stats
 const getAttendanceTodayStats = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students) AS total_students,
   (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'present') AS present_count,
   (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'absent') AS absent_count,
   (SELECT COUNT(*) FROM students s 
-   WHERE s.deleted = 0 
-     AND NOT EXISTS (
+   WHERE NOT EXISTS (
        SELECT 1 FROM attendance a 
        WHERE a.student_id = s.id AND a.attendance_date = CURRENT_DATE
      )) AS not_marked_count
@@ -66,7 +67,6 @@ LEFT JOIN LATERAL (
   WHERE p.student_id = s.id 
     AND p.subscription_id = sub.id
 ) paid ON true
-WHERE s.deleted = 0
 `;
 
 // Get last payment

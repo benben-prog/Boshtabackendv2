@@ -60,7 +60,7 @@ SELECT
     WHEN NOW() AT TIME ZONE 'Africa/Cairo' < oe.start_at THEN 'upcoming'
     ELSE 'active'
   END AS status,
-  (SELECT COUNT(*) FROM students WHERE grade_id = oe.grade_id AND (oe.group_id IS NULL OR group_id = oe.group_id) AND deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students WHERE grade_id = oe.grade_id AND (oe.group_id IS NULL OR group_id = oe.group_id)) AS total_students,
   COUNT(se.id) AS total_recorded,
   COUNT(CASE WHEN se.is_absent = FALSE OR se.is_absent IS NULL THEN 1 END) AS attended_count,
   COUNT(CASE WHEN se.is_absent = TRUE THEN 1 END) AS absent_count,

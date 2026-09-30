@@ -7,7 +7,7 @@ const getStudentGradePrice = `
 SELECT g.monthly_price
 FROM students s
 JOIN grades g ON s.grade_id = g.id
-WHERE s.id = $1 AND s.deleted = 0 AND g.deleted = 0
+WHERE s.id = $1 AND g.deleted = 0
 `;
 
 // Create subscription - auto fetch required_amount from grade
@@ -16,7 +16,7 @@ INSERT INTO subscriptions (student_id, month, required_amount)
 SELECT $1, $2, g.monthly_price
 FROM students s
 JOIN grades g ON s.grade_id = g.id
-WHERE s.id = $1 AND s.deleted = 0 AND g.deleted = 0
+WHERE s.id = $1 AND g.deleted = 0
 RETURNING *
 `;
 
@@ -43,6 +43,10 @@ SELECT
   sub.student_id,
   s.full_name,
   s.barcode,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   gr.name AS group_name,
   sub.required_amount,
@@ -51,7 +55,7 @@ SELECT
     (SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0
   ) AS paid_amount
 FROM subscriptions sub
-JOIN students s ON sub.student_id = s.id AND s.deleted = 0
+JOIN students s ON sub.student_id = s.id
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE sub.month = $1 AND sub.deleted = 0
@@ -65,14 +69,17 @@ SELECT
   s.full_name,
   s.barcode,
   s.parent_phone,
+  s.deleted,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   g.monthly_price AS required_amount,
   gr.name AS group_name
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.deleted = 0
-  AND s.id NOT IN (
+WHERE s.id NOT IN (
     SELECT sub.student_id
     FROM subscriptions sub
     WHERE sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
@@ -94,11 +101,11 @@ SELECT
     (SELECT SUM(p.amount) FROM payments p 
      JOIN subscriptions sub2 ON p.subscription_id = sub2.id
      WHERE sub2.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
-       AND sub2.student_id IN (SELECT id FROM students WHERE grade_id = g.id AND deleted = 0)
+       AND sub2.student_id IN (SELECT id FROM students WHERE grade_id = g.id)
     ), 0
   ) AS total_paid
 FROM grades g
-LEFT JOIN students s ON g.id = s.grade_id AND s.deleted = 0
+LEFT JOIN students s ON g.id = s.grade_id
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
@@ -120,12 +127,12 @@ SELECT
     (SELECT SUM(p.amount) FROM payments p 
      JOIN subscriptions sub2 ON p.subscription_id = sub2.id
      WHERE sub2.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
-       AND sub2.student_id IN (SELECT id FROM students WHERE group_id = gr.id AND deleted = 0)
+       AND sub2.student_id IN (SELECT id FROM students WHERE group_id = gr.id)
     ), 0
   ) AS total_paid
 FROM groups gr
 JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
-LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
+LEFT JOIN students s ON gr.id = s.group_id
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
@@ -150,7 +157,6 @@ LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
-WHERE s.deleted = 0
 `;
 
 // Update subscription status

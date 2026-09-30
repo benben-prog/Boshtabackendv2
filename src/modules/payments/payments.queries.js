@@ -262,6 +262,10 @@ SELECT
   s.full_name,
   s.barcode,
   s.parent_phone,
+  s.deleted,
+  s.is_active,
+  s.deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status,
   g.name AS grade_name,
   g.monthly_price AS required_amount,
   gr.name AS group_name,
@@ -273,8 +277,7 @@ LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
-WHERE s.deleted = 0
-  AND (sub.id IS NULL OR sub.status = 'unpaid')
+WHERE (sub.id IS NULL OR sub.status = 'unpaid')
 ORDER BY s.full_name ASC
 LIMIT COALESCE($2::int, 20) OFFSET (($1::int - 1) * COALESCE($2::int, 20))
 `;
@@ -285,8 +288,7 @@ FROM students s
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
-WHERE s.deleted = 0
-  AND (sub.id IS NULL OR sub.status = 'unpaid')
+WHERE (sub.id IS NULL OR sub.status = 'unpaid')
 `;
 
 // Get grade payment stats
@@ -301,7 +303,7 @@ SELECT
   COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS fully_paid,
   COUNT(DISTINCT CASE WHEN sub.id IS NULL OR sub.status = 'unpaid' THEN s.id END) AS not_paid
 FROM grades g
-LEFT JOIN students s ON g.id = s.grade_id AND s.deleted = 0
+LEFT JOIN students s ON g.id = s.grade_id
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
@@ -324,7 +326,7 @@ SELECT
   COUNT(DISTINCT CASE WHEN sub.id IS NULL OR sub.status = 'unpaid' THEN s.id END) AS not_paid
 FROM groups gr
 JOIN grades g ON gr.grade_id = g.id AND g.deleted = 0
-LEFT JOIN students s ON gr.id = s.group_id AND s.deleted = 0
+LEFT JOIN students s ON gr.id = s.group_id
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
@@ -347,7 +349,6 @@ LEFT JOIN subscriptions sub ON s.id = sub.student_id
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
 LEFT JOIN payments p ON p.subscription_id = sub.id
-WHERE s.deleted = 0
 `;
 
 // Get all students payment status
@@ -381,7 +382,6 @@ LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 LEFT JOIN subscriptions sub ON s.id = sub.student_id 
   AND sub.month = TO_CHAR(NOW() AT TIME ZONE 'Africa/Cairo', 'YYYY-MM')
   AND sub.deleted = 0
-WHERE s.deleted = 0
 ORDER BY s.full_name ASC
 `;
 

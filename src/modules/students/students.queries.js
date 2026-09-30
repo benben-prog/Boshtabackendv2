@@ -20,9 +20,10 @@ SELECT
   s.parent_phone,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -45,14 +46,23 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.deleted = 0
+WHERE (
+  -- If searching with text query, search all matching students (active or deleted)
+  ($1::text IS NOT NULL AND $1::text <> '')
+  OR
+  -- Or if specific status is requested
+  ($6::text IN ('all', 'inactive', 'deleted'))
+  OR
+  -- Otherwise (normal default view without search), show only active non-deleted students
+  (s.deleted = 0)
+)
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
     $6::text IS NULL OR $6::text = '' OR $6::text = 'all' OR
-    ($6::text = 'active' AND s.is_active = TRUE) OR
-    ($6::text = 'inactive' AND s.is_active = FALSE)
+    ($6::text = 'active' AND s.deleted = 0 AND s.is_active = TRUE) OR
+    ($6::text IN ('inactive', 'deleted') AND (s.deleted = 1 OR s.is_active = FALSE))
   )
 ORDER BY s.full_name ASC
 LIMIT COALESCE($5::int, 20) OFFSET (($4::int - 1) * COALESCE($5::int, 20))
@@ -62,14 +72,20 @@ LIMIT COALESCE($5::int, 20) OFFSET (($4::int - 1) * COALESCE($5::int, 20))
 const getStudentsCount = `
 SELECT COUNT(*) AS count
 FROM students s
-WHERE s.deleted = 0
+WHERE (
+  ($1::text IS NOT NULL AND $1::text <> '')
+  OR
+  ($4::text IN ('all', 'inactive', 'deleted'))
+  OR
+  (s.deleted = 0)
+)
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
     $4::text IS NULL OR $4::text = '' OR $4::text = 'all' OR
-    ($4::text = 'active' AND s.is_active = TRUE) OR
-    ($4::text = 'inactive' AND s.is_active = FALSE)
+    ($4::text = 'active' AND s.deleted = 0 AND s.is_active = TRUE) OR
+    ($4::text IN ('inactive', 'deleted') AND (s.deleted = 1 OR s.is_active = FALSE))
   )
 `;
 
@@ -83,9 +99,10 @@ SELECT
   s.parent_phone,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -103,14 +120,20 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.deleted = 0
+WHERE (
+  ($1::text IS NOT NULL AND $1::text <> '')
+  OR
+  ($4::text IN ('all', 'inactive', 'deleted'))
+  OR
+  (s.deleted = 0)
+)
   AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
     $4::text IS NULL OR $4::text = '' OR $4::text = 'all' OR
-    ($4::text = 'active' AND s.is_active = TRUE) OR
-    ($4::text = 'inactive' AND s.is_active = FALSE)
+    ($4::text = 'active' AND s.deleted = 0 AND s.is_active = TRUE) OR
+    ($4::text IN ('inactive', 'deleted') AND (s.deleted = 1 OR s.is_active = FALSE))
   )
 ORDER BY s.full_name ASC
 `;
@@ -175,9 +198,10 @@ SELECT
   s.parent_phone,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -185,7 +209,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.phone = $1 AND s.deleted = 0
+WHERE s.phone = $1
 `;
 
 // Find students by parent phone number
@@ -193,7 +217,7 @@ const findStudentByParentPhone = `
 SELECT 
 parent_token
 FROM students 
-WHERE parent_phone = $1 AND deleted = 0
+WHERE parent_phone = $1
 `;
 
 // Get all students in a specific grade - 20 per page
@@ -267,8 +291,8 @@ SELECT
   s.profile_image,
   s.is_active,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -962,8 +986,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.deleted = 0 
-  AND (s.id::text = $1 OR s.barcode = $1)
+WHERE (s.id::text = $1 OR s.barcode = $1)
 LIMIT 1
 `;
 
@@ -1033,7 +1056,7 @@ ORDER BY s.full_name ASC
 const resetStudentPassword = `
 UPDATE students 
 SET password = $1, updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-WHERE id = $2 AND deleted = 0
+WHERE id = $2
 RETURNING id, barcode, full_name
 `;
 
@@ -1043,7 +1066,7 @@ UPDATE students AS s
 SET password = data.password,
     updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 FROM (SELECT unnest($1::int[]) AS id, unnest($2::text[]) AS password) AS data
-WHERE s.id = data.id AND s.deleted = 0
+WHERE s.id = data.id
 RETURNING s.id, s.barcode, s.full_name
 `;
 
@@ -1053,7 +1076,7 @@ RETURNING s.id, s.barcode, s.full_name
 
 // Check existing barcodes (single query)
 const checkExistingBarcodes = `
-SELECT barcode FROM students WHERE barcode = ANY($1) AND deleted = 0
+SELECT barcode FROM students WHERE barcode = ANY($1)
 `;
 
 // Get grades by names (single query)

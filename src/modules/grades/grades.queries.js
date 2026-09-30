@@ -76,7 +76,7 @@ SELECT
   g.monthly_price,
   COUNT(s.id) AS students_count
 FROM grades g
-LEFT JOIN students s ON g.id = s.grade_id AND s.deleted = 0
+LEFT JOIN students s ON g.id = s.grade_id
 WHERE g.deleted = 0
 GROUP BY g.id, g.name, g.monthly_price
 ORDER BY g.name ASC

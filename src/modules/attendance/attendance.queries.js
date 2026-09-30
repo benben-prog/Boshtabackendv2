@@ -216,11 +216,11 @@ LIMIT 20 OFFSET (($3::int - 1) * 20)
 // Get attendance summary for a group on a date
 const getAttendanceSummary = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE group_id = $1 AND deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students WHERE group_id = $1) AS total_students,
   (SELECT COUNT(*) FROM attendance WHERE group_id = $1 AND attendance_date = $2 AND status = 'present') AS present_count,
   (SELECT COUNT(*) FROM attendance WHERE group_id = $1 AND attendance_date = $2 AND status = 'absent') AS absent_count,
   (SELECT COUNT(*) FROM students s 
-   WHERE s.group_id = $1 AND s.deleted = 0 
+   WHERE s.group_id = $1 
      AND NOT EXISTS (
        SELECT 1 FROM attendance a 
        WHERE a.student_id = s.id AND a.attendance_date = $2
@@ -446,7 +446,7 @@ WHERE lt.total_days = 3
 
 const getDashboard = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE group_id = $1 AND deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students WHERE group_id = $1) AS total_students,
   (SELECT COUNT(*) FROM attendance 
    WHERE group_id = $1 
      AND attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
@@ -457,7 +457,6 @@ SELECT
      AND status = 'absent') AS absent_today,
   (SELECT COUNT(*) FROM students s 
    WHERE s.group_id = $1 
-     AND s.deleted = 0 
      AND NOT EXISTS (
        SELECT 1 FROM attendance a 
        WHERE a.student_id = s.id 
@@ -467,7 +466,7 @@ SELECT
 
 const getDashboardGlobal = `
 SELECT 
-  (SELECT COUNT(*) FROM students WHERE deleted = 0) AS total_students,
+  (SELECT COUNT(*) FROM students) AS total_students,
   (SELECT COUNT(*) FROM attendance 
    WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
      AND status = 'present') AS present_today,
@@ -475,8 +474,7 @@ SELECT
    WHERE attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo') 
      AND status = 'absent') AS absent_today,
   (SELECT COUNT(*) FROM students s 
-   WHERE s.deleted = 0 
-     AND NOT EXISTS (
+   WHERE NOT EXISTS (
        SELECT 1 FROM attendance a 
        WHERE a.student_id = s.id 
          AND a.attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')

@@ -158,21 +158,21 @@ ORDER BY e.exam_date DESC
 const getStudentsByBarcodes = `
 SELECT id, barcode, full_name, grade_id, group_id, phone, parent_phone, parent_token
 FROM students
-WHERE barcode = ANY($1) AND deleted = 0
+WHERE barcode = ANY($1)
 `;
 
 // Get students by names (single query)
 const getStudentsByNames = `
 SELECT id, barcode, full_name, grade_id, group_id, phone, parent_phone, parent_token
 FROM students
-WHERE full_name = ANY($1) AND deleted = 0
+WHERE full_name = ANY($1)
 `;
 
 // Get students by IDs (for batch processing)
 const getStudentsByIds = `
 SELECT id, barcode, full_name, grade_id, group_id, phone, parent_phone, parent_token
 FROM students
-WHERE id = ANY($1) AND deleted = 0
+WHERE id = ANY($1)
 `;
 
 // Bulk upsert exam results (single query)
