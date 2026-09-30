@@ -901,7 +901,15 @@
   },
   {
     "method": "POST",
+    "path": "/api/auth/student/complete-activation"
+  },
+  {
+    "method": "POST",
     "path": "/api/auth/student/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/student/verify-activation"
   },
   {
     "method": "POST",

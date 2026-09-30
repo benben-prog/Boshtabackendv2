@@ -147,6 +147,161 @@
  */
 
 /* ============================================
+   STUDENT FIRST-TIME ACCOUNT ACTIVATION
+   ============================================ */
+
+/**
+ * @swagger
+ * /api/auth/student/verify-activation:
+ *   post:
+ *     summary: Verify student card & parent phone for first-time activation (Step 1)
+ *     description: Checks card barcode and parent phone. If valid and account has not been activated, returns student info and a short-lived activation token. If already activated, returns 409 error.
+ *     tags: [Auth]
+ *     security:
+ *       - ApiAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [barcode, parent_phone]
+ *             properties:
+ *               barcode:
+ *                 type: string
+ *                 description: Barcode scanned from the student card
+ *                 example: "STD001"
+ *               parent_phone:
+ *                 type: string
+ *                 description: Registered parent phone number
+ *                 example: "01012345678"
+ *     responses:
+ *       200:
+ *         description: Student verified successfully. Ready to set password.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم التحقق من بيانات الطالب بنجاح. يرجى إدخال كلمة المرور الجديدة لتفعيل الحساب."
+ *                 student:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     barcode:
+ *                       type: string
+ *                     full_name:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     grade_name:
+ *                       type: string
+ *                     group_name:
+ *                       type: string
+ *                 activation_token:
+ *                   type: string
+ *                   description: 15-minute temporary token to use in complete-activation
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Student account deactivated
+ *       404:
+ *         description: Student not found or credentials do not match
+ *       409:
+ *         description: Account already activated previously
+ */
+
+/**
+ * @swagger
+ * /api/auth/student/complete-activation:
+ *   post:
+ *     summary: Complete student account activation and set password (Step 2)
+ *     description: Sets password for student account for the first time. Rejects if password was already set. Returns student JWT token for auto-login.
+ *     tags: [Auth]
+ *     security:
+ *       - ApiAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password, confirm_password]
+ *             properties:
+ *               activation_token:
+ *                 type: string
+ *                 description: Activation token received from verify-activation step
+ *               barcode:
+ *                 type: string
+ *                 description: Alternative to activation_token - card barcode
+ *               parent_phone:
+ *                 type: string
+ *                 description: Alternative to activation_token - parent phone
+ *               password:
+ *                 type: string
+ *                 description: New password (minimum 4 characters)
+ *                 example: "MyPass123"
+ *               confirm_password:
+ *                 type: string
+ *                 description: Confirmation of the new password (must match password)
+ *                 example: "MyPass123"
+ *     responses:
+ *       200:
+ *         description: Account activated successfully, returns student JWT token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم تفعيل الحساب وتعيين كلمة المرور بنجاح"
+ *                 token:
+ *                   type: string
+ *                   description: JWT access token for student portal
+ *                 student:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     barcode:
+ *                       type: string
+ *                     full_name:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     grade_id:
+ *                       type: integer
+ *                     grade_name:
+ *                       type: string
+ *                     group_id:
+ *                       type: integer
+ *                     group_name:
+ *                       type: string
+ *                     profile_image:
+ *                       type: string
+ *       400:
+ *         description: Validation error or passwords do not match
+ *       401:
+ *         description: Expired or invalid activation token
+ *       403:
+ *         description: Student account deactivated
+ *       404:
+ *         description: Student not found
+ *       409:
+ *         description: Account already activated previously
+ */
+
+/* ============================================
    PARENT ACCESS
    ============================================ */
 

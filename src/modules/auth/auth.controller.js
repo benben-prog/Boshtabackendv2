@@ -150,8 +150,76 @@ const parentAccess = async (req, res, next) => {
   }
 };
 
+// ============================================
+// STUDENT FIRST-TIME ACTIVATION
+// ============================================
+
+const verifyStudentActivation = async (req, res, next) => {
+  try {
+    const { barcode, parent_phone } = req.body;
+    const result = await authService.verifyStudentActivation({
+      barcode,
+      parent_phone,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "تم التحقق من بيانات الطالب بنجاح. يرجى إدخال كلمة المرور الجديدة لتفعيل الحساب.",
+      student: result.student,
+      activation_token: result.activation_token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const completeStudentActivation = async (req, res, next) => {
+  try {
+    const student = await authService.completeStudentActivation(req.body);
+
+    const payload = {
+      id: student.id,
+      barcode: student.barcode,
+      role: ROLES.STUDENT,
+    };
+
+    const token = createToken(payload);
+
+    await logActivity({
+      user_id: student.id,
+      user_role: ROLES.STUDENT,
+      user_permissions: null,
+      action: "student_account_activated",
+      entity_type: "student",
+      entity_id: student.id,
+      description: `تفعيل حساب وتعيين كلمة مرور الطالب لأول مرة: ${student.full_name} (${student.barcode})`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "تم تفعيل الحساب وتعيين كلمة المرور بنجاح",
+      token,
+      student: {
+        ...payload,
+        full_name: student.full_name,
+        phone: student.phone,
+        grade_id: student.grade_id,
+        grade_name: student.grade_name,
+        group_id: student.group_id,
+        group_name: student.group_name,
+        profile_image: student.profile_image,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   StudentLogin,
   userLogin,
   parentAccess,
+  verifyStudentActivation,
+  completeStudentActivation,
 };
