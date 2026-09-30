@@ -33,10 +33,14 @@ SELECT
     WHEN se.score IS NULL THEN 'pending'
     WHEN se.score >= (oe.full_mark * 0.5) THEN 'passed'
     ELSE 'failed'
-  END AS status
+  END AS status,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status
 FROM student_exams se
 JOIN online_exams oe ON se.exam_id = oe.id
-JOIN students s ON se.student_id = s.id AND s.deleted = 0
+JOIN students s ON se.student_id = s.id
 WHERE se.exam_id = $1
 ORDER BY se.is_absent ASC, se.score DESC NULLS LAST, s.full_name ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)

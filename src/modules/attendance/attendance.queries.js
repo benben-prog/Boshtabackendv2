@@ -155,6 +155,8 @@ SELECT
   a.student_id,
   s.full_name,
   s.barcode,
+  s.deleted,
+  s.is_active,
   a.status,
   a.attendance_time,
   a.method,
@@ -162,7 +164,7 @@ SELECT
   a.makeup_group_id,
   a.notes
 FROM attendance a
-JOIN students s ON a.student_id = s.id AND s.deleted = 0
+JOIN students s ON a.student_id = s.id
 WHERE a.group_id = $1 AND a.attendance_date = $2
 ORDER BY s.full_name ASC
 `;
@@ -175,6 +177,8 @@ SELECT
   s.full_name,
   s.barcode,
   s.parent_phone,
+  s.deleted,
+  s.is_active,
   a.status,
   a.attendance_time,
   a.method,
@@ -182,7 +186,7 @@ SELECT
   a.makeup_group_id,
   a.notes
 FROM attendance a
-JOIN students s ON a.student_id = s.id AND s.deleted = 0
+JOIN students s ON a.student_id = s.id
 WHERE a.group_id = $1 AND a.attendance_date = $2 AND a.status = 'absent'
 ORDER BY s.full_name ASC
 `;
@@ -193,13 +197,16 @@ SELECT
   a.id,
   a.student_id,
   s.full_name,
+  s.barcode,
+  s.deleted,
+  s.is_active,
   a.attendance_date,
   a.status,
   a.attendance_time,
   a.method,
   a.is_makeup
 FROM attendance a
-JOIN students s ON a.student_id = s.id AND s.deleted = 0
+JOIN students s ON a.student_id = s.id
 WHERE a.group_id = $1 
   AND TO_CHAR(a.attendance_date, 'YYYY-MM') = $2
 ORDER BY a.attendance_date DESC, s.full_name ASC
@@ -326,7 +333,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.barcode = $1 AND s.deleted = 0
+WHERE s.barcode = $1
 `;
 
 // Check if student already attended today
@@ -480,14 +487,15 @@ SELECT
 // SOFT DELETE QUERIES
 // ============================================
 
-// Soft delete student (deactivates without deleting records)
+// Soft delete student (deactivates and soft deletes without deleting records)
 const softDeleteStudent = `
 UPDATE students 
-SET is_active = FALSE, 
+SET deleted = 1,
+    is_active = FALSE, 
     deactivation_reason = COALESCE($2, 'غياب متكرر (3 حصص متتالية)'), 
     updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = ANY($1) AND deleted = 0
-RETURNING id, barcode, full_name, is_active, deactivation_reason
+RETURNING id, barcode, full_name, is_active, deactivation_reason, deleted
 `;
 const getAbsentStudentsByDate = `
 SELECT 

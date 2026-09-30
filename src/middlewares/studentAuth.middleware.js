@@ -1,12 +1,40 @@
-// Middleware to check if user is student or super admin
-const studentAuth = (req, res, next) => {
-  if (req.clientRole !== "student" && req.clientRole !== "super_admin") {
+const { query } = require("../config/database");
+
+// Middleware to check if user is student or super admin, and enforce force logout if deleted/inactive
+const studentAuth = async (req, res, next) => {
+  if (req.clientRole === "super_admin") {
+    return next();
+  }
+
+  if (req.clientRole !== "student") {
     return res.status(403).json({
       success: false,
       message: "غير مصرح لك بالوصول - الطالب فقط",
     });
   }
-  next();
+
+  try {
+    const studentCheck = await query(
+      "SELECT id, deleted, is_active, deactivation_reason FROM students WHERE id = $1",
+      [req.clientId],
+    );
+
+    const student = studentCheck.rows[0];
+    if (!student || student.deleted === 1 || student.is_active === false) {
+      const reason = student?.deactivation_reason
+        ? ` (${student.deactivation_reason})`
+        : "";
+      return res.status(401).json({
+        success: false,
+        message: `تم إلغاء تفعيل حسابك أو حذفه من قِبل إدارة السنتر${reason}. يرجى مراجعة إدارة السنتر.`,
+        force_logout: true,
+      });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = studentAuth;

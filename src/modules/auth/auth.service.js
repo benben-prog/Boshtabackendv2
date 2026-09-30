@@ -8,12 +8,11 @@ const bcrypt = require("bcryptjs");
 const studentAuth = async (credentials) => {
   const { phone, password } = credentials;
 
-  // Get students by phone (only student's own phone, not parent's)
+  // Get students by phone (including deleted/inactive to return descriptive error)
   const result = await query(
-    `SELECT id, barcode, full_name, phone, password, grade_id, group_id, profile_image
+    `SELECT id, barcode, full_name, phone, password, grade_id, group_id, profile_image, deleted, is_active, deactivation_reason
      FROM students
      WHERE phone = $1
-       AND deleted = 0
        AND password IS NOT NULL
      LIMIT 10`,
     [phone],
@@ -29,6 +28,13 @@ const studentAuth = async (credentials) => {
   for (const student of students) {
     const isPasswordValid = await bcrypt.compare(password, student.password);
     if (isPasswordValid) {
+      if (student.deleted === 1 || student.is_active === false) {
+        const reason = student.deactivation_reason ? ` (${student.deactivation_reason})` : "";
+        const error = new Error(`الحساب غير مفعل أو تم حذفه من قِبل إدارة السنتر${reason}. يرجى مراجعة إدارة السنتر.`);
+        error.statusCode = 403;
+        error.code = "ACCOUNT_DEACTIVATED";
+        throw error;
+      }
       return student;
     }
   }

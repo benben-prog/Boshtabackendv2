@@ -85,9 +85,13 @@ SELECT
     WHEN er.is_absent = TRUE THEN 0
     ELSE ROUND((er.degree::numeric / NULLIF(e.total_degree::numeric, 0)) * 100, 2)
   END AS percentage,
-  er.notes
+  er.notes,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status
 FROM exam_results er
-JOIN students s ON er.student_id = s.id AND s.deleted = 0
+JOIN students s ON er.student_id = s.id
 JOIN exams e ON er.exam_id = e.id AND e.deleted = 0
 WHERE er.exam_id = $1
 ORDER BY er.is_absent ASC, s.full_name ASC
@@ -140,7 +144,7 @@ SELECT
   MIN(er.degree) AS lowest_degree
 FROM exams e
 JOIN exam_results er ON e.id = er.exam_id
-JOIN students s ON er.student_id = s.id AND s.deleted = 0
+JOIN students s ON er.student_id = s.id
 WHERE e.group_id = $1 AND e.deleted = 0
 GROUP BY e.id, e.title, e.exam_date, e.total_degree
 ORDER BY e.exam_date DESC

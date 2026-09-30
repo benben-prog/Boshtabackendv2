@@ -78,9 +78,13 @@ SELECT
   asub.submitted_at,
   asub.updated_at,
   asub.reviewed_at,
-  asub.reviewed_by
+  asub.reviewed_by,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status
 FROM assignment_submissions asub
-JOIN students s ON asub.student_id = s.id AND s.deleted = 0
+JOIN students s ON asub.student_id = s.id
 WHERE asub.assignment_id = $1
 ORDER BY asub.submitted_at DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
@@ -98,9 +102,13 @@ SELECT
   asub.submitted_at,
   asub.updated_at,
   asub.reviewed_at,
-  asub.reviewed_by
+  asub.reviewed_by,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status
 FROM assignment_submissions asub
-JOIN students s ON asub.student_id = s.id AND s.deleted = 0
+JOIN students s ON asub.student_id = s.id
 WHERE asub.assignment_id = $1 AND asub.student_id = $2
 `;
 
@@ -114,9 +122,13 @@ SELECT
   asub.file_path,
   asub.score,
   asub.submitted_at,
-  asub.reviewed_at
+  asub.reviewed_at,
+  s.deleted AS student_deleted,
+  s.is_active AS student_is_active,
+  s.deactivation_reason AS student_deactivation_reason,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS student_status
 FROM assignment_submissions asub
-JOIN students s ON asub.student_id = s.id AND s.deleted = 0
+JOIN students s ON asub.student_id = s.id
 WHERE asub.assignment_id = $1
 ORDER BY asub.submitted_at ASC
 LIMIT 20 OFFSET (($2::int - 1) * 20)

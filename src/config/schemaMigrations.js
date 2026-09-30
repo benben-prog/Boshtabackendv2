@@ -16,13 +16,19 @@ async function runSchemaMigrations() {
       ADD COLUMN IF NOT EXISTS deactivation_reason TEXT DEFAULT NULL;
     `);
 
-    // 2. Ensure any legacy soft-deleted student (deleted = 1) is active/inactive without hiding payments
+    // 2. Ensure any inactive student is soft-deleted (deleted = 1)
     await query(`
       UPDATE students 
-      SET is_active = FALSE, 
-          deactivation_reason = COALESCE(deactivation_reason, 'غياب متكرر (3 حصص متتالية)'), 
-          deleted = 0 
-      WHERE deleted = 1;
+      SET deleted = 1 
+      WHERE (is_active = FALSE OR deactivation_reason IS NOT NULL) AND deleted = 0;
+    `);
+
+    // Ensure any soft-deleted student has is_active = FALSE
+    await query(`
+      UPDATE students 
+      SET is_active = FALSE,
+          deactivation_reason = COALESCE(deactivation_reason, 'تم إلغاء التفعيل بواسطة الإدارة')
+      WHERE deleted = 1 AND is_active = TRUE;
     `);
 
     // 3. Ensure exam_results has is_absent

@@ -126,9 +126,10 @@ SELECT
   s.password,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.notes,
   s.grade_id,
   g.name AS grade_name,
@@ -137,7 +138,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.id = $1 AND s.deleted = 0
+WHERE s.id = $1
 `;
 
 // Get a student by barcode
@@ -150,9 +151,10 @@ SELECT
   s.parent_phone,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.grade_id,
   g.name AS grade_name,
   s.group_id,
@@ -160,7 +162,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.barcode = $1 AND s.deleted = 0
+WHERE s.barcode = $1
 `;
 
 // Find a student by phone number
@@ -327,14 +329,15 @@ WHERE id = $2 AND deleted = 0
 RETURNING id
 `;
 
-// Soft delete a student (deactivates without deleting records)
+// Soft delete a student (sets deleted = 1 and is_active = FALSE with deactivation reason)
 const softDeleteStudent = `
 UPDATE students 
-SET is_active = FALSE, 
+SET deleted = 1,
+    is_active = FALSE, 
     deactivation_reason = COALESCE($2, 'تم إلغاء التفعيل بواسطة الإدارة'), 
     updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1 AND deleted = 0
-RETURNING id, barcode, full_name, is_active, deactivation_reason
+RETURNING id, barcode, full_name, is_active, deactivation_reason, deleted
 `;
 
 // Hard delete a student permanently
@@ -347,22 +350,23 @@ RETURNING id
 // Restore a soft-deleted / deactivated student
 const restoreStudent = `
 UPDATE students 
-SET is_active = TRUE, 
+SET deleted = 0,
+    is_active = TRUE, 
     deactivation_reason = NULL, 
-    deleted = 0, 
     updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
 WHERE id = $1
-RETURNING id, barcode, full_name, is_active, deactivation_reason
+RETURNING id, barcode, full_name, is_active, deactivation_reason, deleted
 `;
 
 // Toggle student active status directly
 const toggleStudentStatus = `
 UPDATE students
 SET is_active = $2,
+    deleted = CASE WHEN $2 = TRUE THEN 0 ELSE 1 END,
     deactivation_reason = CASE WHEN $2 = TRUE THEN NULL ELSE COALESCE($3, 'تم إلغاء التفعيل بواسطة الإدارة') END,
     updated_at = NOW() AT TIME ZONE 'Africa/Cairo'
-WHERE id = $1 AND deleted = 0
-RETURNING id, barcode, full_name, is_active, deactivation_reason
+WHERE id = $1
+RETURNING id, barcode, full_name, is_active, deactivation_reason, deleted
 `;
 
 // ============================================
@@ -380,9 +384,10 @@ SELECT
   s.parent_token,
   s.profile_image,
   s.is_active,
+  s.deleted,
   s.deactivation_reason,
-  CASE WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
-  CASE WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
+  CASE WHEN s.deleted = 1 THEN 'محذوف' WHEN s.is_active = FALSE THEN 'غير مفعل' ELSE 'مفعل' END AS status_text,
+  CASE WHEN s.deleted = 1 THEN 'deleted' WHEN s.is_active = FALSE THEN 'inactive' ELSE 'active' END AS status,
   s.notes,
   s.grade_id,
   g.name AS grade_name,
@@ -396,7 +401,7 @@ SELECT
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
-WHERE s.id = $1 AND s.deleted = 0
+WHERE s.id = $1
 `;
 
 // Get student quick stats (attendance, exams, payments)

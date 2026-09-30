@@ -2,32 +2,39 @@ const parentService = require("./parent.service");
 
 function formatStudentWithStatus(student) {
   if (!student) return null;
-  const isInactive =
+  const isDeletedOrInactive =
+    student.deleted === 1 ||
+    student.deleted === true ||
+    student.deleted === "1" ||
     student.is_active === false ||
     student.is_active === 0 ||
     student.is_active === "false";
-  const reason = isInactive
-    ? student.deactivation_reason || "غياب متكرر"
+
+  const reason = isDeletedOrInactive
+    ? (student.deactivation_reason || "تم إلغاء التفعيل بواسطة الإدارة")
     : null;
+
   const statusInfo = {
-    is_active: !isInactive,
-    status: isInactive ? "inactive" : "active",
-    status_text: isInactive ? "غير مفعل" : "مفعل",
+    is_active: !isDeletedOrInactive,
+    deleted: isDeletedOrInactive ? 1 : 0,
+    status: isDeletedOrInactive ? "inactive" : "active",
+    status_text: isDeletedOrInactive ? "محذوف" : "مفعل",
     deactivation_reason: reason,
-    alert_message: isInactive
+    alert_message: isDeletedOrInactive
       ? `الحساب غير مفعل حالياً بسبب: ${reason}. برجاء التواصل مع إدارة السنتر.`
       : null,
-    contact_center_required: isInactive,
+    contact_center_required: isDeletedOrInactive,
   };
 
   return {
     ...student,
-    is_active: !isInactive,
+    is_active: !isDeletedOrInactive,
+    deleted: statusInfo.deleted,
     status: statusInfo.status,
     status_text: statusInfo.status_text,
     deactivation_reason: reason,
     alert_message: statusInfo.alert_message,
-    contact_center_required: isInactive,
+    contact_center_required: isDeletedOrInactive,
     status_info: statusInfo,
   };
 }
@@ -200,4 +207,5 @@ const getParentDashboard = async (req, res, next) => {
 module.exports = {
   getPerentTokenByParentPhone,
   getParentDashboard,
+  formatStudentWithStatus,
 };
