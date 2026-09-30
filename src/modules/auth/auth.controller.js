@@ -223,3 +223,13 @@ module.exports = {
   verifyStudentActivation,
   completeStudentActivation,
 };
+
+
+/*
+الغي تسجيل الدخول التلقائي بعد تفعيل الحساب 
+
+
+
+
+
+*/
