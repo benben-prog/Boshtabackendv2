@@ -30,6 +30,13 @@ const videoController = require("../videos/videos.controller");
 const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
 const whatsappController = require("../whatsapp_messages/whatsapp_messages.controller");
+const liveSessionsController = require("../live_sessions/live_sessions.controller");
+const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
+const {
+  createLiveSessionSchema,
+  updateLiveSessionSchema,
+  updateRecordingSchema,
+} = require("../../middlewares/validations/live_sessions.validation");
 
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
@@ -802,6 +809,42 @@ routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
 routes.delete(
   "/whatsapp/messages/:messageId",
   whatsappController.deleteMessage,
+);
+
+/* ============================================
+   SUPER ADMIN - LIVE SESSIONS (GOOGLE MEET)
+   ============================================ */
+routes.get("/google/auth-url", liveSessionsController.getGoogleAuthUrl);
+routes.get("/google/status", liveSessionsController.getGoogleStatus);
+routes.post("/google/disconnect", liveSessionsController.disconnectGoogle);
+
+routes.get("/live-sessions", liveSessionsController.getAllLiveSessions);
+routes.get("/live-sessions/:id", liveSessionsController.getLiveSessionById);
+routes.post(
+  "/live-sessions",
+  liveMaterialUpload.single("file"),
+  validate(createLiveSessionSchema),
+  liveSessionsController.createLiveSession,
+);
+routes.put(
+  "/live-sessions/:id",
+  liveMaterialUpload.single("file"),
+  validate(updateLiveSessionSchema),
+  liveSessionsController.updateLiveSession,
+);
+routes.delete("/live-sessions/:id", liveSessionsController.deleteLiveSession);
+routes.post(
+  "/live-sessions/:id/sync-recording",
+  liveSessionsController.syncRecording,
+);
+routes.put(
+  "/live-sessions/:id/recording",
+  validate(updateRecordingSchema),
+  liveSessionsController.updateRecordingUrl,
+);
+routes.get(
+  "/live-sessions/:id/download-material",
+  liveSessionsController.downloadMaterial,
 );
 
 module.exports = routes;

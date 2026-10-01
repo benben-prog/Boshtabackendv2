@@ -107,4 +107,12 @@ module.exports = {
   WHATSAPP_TEMPLATE_ABSENCE: process.env.WHATSAPP_TEMPLATE_ABSENCE || "absent",
   WHATSAPP_TEMPLATE_PAYMENT: process.env.WHATSAPP_TEMPLATE_PAYMENT || "payment",
   WHATSAPP_TEMPLATE_EXAM: process.env.WHATSAPP_TEMPLATE_EXAM || "exam",
+
+  // Google OAuth Configuration
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI:
+    process.env.GOOGLE_REDIRECT_URI ||
+    "https://backend.benb3n.cloud/api/teacher/google/callback",
+  FRONTEND_URL: process.env.FRONTEND_URL || "https://boshta.benb3n.cloud",
 };

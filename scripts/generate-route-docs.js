@@ -57,6 +57,7 @@ const tagFor = (route) => {
 
   // Student portal
   if (route.startsWith("/api/student")) {
+    if (route.includes("/live-sessions")) return "Student - Live Sessions (Google Meet)";
     if (route.includes("/attendance")) return "Student - Attendance";
     if (route.includes("/exams/online")) return "Student - Online Exams";
     if (route.includes("/exams/paper") || route.includes("/exams")) return "Student - Paper Exams";
@@ -69,6 +70,7 @@ const tagFor = (route) => {
 
   // Teacher portal
   if (route.startsWith("/api/teacher")) {
+    if (route.includes("/live-sessions") || route.includes("/google")) return "Teacher - Live Sessions (Google Meet)";
     if (route.includes("/assistants")) return "Teacher - Profile & Dashboard";
     if (route.includes("/exams")) return "Teacher - Paper Exams";
     if (route.includes("/online-exams")) return "Teacher - Online Exams";
@@ -85,6 +87,7 @@ const tagFor = (route) => {
 
   // Assistant portal
   if (route.startsWith("/api/assistant")) {
+    if (route.includes("/live-sessions")) return "Assistant - Live Sessions (Google Meet)";
     if (route.includes("/attendance")) return "Assistant - Attendance";
     if (route.includes("/exam-results")) return "Assistant - Exam Results";
     if (route.includes("/exams")) return "Assistant - Paper Exams";
@@ -111,6 +114,7 @@ const tagFor = (route) => {
 
   // Super Admin portal
   if (route.startsWith("/api/super-admin")) {
+    if (route.includes("/live-sessions") || route.includes("/google")) return "Super Admin - Live Sessions (Google Meet)";
     if (route.includes("/assignment-submissions")) return "Super Admin - Assignment Submissions";
     if (route.includes("/assignments")) {
       if (route.includes("/download") || route.includes("/preview")) return "Super Admin - Download & Preview";

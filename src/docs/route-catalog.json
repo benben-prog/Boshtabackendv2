@@ -369,6 +369,38 @@
   },
   {
     "method": "GET",
+    "path": "/api/assistant/live-sessions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/live-sessions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/live-sessions/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/assistant/live-sessions/{id}/recording"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/live-sessions/{id}/sync-recording"
+  },
+  {
+    "method": "GET",
     "path": "/api/assistant/online-exams"
   },
   {
@@ -1025,6 +1057,22 @@
   },
   {
     "method": "GET",
+    "path": "/api/student/live-sessions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/live-sessions/{id}/join"
+  },
+  {
+    "method": "GET",
     "path": "/api/student/options/question/{questionId}"
   },
   {
@@ -1317,6 +1365,18 @@
   },
   {
     "method": "GET",
+    "path": "/api/super-admin/google/auth-url"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/google/disconnect"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/google/status"
+  },
+  {
+    "method": "GET",
     "path": "/api/super-admin/grades"
   },
   {
@@ -1426,6 +1486,38 @@
   {
     "method": "GET",
     "path": "/api/super-admin/groups/with-grade-name"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/live-sessions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/live-sessions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/live-sessions/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/super-admin/live-sessions/{id}/recording"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/live-sessions/{id}/sync-recording"
   },
   {
     "method": "GET",
@@ -2229,6 +2321,18 @@
   },
   {
     "method": "GET",
+    "path": "/api/teacher/google/auth-url"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/google/disconnect"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/google/status"
+  },
+  {
+    "method": "GET",
     "path": "/api/teacher/grades"
   },
   {
@@ -2282,6 +2386,38 @@
   {
     "method": "GET",
     "path": "/api/teacher/groups/with-grade-name"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/live-sessions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/live-sessions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/teacher/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/live-sessions/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/teacher/live-sessions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/teacher/live-sessions/{id}/recording"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/live-sessions/{id}/sync-recording"
   },
   {
     "method": "GET",

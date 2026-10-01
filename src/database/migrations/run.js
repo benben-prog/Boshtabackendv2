@@ -23,6 +23,8 @@ const createAssignmentsTable = require("./tables/assignments.table");
 const createAssignmentSubmissionsTable = require("./tables/assignment_submissions.table");
 const createActivityLogsTable = require("./tables/activity_logs.table");
 const createAttendanceSessionsTable = require("./tables/attendance_sessions.table");
+const createGoogleTokensTable = require("./tables/google_tokens.table");
+const createLiveSessionsTable = require("./tables/live_sessions.table");
 
 async function runMigrations() {
   await createGradesTable();
@@ -50,7 +52,9 @@ async function runMigrations() {
   await createAssignmentSubmissionsTable();
   await createActivityLogsTable();
   await createAttendanceSessionsTable();
-  console.log("All 24 tables created successfully");
+  await createGoogleTokensTable();
+  await createLiveSessionsTable();
+  console.log("All tables created successfully");
   process.exit(0);
 }
 

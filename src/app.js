@@ -16,6 +16,7 @@ const assistantRoutes = require("./modules/assistant/assistant.routes");
 const teacherRoutes = require("./modules/teacher/teacher.routes");
 const superAdminRoutes = require("./modules/super-admin/super-admin.routes");
 const webhookRoutes = require("./webhook.routes");
+const liveSessionsController = require("./modules/live_sessions/live_sessions.controller");
 
 // Middleware
 const {
@@ -175,6 +176,17 @@ app.use(
     },
   }),
 );
+app.use(
+  "/uploads/live_materials",
+  express.static(path.join(UPLOAD_ROOT, "live_materials"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "private, no-cache");
+      res.setHeader("Content-Disposition", "inline");
+    },
+  }),
+);
 
 // ============================================
 // ROOT ROUTES
@@ -301,6 +313,12 @@ app.use(
   assistantAuth,
   assistantRoutes,
 );
+// Google OAuth Callback (Browser redirect from Google, no API client auth headers)
+app.get(
+  "/api/teacher/google/callback",
+  liveSessionsController.handleGoogleCallback,
+);
+
 app.use("/api/teacher", apiMiddelware, clientAuth, teacherAuth, teacherRoutes);
 app.use("/api/super-admin", apiMiddelware, superAdminAuth, superAdminRoutes);
 

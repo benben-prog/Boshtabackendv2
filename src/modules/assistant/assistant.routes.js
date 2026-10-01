@@ -35,6 +35,13 @@ const videoController = require("../videos/videos.controller");
 const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
 const whatsappController = require("../whatsapp_messages/whatsapp_messages.controller");
+const liveSessionsController = require("../live_sessions/live_sessions.controller");
+const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
+const {
+  createLiveSessionSchema,
+  updateLiveSessionSchema,
+  updateRecordingSchema,
+} = require("../../middlewares/validations/live_sessions.validation");
 
 // Middleware
 const centerManagementAuth = require("../../middlewares/centerManagementAuth.middleware");
@@ -797,6 +804,55 @@ routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
 routes.delete(
   "/whatsapp/messages/:messageId",
   whatsappController.deleteMessage,
+);
+
+/* ============================================
+   LIVE SESSIONS (ONLINE MANAGEMENT)
+   ============================================ */
+routes.get(
+  "/live-sessions",
+  onlineManagementAuth,
+  liveSessionsController.getAllLiveSessions,
+);
+routes.get(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveSessionsController.getLiveSessionById,
+);
+routes.post(
+  "/live-sessions",
+  onlineManagementAuth,
+  liveMaterialUpload.single("file"),
+  validate(createLiveSessionSchema),
+  liveSessionsController.createLiveSession,
+);
+routes.put(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveMaterialUpload.single("file"),
+  validate(updateLiveSessionSchema),
+  liveSessionsController.updateLiveSession,
+);
+routes.delete(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveSessionsController.deleteLiveSession,
+);
+routes.post(
+  "/live-sessions/:id/sync-recording",
+  onlineManagementAuth,
+  liveSessionsController.syncRecording,
+);
+routes.put(
+  "/live-sessions/:id/recording",
+  onlineManagementAuth,
+  validate(updateRecordingSchema),
+  liveSessionsController.updateRecordingUrl,
+);
+routes.get(
+  "/live-sessions/:id/download-material",
+  onlineManagementAuth,
+  liveSessionsController.downloadMaterial,
 );
 
 module.exports = routes;

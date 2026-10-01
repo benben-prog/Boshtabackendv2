@@ -22,13 +22,20 @@ const assignmentSubmissionController = require("../assignment_submissions/assign
 const videoController = require("../videos/videos.controller");
 const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
+const liveSessionsController = require("../live_sessions/live_sessions.controller");
 
 // Middleware
 const validate = require("../../middlewares/validate.middleware");
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
+const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
 const {
   updateUserPasswordSchema,
 } = require("../../middlewares/validations/users.validation");
+const {
+  createLiveSessionSchema,
+  updateLiveSessionSchema,
+  updateRecordingSchema,
+} = require("../../middlewares/validations/live_sessions.validation");
 
 /* ============================================
    TEACHER - DASHBOARD & PROFILE
@@ -396,6 +403,45 @@ routes.get("/playlists/:playlistId", playlistController.getPlaylistById);
 routes.get(
   "/playlist-videos/playlist/:playlistId",
   playlistVideoController.getPlaylistVideos,
+);
+
+/* ============================================
+   GOOGLE OAUTH & MEET INTEGRATION
+   ============================================ */
+routes.get("/google/auth-url", liveSessionsController.getGoogleAuthUrl);
+routes.get("/google/status", liveSessionsController.getGoogleStatus);
+routes.post("/google/disconnect", liveSessionsController.disconnectGoogle);
+
+/* ============================================
+   LIVE SESSIONS (GOOGLE MEET)
+   ============================================ */
+routes.get("/live-sessions", liveSessionsController.getAllLiveSessions);
+routes.get("/live-sessions/:id", liveSessionsController.getLiveSessionById);
+routes.post(
+  "/live-sessions",
+  liveMaterialUpload.single("file"),
+  validate(createLiveSessionSchema),
+  liveSessionsController.createLiveSession,
+);
+routes.put(
+  "/live-sessions/:id",
+  liveMaterialUpload.single("file"),
+  validate(updateLiveSessionSchema),
+  liveSessionsController.updateLiveSession,
+);
+routes.delete("/live-sessions/:id", liveSessionsController.deleteLiveSession);
+routes.post(
+  "/live-sessions/:id/sync-recording",
+  liveSessionsController.syncRecording,
+);
+routes.put(
+  "/live-sessions/:id/recording",
+  validate(updateRecordingSchema),
+  liveSessionsController.updateRecordingUrl,
+);
+routes.get(
+  "/live-sessions/:id/download-material",
+  liveSessionsController.downloadMaterial,
 );
 
 module.exports = routes;

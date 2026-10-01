@@ -8,6 +8,7 @@ const studentExamController = require("../student_exams/student_exams.controller
 const studentAnswerController = require("../student_answers/student_answers.controller");
 const assignmentController = require("../assignments/assignments.controller");
 const assignmentSubmissionController = require("../assignment_submissions/assignment_submissions.controller");
+const liveSessionsController = require("../live_sessions/live_sessions.controller");
 const validate = require("../../middlewares/validate.middleware");
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
 const assignmentUpload = require("../../middlewares/uploads/assignmentUpload");
@@ -182,6 +183,24 @@ routes.get("/payments/balance", studentController.getRemainingBalance);
 routes.get(
   "/payments/current-subscription",
   studentController.getCurrentSubscription,
+);
+
+/* ============================================
+   LIVE SESSIONS (GOOGLE MEET)
+   ============================================ */
+
+routes.get("/live-sessions", liveSessionsController.getStudentLiveSessions);
+routes.get(
+  "/live-sessions/:id",
+  liveSessionsController.getStudentLiveSessionById,
+);
+routes.get(
+  "/live-sessions/:id/join",
+  liveSessionsController.joinSession,
+);
+routes.get(
+  "/live-sessions/:id/download-material",
+  liveSessionsController.downloadMaterial,
 );
 
 module.exports = routes;
