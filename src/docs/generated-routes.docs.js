@@ -357,6 +357,118 @@
  */
 /**
  * @swagger
+ * /api/assistant/google/auth-url:
+ *   get:
+ *     summary: "GET assistant google auth-url"
+ *     description: "GET assistant google auth-url"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/google/disconnect:
+ *   post:
+ *     summary: "POST assistant google disconnect"
+ *     description: "POST assistant google disconnect"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/google/exchange-code:
+ *   post:
+ *     summary: "POST assistant google exchange-code"
+ *     description: "POST assistant google exchange-code"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/google/status:
+ *   get:
+ *     summary: "GET assistant google status"
+ *     description: "GET assistant google status"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/grades/{id}/details:
  *   get:
  *     summary: "Get grade full details with groups (تفاصيل الصف الدراسي مع المجموعات)"
@@ -2725,6 +2837,39 @@
  *   post:
  *     summary: "POST super-admin google disconnect"
  *     description: "POST super-admin google disconnect"
+ *     tags:
+ *       - "Super Admin - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/google/exchange-code:
+ *   post:
+ *     summary: "POST super-admin google exchange-code"
+ *     description: "POST super-admin google exchange-code"
  *     tags:
  *       - "Super Admin - Live Sessions (Google Meet)"
  *     security:
@@ -6442,6 +6587,37 @@
  *   post:
  *     summary: "POST teacher google disconnect"
  *     description: "POST teacher google disconnect"
+ *     tags:
+ *       - "Teacher - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/google/exchange-code:
+ *   post:
+ *     summary: "POST teacher google exchange-code"
+ *     description: "POST teacher google exchange-code"
  *     tags:
  *       - "Teacher - Live Sessions (Google Meet)"
  *     security:

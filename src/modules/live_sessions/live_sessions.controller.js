@@ -16,7 +16,14 @@ const formatDatesInObject = (obj) => {
   const dateFields = ["start_time", "end_time", "created_at", "updated_at"];
   dateFields.forEach((field) => {
     if (formatted[field] !== undefined && formatted[field] !== null) {
-      formatted[field] = formatDate(formatted[field]);
+      const original = formatted[field];
+      try {
+        const d = new Date(original);
+        if (!isNaN(d.getTime())) {
+          formatted[`${field}_iso`] = d.toISOString();
+        }
+      } catch (_) {}
+      formatted[field] = formatDate(original);
     }
   });
   return formatted;
@@ -32,7 +39,12 @@ const liveSessionsController = {
   getGoogleAuthUrl: async (req, res, next) => {
     try {
       const userId = req.clientId;
-      const url = liveSessionsService.getGoogleAuthUrl(userId);
+      const redirectTo =
+        req.query.redirect_to ||
+        req.query.redirectTo ||
+        req.headers.referer ||
+        null;
+      const url = liveSessionsService.getGoogleAuthUrl(userId, redirectTo);
       return res.status(200).json({
         success: true,
         message: "تم توليد رابط مصادقة Google بنجاح",
@@ -45,38 +57,57 @@ const liveSessionsController = {
 
   // 2. Google OAuth Callback (Browser Redirect from Google)
   handleGoogleCallback: async (req, res, next) => {
+    const defaultRedirect = `${env.FRONTEND_URL || "https://boshta.benb3n.cloud"}/dashboard/live-sessions`;
+    let targetRedirect = defaultRedirect;
+
+    const appendParam = (urlStr, key, val) => {
+      const sep = urlStr.includes("?") ? "&" : "?";
+      return `${urlStr}${sep}${key}=${encodeURIComponent(val)}`;
+    };
+
     try {
       const { code, state, error: googleError } = req.query;
-      const frontendUrl = env.FRONTEND_URL || "https://boshta.benb3n.cloud";
+
+      if (state) {
+        try {
+          const googleAuth = require("../../utils/googleAuth");
+          const verified = googleAuth.verifyOAuthState(state);
+          if (verified && verified.redirectTo) {
+            targetRedirect = verified.redirectTo;
+          }
+        } catch (_) {}
+      }
 
       if (googleError) {
-        return res.redirect(
-          `${frontendUrl}/dashboard/live-sessions?google_error=${encodeURIComponent(
-            googleError,
-          )}`,
-        );
+        return res.redirect(appendParam(targetRedirect, "google_error", googleError));
       }
 
       if (!code || !state) {
         return res.redirect(
-          `${frontendUrl}/dashboard/live-sessions?google_error=${encodeURIComponent(
-            "كود التحقق أو رمز الحالة مفقود",
-          )}`,
+          appendParam(targetRedirect, "google_error", "كود التحقق أو رمز الحالة مفقود"),
         );
       }
 
-      await liveSessionsService.handleGoogleCallback(code, state);
+      const callbackResult = await liveSessionsService.handleGoogleCallback(code, state);
+      if (callbackResult.redirectTo) {
+        targetRedirect = callbackResult.redirectTo;
+      }
 
-      return res.redirect(
-        `${frontendUrl}/dashboard/live-sessions?google_connected=true`,
-      );
+      return res.redirect(appendParam(targetRedirect, "google_connected", "true"));
     } catch (error) {
-      const frontendUrl = env.FRONTEND_URL || "https://boshta.benb3n.cloud";
-      return res.redirect(
-        `${frontendUrl}/dashboard/live-sessions?google_error=${encodeURIComponent(
-          error.message,
-        )}`,
-      );
+      return res.redirect(appendParam(targetRedirect, "google_error", error.message));
+    }
+  },
+
+  // 2b. Direct Exchange Code (SPA / Popup flow)
+  exchangeCode: async (req, res, next) => {
+    try {
+      const userId = req.clientId;
+      const { code } = req.body;
+      const result = await liveSessionsService.exchangeCode(userId, code);
+      return res.status(200).json(result);
+    } catch (error) {
+      next(error);
     }
   },
 
@@ -133,13 +164,13 @@ const liveSessionsController = {
   getAllLiveSessions: async (req, res, next) => {
     try {
       const result = await liveSessionsService.getLiveSessions(req.query);
+      const formattedSessions = formatDatesInArray(result.sessions);
       return res.status(200).json({
         success: true,
         message: "تم تحميل حصص البث المباشر بنجاح",
-        data: {
-          sessions: formatDatesInArray(result.sessions),
-          pagination: result.pagination,
-        },
+        data: formattedSessions,
+        sessions: formattedSessions,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);
@@ -231,13 +262,13 @@ const liveSessionsController = {
         studentId,
         req.query,
       );
+      const formattedSessions = formatDatesInArray(result.sessions);
       return res.status(200).json({
         success: true,
         message: "تم تحميل حصص البث المباشر الخاصة بك بنجاح",
-        data: {
-          sessions: formatDatesInArray(result.sessions),
-          pagination: result.pagination,
-        },
+        data: formattedSessions,
+        sessions: formattedSessions,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);

@@ -35,6 +35,7 @@ const {
   createLiveSessionSchema,
   updateLiveSessionSchema,
   updateRecordingSchema,
+  exchangeCodeSchema,
 } = require("../../middlewares/validations/live_sessions.validation");
 
 /* ============================================
@@ -411,6 +412,11 @@ routes.get(
 routes.get("/google/auth-url", liveSessionsController.getGoogleAuthUrl);
 routes.get("/google/status", liveSessionsController.getGoogleStatus);
 routes.post("/google/disconnect", liveSessionsController.disconnectGoogle);
+routes.post(
+  "/google/exchange-code",
+  validate(exchangeCodeSchema),
+  liveSessionsController.exchangeCode,
+);
 
 /* ============================================
    LIVE SESSIONS (GOOGLE MEET)

@@ -20,13 +20,13 @@ const getOAuth2Client = () => {
 
 /**
  * Generate Google OAuth consent URL
- * Encodes the userId into a secure state token valid for 15 minutes
+ * Encodes the userId and optional redirectTo into a secure state token valid for 15 minutes
  */
-const generateAuthUrl = (userId) => {
+const generateAuthUrl = (userId, redirectTo = null) => {
   const oauth2Client = getOAuth2Client();
 
   const state = jwt.sign(
-    { userId, purpose: "google_oauth" },
+    { userId, redirectTo: redirectTo || null, purpose: "google_oauth" },
     env.JWT_SECRET,
     { expiresIn: "15m" },
   );
@@ -53,7 +53,10 @@ const verifyOAuthState = (state) => {
     if (decoded.purpose !== "google_oauth") {
       throw new Error("رمز الحالة غير صالح");
     }
-    return decoded.userId;
+    return {
+      userId: decoded.userId,
+      redirectTo: decoded.redirectTo || null,
+    };
   } catch (err) {
     throw new Error("رمز التحقق من الحالة منتهي الصلاحية أو غير صحيح");
   }
@@ -98,7 +101,7 @@ const saveUserTokens = async (userId, tokens) => {
 };
 
 /**
- * Gets tokens for a specific user, or fallback to the platform teacher
+ * Gets tokens for a specific user, or fallback to the platform teacher or super_admin
  */
 const getUserTokens = async (userId) => {
   // First check specific user
@@ -114,6 +117,19 @@ const getUserTokens = async (userId) => {
       SELECT gt.* FROM google_tokens gt
       JOIN users u ON u.id = gt.user_id
       WHERE u.role = 'teacher' AND u.deleted = 0
+      ORDER BY gt.updated_at DESC
+      LIMIT 1
+    `,
+    );
+  }
+
+  // If still not found, fallback to any super_admin's connected token
+  if (!result.rows.length) {
+    result = await query(
+      `
+      SELECT gt.* FROM google_tokens gt
+      JOIN users u ON u.id = gt.user_id
+      WHERE u.role = 'super_admin' AND u.deleted = 0
       ORDER BY gt.updated_at DESC
       LIMIT 1
     `,

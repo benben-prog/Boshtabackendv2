@@ -41,6 +41,7 @@ const {
   createLiveSessionSchema,
   updateLiveSessionSchema,
   updateRecordingSchema,
+  exchangeCodeSchema,
 } = require("../../middlewares/validations/live_sessions.validation");
 
 // Middleware
@@ -804,6 +805,31 @@ routes.get("/whatsapp/messages/:messageId", whatsappController.getMessageById);
 routes.delete(
   "/whatsapp/messages/:messageId",
   whatsappController.deleteMessage,
+);
+
+/* ============================================
+   GOOGLE OAUTH & MEET INTEGRATION (ONLINE MANAGEMENT)
+   ============================================ */
+routes.get(
+  "/google/auth-url",
+  onlineManagementAuth,
+  liveSessionsController.getGoogleAuthUrl,
+);
+routes.get(
+  "/google/status",
+  onlineManagementAuth,
+  liveSessionsController.getGoogleStatus,
+);
+routes.post(
+  "/google/disconnect",
+  onlineManagementAuth,
+  liveSessionsController.disconnectGoogle,
+);
+routes.post(
+  "/google/exchange-code",
+  onlineManagementAuth,
+  validate(exchangeCodeSchema),
+  liveSessionsController.exchangeCode,
 );
 
 /* ============================================

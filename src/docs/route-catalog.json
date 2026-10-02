@@ -253,6 +253,22 @@
   },
   {
     "method": "GET",
+    "path": "/api/assistant/google/auth-url"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/google/disconnect"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/google/exchange-code"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/google/status"
+  },
+  {
+    "method": "GET",
     "path": "/api/assistant/grades"
   },
   {
@@ -1372,6 +1388,10 @@
     "path": "/api/super-admin/google/disconnect"
   },
   {
+    "method": "POST",
+    "path": "/api/super-admin/google/exchange-code"
+  },
+  {
     "method": "GET",
     "path": "/api/super-admin/google/status"
   },
@@ -2326,6 +2346,10 @@
   {
     "method": "POST",
     "path": "/api/teacher/google/disconnect"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/google/exchange-code"
   },
   {
     "method": "GET",

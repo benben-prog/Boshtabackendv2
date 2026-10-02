@@ -1,5 +1,15 @@
 const { query } = require("../../config/database");
 
+const COMPUTED_STATUS_SQL = `
+  CASE 
+    WHEN ls.status = 'cancelled' THEN 'cancelled'
+    WHEN ls.status = 'ended' THEN 'ended'
+    WHEN NOW() >= ls.start_time AND NOW() <= ls.end_time THEN 'live'
+    WHEN NOW() > ls.end_time THEN 'ended'
+    ELSE ls.status
+  END
+`;
+
 const liveSessionsQueries = {
   // Insert new live session
   insertLiveSession: async ({
@@ -68,13 +78,7 @@ const liveSessionsQueries = {
         ls.material_file_path,
         ls.material_name,
         ls.recording_url,
-        CASE 
-          WHEN ls.status = 'cancelled' THEN 'cancelled'
-          WHEN ls.status = 'ended' THEN 'ended'
-          WHEN NOW() >= ls.start_time AND NOW() <= ls.end_time THEN 'live'
-          WHEN NOW() > ls.end_time THEN 'ended'
-          ELSE ls.status
-        END AS status,
+        ${COMPUTED_STATUS_SQL} AS status,
         ls.created_by,
         ls.created_at,
         ls.updated_at,
@@ -126,7 +130,7 @@ const liveSessionsQueries = {
     }
 
     if (status) {
-      conditions.push(`ls.status = $${paramIndex++}`);
+      conditions.push(`(${COMPUTED_STATUS_SQL}) = $${paramIndex++}`);
       values.push(status);
     }
 
@@ -157,13 +161,7 @@ const liveSessionsQueries = {
         ls.material_file_path,
         ls.material_name,
         ls.recording_url,
-        CASE 
-          WHEN ls.status = 'cancelled' THEN 'cancelled'
-          WHEN ls.status = 'ended' THEN 'ended'
-          WHEN NOW() >= ls.start_time AND NOW() <= ls.end_time THEN 'live'
-          WHEN NOW() > ls.end_time THEN 'ended'
-          ELSE ls.status
-        END AS status,
+        ${COMPUTED_STATUS_SQL} AS status,
         ls.created_by,
         ls.created_at,
         ls.updated_at,
@@ -210,7 +208,7 @@ const liveSessionsQueries = {
     }
 
     if (status) {
-      conditions.push(`ls.status = $${paramIndex++}`);
+      conditions.push(`(${COMPUTED_STATUS_SQL}) = $${paramIndex++}`);
       values.push(status);
     }
 
@@ -295,7 +293,7 @@ const liveSessionsQueries = {
     let paramIndex = 4;
 
     if (status) {
-      conditions.push(`ls.status = $${paramIndex++}`);
+      conditions.push(`(${COMPUTED_STATUS_SQL}) = $${paramIndex++}`);
       values.push(status);
     }
 
@@ -313,13 +311,7 @@ const liveSessionsQueries = {
         ls.material_file_path,
         ls.material_name,
         ls.recording_url,
-        CASE 
-          WHEN ls.status = 'cancelled' THEN 'cancelled'
-          WHEN ls.status = 'ended' THEN 'ended'
-          WHEN NOW() >= ls.start_time AND NOW() <= ls.end_time THEN 'live'
-          WHEN NOW() > ls.end_time THEN 'ended'
-          ELSE ls.status
-        END AS status,
+        ${COMPUTED_STATUS_SQL} AS status,
         ls.target_type,
         g.name AS grade_name,
         grp.name AS group_name
@@ -357,7 +349,7 @@ const liveSessionsQueries = {
     let paramIndex = 4;
 
     if (status) {
-      conditions.push(`ls.status = $${paramIndex++}`);
+      conditions.push(`(${COMPUTED_STATUS_SQL}) = $${paramIndex++}`);
       values.push(status);
     }
 

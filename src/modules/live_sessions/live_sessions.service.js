@@ -1,18 +1,42 @@
 const liveSessionsQueries = require("./live_sessions.queries");
 const googleAuth = require("../../utils/googleAuth");
+require("../../utils/timezone");
+
+const parseSessionDateTime = (input) => {
+  if (!input) return null;
+  if (input instanceof Date) return input;
+  let str = String(input).trim();
+  const hasTimezone = /Z|[+-]\d{2}(:?\d{2})?$/i.test(str);
+  if (hasTimezone) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (!str.includes("T") && str.includes(" ")) str = str.replace(" ", "T");
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) str = `${str}:00`;
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  return new Date(input);
+};
 
 const liveSessionsService = {
   // 1. Google OAuth URL
-  getGoogleAuthUrl: (userId) => {
-    return googleAuth.generateAuthUrl(userId);
+  getGoogleAuthUrl: (userId, redirectTo = null) => {
+    return googleAuth.generateAuthUrl(userId, redirectTo);
   },
 
   // 2. Handle Google OAuth Callback
   handleGoogleCallback: async (code, state) => {
-    const userId = googleAuth.verifyOAuthState(state);
+    const verified = googleAuth.verifyOAuthState(state);
+    const tokens = await googleAuth.exchangeCodeForTokens(code);
+    await googleAuth.saveUserTokens(verified.userId, tokens);
+    return { userId: verified.userId, redirectTo: verified.redirectTo, success: true };
+  },
+
+  // 2b. Direct exchange code from API
+  exchangeCode: async (userId, code) => {
     const tokens = await googleAuth.exchangeCodeForTokens(code);
     await googleAuth.saveUserTokens(userId, tokens);
-    return { userId, success: true };
+    return { success: true, message: "تم ربط حساب Google بنجاح" };
   },
 
   // 3. Google Connection Status
@@ -105,7 +129,7 @@ const liveSessionsService = {
     }
 
     // Calculate End Time
-    const startTimeObj = new Date(start_time);
+    const startTimeObj = parseSessionDateTime(start_time);
     const endTimeObj = new Date(startTimeObj.getTime() + Number(duration_minutes) * 60000);
 
     // Create Meeting on Google Calendar & Generate Google Meet Link
@@ -201,7 +225,9 @@ const liveSessionsService = {
 
     // Recalculate duration / end_time if start_time or duration_minutes provided
     if (data.start_time !== undefined || data.duration_minutes !== undefined) {
-      const start = new Date(data.start_time || existing.start_time);
+      const start = data.start_time
+        ? parseSessionDateTime(data.start_time)
+        : new Date(existing.start_time);
       const duration = Number(data.duration_minutes || existing.duration_minutes);
       const end = new Date(start.getTime() + duration * 60000);
 

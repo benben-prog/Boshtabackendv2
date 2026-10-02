@@ -10,14 +10,17 @@ const createLiveSessionSchema = Joi.object({
   description: Joi.string().allow("", null).max(2000).messages({
     "string.max": "الوصف يجب أن يكون 2000 حرف على الأكثر",
   }),
-  start_time: Joi.date().iso().required().messages({
-    "any.required": "موعد بدء الحصة مطلوب",
-    "date.base": "صيغة موعد البدء غير صحيحة (ISO)",
-  }),
-  duration_minutes: Joi.number().integer().min(15).max(480).required().messages({
+  start_time: Joi.alternatives()
+    .try(Joi.date(), Joi.string().trim().min(10))
+    .required()
+    .messages({
+      "any.required": "موعد بدء الحصة مطلوب",
+      "alternatives.types": "صيغة موعد البدء غير صحيحة",
+    }),
+  duration_minutes: Joi.number().integer().min(5).max(480).required().messages({
     "any.required": "مدة الحصة بالدقائق مطلوبة",
     "number.base": "مدة الحصة يجب أن تكون رقماً",
-    "number.min": "مدة الحصة يجب ألا تقل عن 15 دقيقة",
+    "number.min": "مدة الحصة يجب ألا تقل عن 5 دقائق",
     "number.max": "مدة الحصة يجب ألا تتجاوز 480 دقيقة",
   }),
   target_type: Joi.string().valid("grade", "group", "student").required().messages({
@@ -47,11 +50,11 @@ const updateLiveSessionSchema = Joi.object({
     "string.max": "عنوان الحصة يجب أن يكون 255 حرف على الأكثر",
   }),
   description: Joi.string().allow("", null).max(2000),
-  start_time: Joi.date().iso().messages({
-    "date.base": "صيغة موعد البدء غير صحيحة",
+  start_time: Joi.alternatives().try(Joi.date(), Joi.string().trim().min(10)).messages({
+    "alternatives.types": "صيغة موعد البدء غير صحيحة",
   }),
-  duration_minutes: Joi.number().integer().min(15).max(480).messages({
-    "number.min": "مدة الحصة يجب ألا تقل عن 15 دقيقة",
+  duration_minutes: Joi.number().integer().min(5).max(480).messages({
+    "number.min": "مدة الحصة يجب ألا تقل عن 5 دقائق",
     "number.max": "مدة الحصة يجب ألا تتجاوز 480 دقيقة",
   }),
   status: Joi.string().valid("scheduled", "live", "ended", "cancelled").messages({
@@ -70,8 +73,17 @@ const updateRecordingSchema = Joi.object({
   }),
 });
 
+const exchangeCodeSchema = Joi.object({
+  code: Joi.string().trim().required().messages({
+    "any.required": "كود التحقق الخاص بـ Google مطلوب",
+    "string.empty": "كود التحقق الخاص بـ Google مطلوب",
+  }),
+});
+
 module.exports = {
   createLiveSessionSchema,
   updateLiveSessionSchema,
   updateRecordingSchema,
+  exchangeCodeSchema,
 };
+

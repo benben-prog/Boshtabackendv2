@@ -36,6 +36,7 @@ const {
   createLiveSessionSchema,
   updateLiveSessionSchema,
   updateRecordingSchema,
+  exchangeCodeSchema,
 } = require("../../middlewares/validations/live_sessions.validation");
 
 // Middleware
@@ -817,6 +818,11 @@ routes.delete(
 routes.get("/google/auth-url", liveSessionsController.getGoogleAuthUrl);
 routes.get("/google/status", liveSessionsController.getGoogleStatus);
 routes.post("/google/disconnect", liveSessionsController.disconnectGoogle);
+routes.post(
+  "/google/exchange-code",
+  validate(exchangeCodeSchema),
+  liveSessionsController.exchangeCode,
+);
 
 routes.get("/live-sessions", liveSessionsController.getAllLiveSessions);
 routes.get("/live-sessions/:id", liveSessionsController.getLiveSessionById);
