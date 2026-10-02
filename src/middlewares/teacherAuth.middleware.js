@@ -1,12 +1,13 @@
 // Middleware to check if user is teacher or super admin
 const teacherAuth = (req, res, next) => {
+  const url = req.originalUrl || req.url || req.path || "";
   if (
-    req.method === "GET" &&
-    (req.path.includes("/download") ||
-      req.path.includes("/preview") ||
-      req.path.includes("/template") ||
-      req.path.includes("/pdf") ||
-      req.path.includes("/excel"))
+    (req.method === "GET" || req.method === "HEAD") &&
+    (url.includes("/download") ||
+      url.includes("/preview") ||
+      url.includes("/template") ||
+      url.includes("/pdf") ||
+      url.includes("/excel"))
   ) {
     return next();
   }

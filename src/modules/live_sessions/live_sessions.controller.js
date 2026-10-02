@@ -34,12 +34,18 @@ const formatDatesInObject = (obj) => {
     // Standard aliases matching assignments and videos
     formatted.file_path = formatted.material_file_path;
     formatted.file_url = formatted.material_file_path;
-    formatted.download_url = `${backendUrl}/api/student/live-sessions/${formatted.id}/download`;
+    formatted.download_url = `${backendUrl}/api/live-sessions/${formatted.id}/download`;
+    formatted.student_download_url = `${backendUrl}/api/student/live-sessions/${formatted.id}/download`;
+    formatted.teacher_download_url = `${backendUrl}/api/teacher/live-sessions/${formatted.id}/download`;
+    formatted.assistant_download_url = `${backendUrl}/api/assistant/live-sessions/${formatted.id}/download`;
   } else {
     formatted.material_url = null;
     formatted.file_path = null;
     formatted.file_url = null;
     formatted.download_url = null;
+    formatted.student_download_url = null;
+    formatted.teacher_download_url = null;
+    formatted.assistant_download_url = null;
   }
 
   return formatted;

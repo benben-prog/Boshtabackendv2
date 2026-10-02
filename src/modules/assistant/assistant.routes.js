@@ -877,17 +877,14 @@ routes.put(
 );
 routes.get(
   "/live-sessions/:id/download-material",
-  onlineManagementAuth,
   liveSessionsController.downloadMaterial,
 );
 routes.get(
   "/live-sessions/:id/download",
-  onlineManagementAuth,
   liveSessionsController.downloadMaterial,
 );
 routes.get(
   "/live-sessions/:id/preview",
-  onlineManagementAuth,
   liveSessionsController.downloadMaterial,
 );
 

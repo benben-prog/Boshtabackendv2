@@ -303,7 +303,28 @@ app.use(checkPlatformStatus);
 // API ROUTES
 // ============================================
 
-// (Removed liveDownloadRoutes because frontend now appends ?token= to secure the downloads)
+// ============================================
+// DIRECT BROWSER DOWNLOADS & PREVIEWS
+// (Browser direct navigation, clicks, or new tabs without API Basic Auth headers)
+// ============================================
+const liveDownloadRoutes = [
+  "/api/student/live-sessions/:id/download-material",
+  "/api/student/live-sessions/:id/download",
+  "/api/student/live-sessions/:id/preview",
+  "/api/teacher/live-sessions/:id/download-material",
+  "/api/teacher/live-sessions/:id/download",
+  "/api/teacher/live-sessions/:id/preview",
+  "/api/assistant/live-sessions/:id/download-material",
+  "/api/assistant/live-sessions/:id/download",
+  "/api/assistant/live-sessions/:id/preview",
+  "/api/super-admin/live-sessions/:id/download-material",
+  "/api/super-admin/live-sessions/:id/download",
+  "/api/super-admin/live-sessions/:id/preview",
+  "/api/live-sessions/:id/download",
+  "/api/live-sessions/:id/download-material",
+  "/api/live-sessions/:id/preview",
+];
+app.get(liveDownloadRoutes, liveSessionsController.downloadMaterial);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/student", apiMiddelware, clientAuth, studentAuth, studentModuleRoutes);

@@ -2,13 +2,14 @@ const getClient = require("../utils/getClient");
 
 // Middleware to validate client token and extract client info
 const clientAuthMiddleware = (req, res, next) => {
+  const url = req.originalUrl || req.url || req.path || "";
   const isDirectFileRequest =
-    req.method === "GET" &&
-    (req.path.includes("/download") ||
-      req.path.includes("/preview") ||
-      req.path.includes("/template") ||
-      req.path.includes("/pdf") ||
-      req.path.includes("/excel"));
+    (req.method === "GET" || req.method === "HEAD") &&
+    (url.includes("/download") ||
+      url.includes("/preview") ||
+      url.includes("/template") ||
+      url.includes("/pdf") ||
+      url.includes("/excel"));
 
   const clientToken =
     req.headers["x-client-key"] ||
