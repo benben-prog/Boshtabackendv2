@@ -7,7 +7,7 @@ const createLiveSessionSchema = Joi.object({
     "string.min": "عنوان الحصة يجب أن يكون 3 أحرف على الأقل",
     "string.max": "عنوان الحصة يجب أن يكون 255 حرف على الأكثر",
   }),
-  description: Joi.string().allow("", null).max(2000).messages({
+  description: Joi.string().empty("").allow("", null).max(2000).messages({
     "string.max": "الوصف يجب أن يكون 2000 حرف على الأكثر",
   }),
   start_time: Joi.alternatives()
@@ -27,21 +27,25 @@ const createLiveSessionSchema = Joi.object({
     "any.required": "نوع الجمهور المستهدف مطلوب (grade أو group أو student)",
     "any.only": "نوع الجمهور المستهدف يجب أن يكون grade أو group أو student",
   }),
-  grade_id: Joi.number().integer().positive().allow(null).messages({
+  grade_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null).messages({
     "number.base": "معرف الصف الدراسي يجب أن يكون رقماً",
   }),
-  group_id: Joi.number().integer().positive().allow(null).messages({
+  group_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null).messages({
     "number.base": "معرف المجموعة يجب أن يكون رقماً",
   }),
-  student_id: Joi.number().integer().positive().allow(null).messages({
+  student_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null).messages({
     "number.base": "معرف الطالب يجب أن يكون رقماً",
   }),
-  student_barcode: Joi.string().trim().allow("", null).messages({
+  student_barcode: Joi.string().trim().empty(["", "null", "undefined"]).allow("", null).messages({
     "string.base": "باركود الطالب يجب أن يكون نصاً",
   }),
-  recording_url: Joi.string().uri().allow("", null).messages({
+  recording_url: Joi.string().uri().empty(["", "null", "undefined"]).allow("", null).messages({
     "string.uri": "رابط التسجيل غير صالح",
   }),
+  file: Joi.any().optional(),
+  material: Joi.any().optional(),
+  material_file: Joi.any().optional(),
+  attachment: Joi.any().optional(),
 });
 
 const updateLiveSessionSchema = Joi.object({
@@ -49,7 +53,7 @@ const updateLiveSessionSchema = Joi.object({
     "string.min": "عنوان الحصة يجب أن يكون 3 أحرف على الأقل",
     "string.max": "عنوان الحصة يجب أن يكون 255 حرف على الأكثر",
   }),
-  description: Joi.string().allow("", null).max(2000),
+  description: Joi.string().empty("").allow("", null).max(2000),
   start_time: Joi.alternatives().try(Joi.date(), Joi.string().trim().min(10)).messages({
     "alternatives.types": "صيغة موعد البدء غير صحيحة",
   }),
@@ -60,9 +64,19 @@ const updateLiveSessionSchema = Joi.object({
   status: Joi.string().valid("scheduled", "live", "ended", "cancelled").messages({
     "any.only": "حالة الحصة يجب أن تكون scheduled أو live أو ended أو cancelled",
   }),
-  recording_url: Joi.string().uri().allow("", null).messages({
+  target_type: Joi.string().valid("grade", "group", "student"),
+  grade_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null),
+  group_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null),
+  student_id: Joi.number().integer().positive().empty(["", "null", "undefined"]).allow(null),
+  student_barcode: Joi.string().trim().empty(["", "null", "undefined"]).allow("", null),
+  recording_url: Joi.string().uri().empty(["", "null", "undefined"]).allow("", null).messages({
     "string.uri": "رابط التسجيل غير صالح",
   }),
+  remove_material: Joi.boolean().empty(["", "null", "undefined"]).optional(),
+  file: Joi.any().optional(),
+  material: Joi.any().optional(),
+  material_file: Joi.any().optional(),
+  attachment: Joi.any().optional(),
 });
 
 const updateRecordingSchema = Joi.object({
@@ -86,4 +100,3 @@ module.exports = {
   updateRecordingSchema,
   exchangeCodeSchema,
 };
-

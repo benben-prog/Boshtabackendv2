@@ -237,8 +237,31 @@ const liveSessionsService = {
     }
 
     if (file) {
+      if (existing.material_file_path) {
+        const { resolveStoredPath } = require("../../utils/fileStorage");
+        const fs = require("fs");
+        const oldPath = resolveStoredPath(existing.material_file_path);
+        if (oldPath && fs.existsSync(oldPath)) {
+          try {
+            fs.unlinkSync(oldPath);
+          } catch (_) {}
+        }
+      }
       updates.material_file_path = file.path;
       updates.material_name = file.originalname;
+    } else if (data.remove_material === true || data.remove_material === "true") {
+      if (existing.material_file_path) {
+        const { resolveStoredPath } = require("../../utils/fileStorage");
+        const fs = require("fs");
+        const oldPath = resolveStoredPath(existing.material_file_path);
+        if (oldPath && fs.existsSync(oldPath)) {
+          try {
+            fs.unlinkSync(oldPath);
+          } catch (_) {}
+        }
+      }
+      updates.material_file_path = null;
+      updates.material_name = null;
     }
 
     const updated = await liveSessionsQueries.updateLiveSession(id, updates);
@@ -352,7 +375,7 @@ const liveSessionsService = {
   },
 
   // 13. Student View - Get single session details
-  getLiveSessionByIdForStudent: async (studentId, sessionId) => {
+  getStudentLiveSessionById: async (studentId, sessionId) => {
     const student = await liveSessionsQueries.checkStudentExists(studentId);
     if (!student) {
       const error = new Error("بيانات الطالب غير موجودة");
@@ -369,9 +392,9 @@ const liveSessionsService = {
 
     // Check if student is in audience
     const isTargeted =
-      (session.target_type === "grade" && session.grade_id === student.grade_id) ||
-      (session.target_type === "group" && session.group_id === student.group_id) ||
-      (session.target_type === "student" && session.student_id === student.id);
+      (session.target_type === "grade" && Number(session.grade_id) === Number(student.grade_id)) ||
+      (session.target_type === "group" && Number(session.group_id) === Number(student.group_id)) ||
+      (session.target_type === "student" && Number(session.student_id) === Number(student.id));
 
     if (!isTargeted) {
       const error = new Error("غير مصرح لك بالوصول إلى هذه الحصة");
@@ -380,6 +403,15 @@ const liveSessionsService = {
     }
 
     return session;
+  },
+
+  // Backward compatibility aliases
+  getLiveSessionByIdForStudent: async function (studentId, sessionId) {
+    return this.getStudentLiveSessionById(studentId, sessionId);
+  },
+
+  getStudentLiveSessions: async function (studentId, queryParams) {
+    return this.getLiveSessionsForStudent(studentId, queryParams);
   },
 };
 

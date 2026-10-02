@@ -1,6 +1,6 @@
 const liveSessionsService = require("./live_sessions.service");
 const { formatEgyptTime } = require("../../utils/timezone");
-const { resolveStoredPath } = require("../../utils/fileStorage");
+const { resolveStoredPath, cleanupUploadedFiles } = require("../../utils/fileStorage");
 const fs = require("fs");
 const env = require("../../config/env");
 
@@ -26,6 +26,15 @@ const formatDatesInObject = (obj) => {
       formatted[field] = formatDate(original);
     }
   });
+
+  if (formatted.material_file_path) {
+    const backendUrl = env.BACKEND_URL || "https://backend.benb3n.cloud";
+    const cleanPath = String(formatted.material_file_path).replace(/^\/+/, "");
+    formatted.material_url = `${backendUrl}/${cleanPath}`;
+  } else {
+    formatted.material_url = null;
+  }
+
   return formatted;
 };
 
@@ -156,6 +165,7 @@ const liveSessionsController = {
         data: formatDatesInObject(newSession),
       });
     } catch (error) {
+      cleanupUploadedFiles(req);
       next(error);
     }
   },
@@ -207,6 +217,7 @@ const liveSessionsController = {
         data: formatDatesInObject(updated),
       });
     } catch (error) {
+      cleanupUploadedFiles(req);
       next(error);
     }
   },
@@ -359,6 +370,7 @@ const liveSessionsController = {
           title: session.title,
           status: session.status,
           meet_link: session.meet_link,
+          recording_url: session.recording_url || null,
         },
       });
     } catch (error) {

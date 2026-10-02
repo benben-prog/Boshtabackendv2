@@ -32,8 +32,13 @@ const createUpload = (options) => {
 
   // Configure file filter
   const fileFilter = (req, file, cb) => {
+    if (!file.originalname || file.originalname.trim() === "") {
+      return cb(null, false);
+    }
     const extension = path.extname(file.originalname).toLowerCase().slice(1);
-    const validMime = allowedTypes.includes(file.mimetype);
+    const validMime =
+      allowedTypes.includes(file.mimetype) ||
+      (file.mimetype === "application/octet-stream" && normalizedExtensions.includes(extension));
     const validExtension =
       normalizedExtensions.length === 0 || normalizedExtensions.includes(extension);
     if (validMime && validExtension) return cb(null, true);
