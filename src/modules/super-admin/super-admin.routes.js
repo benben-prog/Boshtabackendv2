@@ -852,5 +852,13 @@ routes.get(
   "/live-sessions/:id/download-material",
   liveSessionsController.downloadMaterial,
 );
+routes.get(
+  "/live-sessions/:id/download",
+  liveSessionsController.downloadMaterial,
+);
+routes.get(
+  "/live-sessions/:id/preview",
+  liveSessionsController.downloadMaterial,
+);
 
 module.exports = routes;

@@ -31,8 +31,15 @@ const formatDatesInObject = (obj) => {
     const backendUrl = env.BACKEND_URL || "https://backend.benb3n.cloud";
     const cleanPath = String(formatted.material_file_path).replace(/^\/+/, "");
     formatted.material_url = `${backendUrl}/${cleanPath}`;
+    // Standard aliases matching assignments and videos
+    formatted.file_path = formatted.material_file_path;
+    formatted.file_url = formatted.material_file_path;
+    formatted.download_url = `${backendUrl}/api/student/live-sessions/${formatted.id}/download`;
   } else {
     formatted.material_url = null;
+    formatted.file_path = null;
+    formatted.file_url = null;
+    formatted.download_url = null;
   }
 
   return formatted;
@@ -305,13 +312,14 @@ const liveSessionsController = {
     }
   },
 
-  // 14. Download Live Session Study Material (Student, Teacher, Assistant, Super Admin)
+  // 14. Download / Preview Live Session Study Material (Student, Teacher, Assistant, Super Admin)
   downloadMaterial: async (req, res, next) => {
     try {
-      const { id } = req.params;
+      const id = req.params.id || req.params.sessionId;
+      const isPreview = req.isPreview || req.path.includes("/preview");
       let session;
 
-      if (req.clientRole === "student") {
+      if (req.clientRole === "student" && (req.clientId || req.studentId)) {
         const studentId = req.clientId || req.studentId;
         session = await liveSessionsService.getStudentLiveSessionById(
           studentId,
@@ -321,7 +329,7 @@ const liveSessionsController = {
         session = await liveSessionsService.getLiveSessionById(id);
       }
 
-      if (!session.material_file_path) {
+      if (!session || !session.material_file_path) {
         return res.status(404).json({
           success: false,
           message: "لا يوجد ملف شرح مرفق لهذه الحصة",
@@ -329,16 +337,22 @@ const liveSessionsController = {
       }
 
       const filePath = resolveStoredPath(session.material_file_path);
+      const backendUrl = env.BACKEND_URL || "https://backend.benb3n.cloud";
+      const cleanPath = String(session.material_file_path).replace(/^\/+/, "");
+      const publicUrl = `${backendUrl}/${cleanPath}`;
+
+      // If file does not exist on local disk, redirect to public static URL
       if (!filePath || !fs.existsSync(filePath)) {
-        return res.status(404).json({
-          success: false,
-          message: "ملف الشرح غير موجود على مساحة التخزين",
-        });
+        return res.redirect(publicUrl);
+      }
+
+      if (isPreview) {
+        return res.sendFile(filePath);
       }
 
       return res.download(
         filePath,
-        session.material_name || "lesson_material.pdf",
+        session.material_name || path.basename(filePath),
       );
     } catch (error) {
       next(error);
@@ -376,6 +390,14 @@ const liveSessionsController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  // Aliases for convenience matching other modules
+  downloadSession: (req, res, next) =>
+    liveSessionsController.downloadMaterial(req, res, next),
+  previewMaterial: (req, res, next) => {
+    req.isPreview = true;
+    return liveSessionsController.downloadMaterial(req, res, next);
   },
 };
 

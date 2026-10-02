@@ -405,7 +405,15 @@
   },
   {
     "method": "GET",
+    "path": "/api/assistant/live-sessions/{id}/download"
+  },
+  {
+    "method": "GET",
     "path": "/api/assistant/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/live-sessions/{id}/preview"
   },
   {
     "method": "PUT",
@@ -1081,11 +1089,19 @@
   },
   {
     "method": "GET",
+    "path": "/api/student/live-sessions/{id}/download"
+  },
+  {
+    "method": "GET",
     "path": "/api/student/live-sessions/{id}/download-material"
   },
   {
     "method": "GET",
     "path": "/api/student/live-sessions/{id}/join"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/live-sessions/{id}/preview"
   },
   {
     "method": "GET",
@@ -1529,7 +1545,15 @@
   },
   {
     "method": "GET",
+    "path": "/api/super-admin/live-sessions/{id}/download"
+  },
+  {
+    "method": "GET",
     "path": "/api/super-admin/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/live-sessions/{id}/preview"
   },
   {
     "method": "PUT",
@@ -2433,7 +2457,15 @@
   },
   {
     "method": "GET",
+    "path": "/api/teacher/live-sessions/{id}/download"
+  },
+  {
+    "method": "GET",
     "path": "/api/teacher/live-sessions/{id}/download-material"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/live-sessions/{id}/preview"
   },
   {
     "method": "PUT",

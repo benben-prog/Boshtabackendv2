@@ -303,6 +303,8 @@ app.use(checkPlatformStatus);
 // API ROUTES
 // ============================================
 
+// (Removed liveDownloadRoutes because frontend now appends ?token= to secure the downloads)
+
 app.use("/api/auth", authRoutes);
 app.use("/api/student", apiMiddelware, clientAuth, studentAuth, studentModuleRoutes);
 app.use("/api/parent", parentRoutes);

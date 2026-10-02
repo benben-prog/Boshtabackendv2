@@ -2,6 +2,17 @@ const { query } = require("../config/database");
 
 // Middleware to check if user is student or super admin, and enforce force logout if deleted/inactive
 const studentAuth = async (req, res, next) => {
+  if (
+    req.method === "GET" &&
+    (req.path.includes("/download") ||
+      req.path.includes("/preview") ||
+      req.path.includes("/template") ||
+      req.path.includes("/pdf") ||
+      req.path.includes("/excel"))
+  ) {
+    return next();
+  }
+
   if (req.clientRole === "super_admin") {
     return next();
   }

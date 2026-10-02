@@ -880,5 +880,15 @@ routes.get(
   onlineManagementAuth,
   liveSessionsController.downloadMaterial,
 );
+routes.get(
+  "/live-sessions/:id/download",
+  onlineManagementAuth,
+  liveSessionsController.downloadMaterial,
+);
+routes.get(
+  "/live-sessions/:id/preview",
+  onlineManagementAuth,
+  liveSessionsController.downloadMaterial,
+);
 
 module.exports = routes;

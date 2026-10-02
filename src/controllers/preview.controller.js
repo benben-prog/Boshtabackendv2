@@ -87,9 +87,32 @@ const previewStudentAnswer = async (req, res, next) => {
   }
 };
 
+const previewLiveSessionMaterial = async (req, res, next) => {
+  try {
+    const id = req.params.id || req.params.sessionId;
+    const result = await query(
+      "SELECT material_file_path FROM live_sessions WHERE id = $1",
+      [id],
+    );
+    const session = result.rows[0];
+
+    if (!session || !session.material_file_path) {
+      return res
+        .status(404)
+        .json({ success: false, message: "File not found" });
+    }
+
+    const previewFile = require("../middlewares/preview.middleware");
+    return previewFile(session.material_file_path)(req, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   previewAssignment,
   previewVideoFile,
   previewQuestionFile,
   previewStudentAnswer,
+  previewLiveSessionMaterial,
 };

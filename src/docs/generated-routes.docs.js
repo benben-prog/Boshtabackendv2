@@ -663,10 +663,76 @@
  */
 /**
  * @swagger
+ * /api/assistant/live-sessions/{id}/download:
+ *   get:
+ *     summary: "GET assistant live-sessions id download"
+ *     description: "GET assistant live-sessions id download"
+ *     tags:
+ *       - "Assistant - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/live-sessions/{id}/download-material:
  *   get:
  *     summary: "GET assistant live-sessions id download-material"
  *     description: "GET assistant live-sessions id download-material"
+ *     tags:
+ *       - "Assistant - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/live-sessions/{id}/preview:
+ *   get:
+ *     summary: "GET assistant live-sessions id preview"
+ *     description: "GET assistant live-sessions id preview"
  *     tags:
  *       - "Assistant - Live Sessions (Google Meet)"
  *     security:
@@ -1302,6 +1368,39 @@
  */
 /**
  * @swagger
+ * /api/student/live-sessions/{id}/download:
+ *   get:
+ *     summary: "GET student live-sessions id download"
+ *     description: "GET student live-sessions id download"
+ *     tags:
+ *       - "Student - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/student/live-sessions/{id}/download-material:
  *   get:
  *     summary: "GET student live-sessions id download-material"
@@ -1339,6 +1438,39 @@
  *   get:
  *     summary: "GET student live-sessions id join"
  *     description: "GET student live-sessions id join"
+ *     tags:
+ *       - "Student - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/student/live-sessions/{id}/preview:
+ *   get:
+ *     summary: "GET student live-sessions id preview"
+ *     description: "GET student live-sessions id preview"
  *     tags:
  *       - "Student - Live Sessions (Google Meet)"
  *     security:
@@ -3481,10 +3613,80 @@
  */
 /**
  * @swagger
+ * /api/super-admin/live-sessions/{id}/download:
+ *   get:
+ *     summary: "GET super-admin live-sessions id download"
+ *     description: "GET super-admin live-sessions id download"
+ *     tags:
+ *       - "Super Admin - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/super-admin/live-sessions/{id}/download-material:
  *   get:
  *     summary: "GET super-admin live-sessions id download-material"
  *     description: "GET super-admin live-sessions id download-material"
+ *     tags:
+ *       - "Super Admin - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/live-sessions/{id}/preview:
+ *   get:
+ *     summary: "GET super-admin live-sessions id preview"
+ *     description: "GET super-admin live-sessions id preview"
  *     tags:
  *       - "Super Admin - Live Sessions (Google Meet)"
  *     security:
@@ -6831,10 +7033,76 @@
  */
 /**
  * @swagger
+ * /api/teacher/live-sessions/{id}/download:
+ *   get:
+ *     summary: "GET teacher live-sessions id download"
+ *     description: "GET teacher live-sessions id download"
+ *     tags:
+ *       - "Teacher - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/teacher/live-sessions/{id}/download-material:
  *   get:
  *     summary: "GET teacher live-sessions id download-material"
  *     description: "GET teacher live-sessions id download-material"
+ *     tags:
+ *       - "Teacher - Live Sessions (Google Meet)"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: "Resource ID (المعرف)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/live-sessions/{id}/preview:
+ *   get:
+ *     summary: "GET teacher live-sessions id preview"
+ *     description: "GET teacher live-sessions id preview"
  *     tags:
  *       - "Teacher - Live Sessions (Google Meet)"
  *     security:

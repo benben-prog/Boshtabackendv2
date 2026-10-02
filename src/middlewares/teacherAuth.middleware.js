@@ -1,5 +1,16 @@
 // Middleware to check if user is teacher or super admin
 const teacherAuth = (req, res, next) => {
+  if (
+    req.method === "GET" &&
+    (req.path.includes("/download") ||
+      req.path.includes("/preview") ||
+      req.path.includes("/template") ||
+      req.path.includes("/pdf") ||
+      req.path.includes("/excel"))
+  ) {
+    return next();
+  }
+
   if (req.clientRole !== "teacher" && req.clientRole !== "super_admin") {
     return res.status(403).json({
       success: false,

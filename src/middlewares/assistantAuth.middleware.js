@@ -1,5 +1,16 @@
 // Middleware to check if user is assistant or super admin
 const assistantAuth = (req, res, next) => {
+  if (
+    req.method === "GET" &&
+    (req.path.includes("/download") ||
+      req.path.includes("/preview") ||
+      req.path.includes("/template") ||
+      req.path.includes("/pdf") ||
+      req.path.includes("/excel"))
+  ) {
+    return next();
+  }
+
   if (req.clientRole !== "assistant" && req.clientRole !== "super_admin") {
     return res.status(403).json({
       success: false,
