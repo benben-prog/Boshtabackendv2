@@ -393,11 +393,28 @@ routes.get(
   assignmentSubmissionController.getAssignmentSubmissionStats,
 );
 
-// Videos - قراءة
+// Videos - قراءة وإدارة
 routes.get("/videos", videoController.getAllVideos);
 routes.get("/videos/grade/:gradeId", videoController.getVideosByGradeId);
 routes.get("/videos/:videoId/download", videoController.downloadVideoFile);
 routes.get("/videos/:videoId", videoController.getVideoById);
+routes.post(
+  "/videos",
+  videoFilesUpload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
+  videoController.createVideo,
+);
+routes.put(
+  "/videos/:videoId",
+  videoFilesUpload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
+  videoController.updateVideo,
+);
+routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
 // Playlists - قراءة
 routes.get("/playlists", playlistController.getAllPlaylists);

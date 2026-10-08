@@ -80,9 +80,8 @@ const updateLiveSessionSchema = Joi.object({
 });
 
 const updateRecordingSchema = Joi.object({
-  recording_url: Joi.string().uri().required().messages({
+  recording_url: Joi.string().uri().allow("", null).required().messages({
     "any.required": "رابط تسجيل الحصة مطلوب",
-    "string.empty": "رابط تسجيل الحصة مطلوب",
     "string.uri": "رابط التسجيل غير صالح",
   }),
 });

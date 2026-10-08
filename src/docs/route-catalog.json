@@ -2764,7 +2764,19 @@
     "path": "/api/teacher/videos"
   },
   {
+    "method": "POST",
+    "path": "/api/teacher/videos"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/teacher/videos/{videoId}"
+  },
+  {
     "method": "GET",
+    "path": "/api/teacher/videos/{videoId}"
+  },
+  {
+    "method": "PUT",
     "path": "/api/teacher/videos/{videoId}"
   },
   {

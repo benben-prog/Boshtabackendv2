@@ -284,42 +284,15 @@ const liveSessionsService = {
     return { success: true, message: "تم حذف الحصة بنجاح" };
   },
 
-  // 10. Sync Recording from Google Drive
+  // 10. Sync Recording from Google Drive (Deprecated)
   syncRecording: async (id, userId) => {
-    const session = await liveSessionsQueries.getLiveSessionById(id);
-    if (!session) {
-      const error = new Error("حصة البث المباشر غير موجودة");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const driveRecording = await googleAuth.findDriveRecording(
-      userId,
-      session.title,
-      session.start_time,
-    );
-
-    if (!driveRecording) {
-      return {
-        synced: false,
-        message:
-          "لم يتم العثور على تسجيل للحصة في Google Drive بعد. يرجى الانتظار بضع دقائق حتى يكتمل معالجة الفيديو من جوجل أو إدخال الرابط يدوياً.",
-        recording_url: session.recording_url || null,
-      };
-    }
-
-    const recordingUrl = driveRecording.webViewLink || driveRecording.webContentLink;
-    await liveSessionsQueries.updateLiveSession(id, { recording_url: recordingUrl });
-
     return {
-      synced: true,
-      message: "تم مزامنة رابط التسجيل من Google Drive بنجاح",
-      recording_url: recordingUrl,
-      file_name: driveRecording.name,
+      synced: false,
+      message: "تم إلغاء المزامنة التلقائية من Google Drive. يمكنك إضافة رابط التسجيل يدوياً عبر زر إضافة رابط التسجيل.",
     };
   },
 
-  // 11. Manually update recording URL
+  // 11. Manually update recording URL (Optional)
   updateRecordingUrl: async (id, recordingUrl) => {
     const existing = await liveSessionsQueries.getLiveSessionById(id);
     if (!existing) {
@@ -328,9 +301,9 @@ const liveSessionsService = {
       throw error;
     }
 
+    const cleanUrl = recordingUrl ? String(recordingUrl).trim() : null;
     const updated = await liveSessionsQueries.updateLiveSession(id, {
-      recording_url: recordingUrl,
-      status: "ended",
+      recording_url: cleanUrl || null,
     });
 
     return updated;

@@ -7616,6 +7616,129 @@
  */
 /**
  * @swagger
+ * /api/teacher/videos:
+ *   post:
+ *     summary: "POST teacher videos"
+ *     description: "POST teacher videos"
+ *     tags:
+ *       - "Teacher - Videos & Playlists"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/videos/{videoId}:
+ *   delete:
+ *     summary: "DELETE teacher videos videoId"
+ *     description: "DELETE teacher videos videoId"
+ *     tags:
+ *       - "Teacher - Videos & Playlists"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: videoId
+ *         required: true
+ *         description: "Video ID (معرف الفيديو)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/videos/{videoId}:
+ *   put:
+ *     summary: "PUT teacher videos videoId"
+ *     description: "PUT teacher videos videoId"
+ *     tags:
+ *       - "Teacher - Videos & Playlists"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     parameters:
+ *       - in: path
+ *         name: videoId
+ *         required: true
+ *         description: "Video ID (معرف الفيديو)"
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/teacher/youtube/channel,/videos/youtube/channel:
  *   get:
  *     summary: "GET teacher youtube channel, videos youtube channel"
