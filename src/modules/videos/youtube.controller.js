@@ -33,9 +33,17 @@ const youtubeController = {
   // 3. Initialize Resumable Upload Session (Zero Server Bandwidth)
   initResumableUpload: async (req, res, next) => {
     try {
+      let clientOrigin = req.headers.origin;
+      if (!clientOrigin && req.headers.referer) {
+        try {
+          clientOrigin = new URL(req.headers.referer).origin;
+        } catch (_) {}
+      }
+
       const result = await youtubeService.initResumableUpload({
         ...req.body,
         userId: req.clientId,
+        origin: clientOrigin || "https://boshta.benb3n.cloud",
       });
 
       return res.status(201).json({

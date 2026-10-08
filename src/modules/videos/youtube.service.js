@@ -163,6 +163,7 @@ const initResumableUpload = async ({
   file_size,
   mime_type = "video/mp4",
   privacy_status = "unlisted",
+  origin = null,
 }) => {
   // Validate basic requirements first
   await validateUpload({ grade_id, playlist_id, title, file_size, mime_type });
@@ -176,6 +177,8 @@ const initResumableUpload = async ({
     error.statusCode = 401;
     throw error;
   }
+
+  const clientOrigin = origin || env.FRONTEND_URL || "https://boshta.benb3n.cloud";
 
   try {
     const response = await axios.post(
@@ -198,6 +201,7 @@ const initResumableUpload = async ({
           "Content-Type": "application/json; charset=UTF-8",
           "X-Upload-Content-Length": String(file_size),
           "X-Upload-Content-Type": mime_type,
+          Origin: clientOrigin,
         },
         maxRedirects: 0,
         validateStatus: (status) => status === 200 || status === 308,
