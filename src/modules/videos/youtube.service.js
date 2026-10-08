@@ -11,6 +11,7 @@ const playlistVideoQueries = require("../playlist_videos/playlist_videos.queries
  * otherwise falls back to the database tokens for the user/teacher/super_admin.
  */
 const getYouTubeClient = async (userId = null) => {
+  // 1. Try central environment token
   if (env.YOUTUBE_REFRESH_TOKEN && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     const oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CLIENT_ID,
@@ -26,7 +27,33 @@ const getYouTubeClient = async (userId = null) => {
     return { oauth2Client, youtube, isCentral: true };
   }
 
-  // Fallback to database user tokens
+  // 2. Query database for any token record that has youtube scope
+  const ytTokenRes = await query(
+    "SELECT * FROM google_tokens WHERE scope LIKE '%youtube%' ORDER BY updated_at DESC LIMIT 1",
+  );
+
+  if (ytTokenRes.rows.length) {
+    const record = ytTokenRes.rows[0];
+    const oauth2Client = googleAuth.getOAuth2Client();
+    oauth2Client.setCredentials({
+      access_token: record.access_token,
+      refresh_token: record.refresh_token,
+      expiry_date: record.expiry_date ? Number(record.expiry_date) : null,
+    });
+
+    oauth2Client.on("tokens", async (newTokens) => {
+      try {
+        await googleAuth.saveUserTokens(record.user_id, newTokens);
+      } catch (err) {
+        console.error("Failed to update refreshed Google tokens:", err.message);
+      }
+    });
+
+    const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+    return { oauth2Client, youtube, isCentral: true };
+  }
+
+  // 3. Fallback to user tokens
   const clientData = await googleAuth.getAuthenticatedClient(userId || 1);
   return {
     oauth2Client: clientData.oauth2Client,
@@ -190,7 +217,10 @@ const initResumableUpload = async ({
       privacy_status: privacy_status || "unlisted",
     };
   } catch (error) {
-    if (error.response?.data?.error?.errors?.[0]?.reason === "quotaExceeded" || error.response?.status === 403) {
+    const googleReason = error.response?.data?.error?.errors?.[0]?.reason;
+    const googleMsg = error.response?.data?.error?.message;
+
+    if (googleReason === "quotaExceeded" || (googleMsg && googleMsg.toLowerCase().includes("quota"))) {
       const quotaErr = new Error(
         "تم استهلاك الحصة اليومية المتاحة لرفع الفيديوهات من Google YouTube API. يرجى المحاولة غداً أو طلب زيادة الحصة.",
       );
@@ -199,7 +229,7 @@ const initResumableUpload = async ({
     }
 
     const message =
-      error.response?.data?.error?.message || error.message || "فشل إنشاء جلسة رفع الفيديو في YouTube";
+      googleMsg || error.message || "فشل إنشاء جلسة رفع الفيديو في YouTube";
     const err = new Error(message);
     err.statusCode = error.response?.status || 500;
     throw err;
