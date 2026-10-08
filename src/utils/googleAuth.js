@@ -34,6 +34,9 @@ const generateAuthUrl = (userId, redirectTo = null) => {
   const scopes = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/youtube",
   ];
 
   return oauth2Client.generateAuthUrl({
@@ -178,6 +181,7 @@ const getAuthenticatedClient = async (userId) => {
     oauth2Client,
     calendar: google.calendar({ version: "v3", auth: oauth2Client }),
     drive: google.drive({ version: "v3", auth: oauth2Client }),
+    youtube: google.youtube({ version: "v3", auth: oauth2Client }),
   };
 };
 
