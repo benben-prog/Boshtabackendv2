@@ -294,9 +294,10 @@ const confirmUpload = async ({
 
   // Attach to playlist if provided
   let playlistAttached = false;
-  if (playlist_id) {
+  const numPlaylistId = Number(playlist_id);
+  if (playlist_id && !isNaN(numPlaylistId) && numPlaylistId > 0) {
     const plResult = await query(playlistVideoQueries.addVideoToPlaylist, [
-      Number(playlist_id),
+      numPlaylistId,
       newVideo.id,
     ]);
     if (plResult.rows.length) {

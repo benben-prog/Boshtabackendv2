@@ -1,5 +1,6 @@
 const youtubeService = require("./youtube.service");
 const { logActivity } = require("../../utils/activityLogger");
+const { cleanupUploadedFiles } = require("../../utils/fileStorage");
 
 const youtubeController = {
   // 1. Get Connected Channel Info
@@ -59,8 +60,19 @@ const youtubeController = {
   // 4. Confirm Upload and Register in Database
   confirmUpload: async (req, res, next) => {
     try {
+      const file_url =
+        req.files && req.files["file"]
+          ? req.files["file"][0].path
+          : req.body.file_url || null;
+      const thumbnail_url =
+        req.files && req.files["thumbnail"]
+          ? req.files["thumbnail"][0].path
+          : req.body.thumbnail_url || null;
+
       const result = await youtubeService.confirmUpload({
         ...req.body,
+        file_url,
+        thumbnail_url,
         userId: req.clientId,
       });
 
@@ -80,6 +92,7 @@ const youtubeController = {
         data: result,
       });
     } catch (error) {
+      cleanupUploadedFiles(req);
       next(error);
     }
   },

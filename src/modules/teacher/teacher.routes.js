@@ -29,6 +29,7 @@ const youtubeController = require("../videos/youtube.controller");
 const validate = require("../../middlewares/validate.middleware");
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
 const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
+const videoFilesUpload = require("../../middlewares/uploads/videoFilesUpload");
 const {
   updateUserPasswordSchema,
 } = require("../../middlewares/validations/users.validation");
@@ -480,6 +481,10 @@ routes.post(
 );
 routes.post(
   ["/youtube/confirm-upload", "/videos/youtube/confirm-upload"],
+  videoFilesUpload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
   validate(confirmYoutubeUploadSchema),
   youtubeController.confirmUpload,
 );

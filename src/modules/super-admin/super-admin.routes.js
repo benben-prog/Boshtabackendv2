@@ -47,6 +47,7 @@ const {
 
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
+const videoFilesUpload = require("../../middlewares/uploads/videoFilesUpload");
 const validate = require("../../middlewares/validate.middleware");
 // Validation Schemas
 const {
@@ -784,6 +785,10 @@ routes.post(
 );
 routes.post(
   ["/youtube/confirm-upload", "/videos/youtube/confirm-upload"],
+  videoFilesUpload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
   validate(confirmYoutubeUploadSchema),
   youtubeController.confirmUpload,
 );

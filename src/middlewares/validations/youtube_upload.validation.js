@@ -67,7 +67,13 @@ const confirmYoutubeUploadSchema = Joi.object({
   grade_id: Joi.number().integer().positive().required().messages({
     "any.required": "الصف الدراسي مطلوب",
   }),
-  playlist_id: Joi.number().integer().positive().allow(null, "").optional(),
+  playlist_id: Joi.alternatives()
+    .try(
+      Joi.number().integer().positive(),
+      Joi.string().valid("", "null", "undefined"),
+    )
+    .allow(null)
+    .optional(),
   thumbnail_url: Joi.string().allow("", null).max(500),
   file_url: Joi.string().allow("", null).max(500),
 });

@@ -31,6 +31,10 @@ routes.post(
 );
 routes.post(
   "/youtube/confirm-upload",
+  videoFilesUpload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
   validate(confirmYoutubeUploadSchema),
   youtubeController.confirmUpload,
 );
