@@ -23,6 +23,7 @@ const videoController = require("../videos/videos.controller");
 const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
 const liveSessionsController = require("../live_sessions/live_sessions.controller");
+const youtubeController = require("../videos/youtube.controller");
 
 // Middleware
 const validate = require("../../middlewares/validate.middleware");
@@ -37,6 +38,11 @@ const {
   updateRecordingSchema,
   exchangeCodeSchema,
 } = require("../../middlewares/validations/live_sessions.validation");
+const {
+  validateYoutubeUploadSchema,
+  initYoutubeUploadSchema,
+  confirmYoutubeUploadSchema,
+} = require("../../middlewares/validations/youtube_upload.validation");
 
 /* ============================================
    TEACHER - DASHBOARD & PROFILE
@@ -456,6 +462,26 @@ routes.get(
 routes.get(
   "/live-sessions/:id/preview",
   liveSessionsController.downloadMaterial,
+);
+
+/* ============================================
+   YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
+   ============================================ */
+routes.get("/youtube/channel", youtubeController.getChannelInfo);
+routes.post(
+  "/youtube/validate",
+  validate(validateYoutubeUploadSchema),
+  youtubeController.validateUpload,
+);
+routes.post(
+  "/youtube/init-upload",
+  validate(initYoutubeUploadSchema),
+  youtubeController.initResumableUpload,
+);
+routes.post(
+  "/youtube/confirm-upload",
+  validate(confirmYoutubeUploadSchema),
+  youtubeController.confirmUpload,
 );
 
 module.exports = routes;

@@ -31,6 +31,7 @@ const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
 const whatsappController = require("../whatsapp_messages/whatsapp_messages.controller");
 const liveSessionsController = require("../live_sessions/live_sessions.controller");
+const youtubeController = require("../videos/youtube.controller");
 const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
 const {
   createLiveSessionSchema,
@@ -38,6 +39,11 @@ const {
   updateRecordingSchema,
   exchangeCodeSchema,
 } = require("../../middlewares/validations/live_sessions.validation");
+const {
+  validateYoutubeUploadSchema,
+  initYoutubeUploadSchema,
+  confirmYoutubeUploadSchema,
+} = require("../../middlewares/validations/youtube_upload.validation");
 
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
@@ -763,6 +769,24 @@ routes.get("/videos/:videoId", videoController.getVideoById);
 routes.post("/videos", validate(createVideoSchema), videoController.createVideo);
 routes.put("/videos/:videoId", validate(updateVideoSchema), videoController.updateVideo);
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
+
+/* ---------- YouTube Direct Upload ---------- */
+routes.get("/youtube/channel", youtubeController.getChannelInfo);
+routes.post(
+  "/youtube/validate",
+  validate(validateYoutubeUploadSchema),
+  youtubeController.validateUpload,
+);
+routes.post(
+  "/youtube/init-upload",
+  validate(initYoutubeUploadSchema),
+  youtubeController.initResumableUpload,
+);
+routes.post(
+  "/youtube/confirm-upload",
+  validate(confirmYoutubeUploadSchema),
+  youtubeController.confirmUpload,
+);
 
 routes.get("/playlists", playlistController.getAllPlaylists);
 routes.get(

@@ -115,4 +115,5 @@ module.exports = {
     process.env.GOOGLE_REDIRECT_URI ||
     "https://backend.benb3n.cloud/api/teacher/google/callback",
   FRONTEND_URL: process.env.FRONTEND_URL || "https://boshta.benb3n.cloud",
+  YOUTUBE_REFRESH_TOKEN: process.env.YOUTUBE_REFRESH_TOKEN || null,
 };

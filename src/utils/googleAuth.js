@@ -28,7 +28,7 @@ const generateAuthUrl = (userId, redirectTo = null) => {
   const state = jwt.sign(
     { userId, redirectTo: redirectTo || null, purpose: "google_oauth" },
     env.JWT_SECRET,
-    { expiresIn: "15m" },
+    { expiresIn: "24h" },
   );
 
   const scopes = [

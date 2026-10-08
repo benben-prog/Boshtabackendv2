@@ -952,6 +952,22 @@
     "path": "/api/assistant/whatsapp/settings"
   },
   {
+    "method": "GET",
+    "path": "/api/assistant/youtube/channel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/youtube/confirm-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/youtube/init-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/assistant/youtube/validate"
+  },
+  {
     "method": "POST",
     "path": "/api/auth/parent/access"
   },
@@ -2221,6 +2237,22 @@
   },
   {
     "method": "GET",
+    "path": "/api/super-admin/youtube/channel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/youtube/confirm-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/youtube/init-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/super-admin/youtube/validate"
+  },
+  {
+    "method": "GET",
     "path": "/api/teacher/activity-log"
   },
   {
@@ -2746,6 +2778,22 @@
   {
     "method": "GET",
     "path": "/api/teacher/videos/grade/{gradeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/youtube/channel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/youtube/confirm-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/youtube/init-upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/youtube/validate"
   },
   {
     "method": "GET",

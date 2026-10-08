@@ -1186,6 +1186,144 @@
  */
 /**
  * @swagger
+ * /api/assistant/youtube/channel:
+ *   get:
+ *     summary: "GET assistant youtube channel"
+ *     description: "GET assistant youtube channel"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/youtube/confirm-upload:
+ *   post:
+ *     summary: "POST assistant youtube confirm-upload"
+ *     description: "POST assistant youtube confirm-upload"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/youtube/init-upload:
+ *   post:
+ *     summary: "POST assistant youtube init-upload"
+ *     description: "POST assistant youtube init-upload"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/youtube/validate:
+ *   post:
+ *     summary: "POST assistant youtube validate"
+ *     description: "POST assistant youtube validate"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/student/attendance/consecutive-absences:
  *   get:
  *     summary: "Get student consecutive absences count (عدد مرات الغياب المتتالي للطالب)"
@@ -6535,6 +6673,152 @@
  */
 /**
  * @swagger
+ * /api/super-admin/youtube/channel:
+ *   get:
+ *     summary: "GET super-admin youtube channel"
+ *     description: "GET super-admin youtube channel"
+ *     tags:
+ *       - "Super Admin - Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/youtube/confirm-upload:
+ *   post:
+ *     summary: "POST super-admin youtube confirm-upload"
+ *     description: "POST super-admin youtube confirm-upload"
+ *     tags:
+ *       - "Super Admin - Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/youtube/init-upload:
+ *   post:
+ *     summary: "POST super-admin youtube init-upload"
+ *     description: "POST super-admin youtube init-upload"
+ *     tags:
+ *       - "Super Admin - Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/super-admin/youtube/validate:
+ *   post:
+ *     summary: "POST super-admin youtube validate"
+ *     description: "POST super-admin youtube validate"
+ *     tags:
+ *       - "Super Admin - Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *       - ApiAuth: []
+ *         SuperAdminKey: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/teacher/assistants:
  *   get:
  *     summary: "Get all active assistants (عرض قائمة المساعدين المتاحين)"
@@ -7309,6 +7593,144 @@
  *         description: Resource not found
  *       '500':
  *         description: Internal Server Error
+ */
+/**
+ * @swagger
+ * /api/teacher/youtube/channel:
+ *   get:
+ *     summary: "GET teacher youtube channel"
+ *     description: "GET teacher youtube channel"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/youtube/confirm-upload:
+ *   post:
+ *     summary: "POST teacher youtube confirm-upload"
+ *     description: "POST teacher youtube confirm-upload"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/youtube/init-upload:
+ *   post:
+ *     summary: "POST teacher youtube init-upload"
+ *     description: "POST teacher youtube init-upload"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/youtube/validate:
+ *   post:
+ *     summary: "POST teacher youtube validate"
+ *     description: "POST teacher youtube validate"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
  */
 /**
  * @swagger

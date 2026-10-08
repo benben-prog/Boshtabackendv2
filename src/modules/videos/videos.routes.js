@@ -7,6 +7,33 @@ const {
   createVideoSchema,
   updateVideoSchema,
 } = require("../../middlewares/validations/video.validation");
+const youtubeController = require("./youtube.controller");
+const {
+  validateYoutubeUploadSchema,
+  initYoutubeUploadSchema,
+  confirmYoutubeUploadSchema,
+} = require("../../middlewares/validations/youtube_upload.validation");
+
+// ============================================
+// YOUTUBE DIRECT UPLOAD
+// ============================================
+
+routes.get("/youtube/channel", youtubeController.getChannelInfo);
+routes.post(
+  "/youtube/validate",
+  validate(validateYoutubeUploadSchema),
+  youtubeController.validateUpload,
+);
+routes.post(
+  "/youtube/init-upload",
+  validate(initYoutubeUploadSchema),
+  youtubeController.initResumableUpload,
+);
+routes.post(
+  "/youtube/confirm-upload",
+  validate(confirmYoutubeUploadSchema),
+  youtubeController.confirmUpload,
+);
 
 // ============================================
 // GETTERS
