@@ -90,7 +90,7 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
   // 2. Check Playlist if specified
   if (playlist_id) {
     const plRes = await query(
-      "SELECT id, title, grade_id FROM playlists WHERE id = $1 AND deleted = 0 LIMIT 1",
+      "SELECT id, title, grade_id FROM playlists WHERE id = $1 LIMIT 1",
       [playlist_id],
     );
     if (!plRes.rows.length) {
@@ -105,9 +105,12 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
     }
   }
 
-  // 3. Check Channel status
-  const channelInfo = await getChannelInfo();
-  if (!channelInfo.is_connected) {
+  // 3. Check Channel / Token availability
+  const hasToken =
+    Boolean(env.YOUTUBE_REFRESH_TOKEN) ||
+    Boolean(await googleAuth.getUserTokens());
+
+  if (!hasToken) {
     const error = new Error("قناة YouTube المركزية غير متصلة بالنظام");
     error.statusCode = 500;
     throw error;
@@ -116,7 +119,6 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
   return {
     valid: true,
     grade_name: gradeRes.rows[0].name,
-    channel_name: channelInfo.title,
   };
 };
 
