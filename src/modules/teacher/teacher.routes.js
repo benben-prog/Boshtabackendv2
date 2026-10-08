@@ -467,19 +467,19 @@ routes.get(
 /* ============================================
    YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
    ============================================ */
-routes.get("/youtube/channel", youtubeController.getChannelInfo);
+routes.get(["/youtube/channel", "/videos/youtube/channel"], youtubeController.getChannelInfo);
 routes.post(
-  "/youtube/validate",
+  ["/youtube/validate", "/videos/youtube/validate"],
   validate(validateYoutubeUploadSchema),
   youtubeController.validateUpload,
 );
 routes.post(
-  "/youtube/init-upload",
+  ["/youtube/init-upload", "/videos/youtube/init-upload"],
   validate(initYoutubeUploadSchema),
   youtubeController.initResumableUpload,
 );
 routes.post(
-  "/youtube/confirm-upload",
+  ["/youtube/confirm-upload", "/videos/youtube/confirm-upload"],
   validate(confirmYoutubeUploadSchema),
   youtubeController.confirmUpload,
 );

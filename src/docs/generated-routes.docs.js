@@ -1186,12 +1186,12 @@
  */
 /**
  * @swagger
- * /api/assistant/youtube/channel:
+ * /api/assistant/youtube/channel,/videos/youtube/channel:
  *   get:
- *     summary: "GET assistant youtube channel"
- *     description: "GET assistant youtube channel"
+ *     summary: "GET assistant youtube channel, videos youtube channel"
+ *     description: "GET assistant youtube channel, videos youtube channel"
  *     tags:
- *       - "Assistant - Profile & Dashboard"
+ *       - "Assistant - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1211,12 +1211,12 @@
  */
 /**
  * @swagger
- * /api/assistant/youtube/confirm-upload:
+ * /api/assistant/youtube/confirm-upload,/videos/youtube/confirm-upload:
  *   post:
- *     summary: "POST assistant youtube confirm-upload"
- *     description: "POST assistant youtube confirm-upload"
+ *     summary: "POST assistant youtube confirm-upload, videos youtube confirm-upload"
+ *     description: "POST assistant youtube confirm-upload, videos youtube confirm-upload"
  *     tags:
- *       - "Assistant - Profile & Dashboard"
+ *       - "Assistant - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1252,12 +1252,12 @@
  */
 /**
  * @swagger
- * /api/assistant/youtube/init-upload:
+ * /api/assistant/youtube/init-upload,/videos/youtube/init-upload:
  *   post:
- *     summary: "POST assistant youtube init-upload"
- *     description: "POST assistant youtube init-upload"
+ *     summary: "POST assistant youtube init-upload, videos youtube init-upload"
+ *     description: "POST assistant youtube init-upload, videos youtube init-upload"
  *     tags:
- *       - "Assistant - Profile & Dashboard"
+ *       - "Assistant - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -1293,21 +1293,31 @@
  */
 /**
  * @swagger
- * /api/assistant/youtube/validate:
+ * /api/assistant/youtube/validate,/videos/youtube/validate:
  *   post:
- *     summary: "POST assistant youtube validate"
- *     description: "POST assistant youtube validate"
+ *     summary: "POST assistant youtube validate, videos youtube validate"
+ *     description: "POST assistant youtube validate, videos youtube validate"
  *     tags:
- *       - "Assistant - Profile & Dashboard"
+ *       - "Assistant - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
  *     requestBody:
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       '201':
  *         description: Operation completed successfully (تمت العملية بنجاح)
@@ -6673,12 +6683,12 @@
  */
 /**
  * @swagger
- * /api/super-admin/youtube/channel:
+ * /api/super-admin/youtube/channel,/videos/youtube/channel:
  *   get:
- *     summary: "GET super-admin youtube channel"
- *     description: "GET super-admin youtube channel"
+ *     summary: "GET super-admin youtube channel, videos youtube channel"
+ *     description: "GET super-admin youtube channel, videos youtube channel"
  *     tags:
- *       - "Super Admin - Dashboard"
+ *       - "Super Admin - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -6700,12 +6710,12 @@
  */
 /**
  * @swagger
- * /api/super-admin/youtube/confirm-upload:
+ * /api/super-admin/youtube/confirm-upload,/videos/youtube/confirm-upload:
  *   post:
- *     summary: "POST super-admin youtube confirm-upload"
- *     description: "POST super-admin youtube confirm-upload"
+ *     summary: "POST super-admin youtube confirm-upload, videos youtube confirm-upload"
+ *     description: "POST super-admin youtube confirm-upload, videos youtube confirm-upload"
  *     tags:
- *       - "Super Admin - Dashboard"
+ *       - "Super Admin - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -6743,12 +6753,12 @@
  */
 /**
  * @swagger
- * /api/super-admin/youtube/init-upload:
+ * /api/super-admin/youtube/init-upload,/videos/youtube/init-upload:
  *   post:
- *     summary: "POST super-admin youtube init-upload"
- *     description: "POST super-admin youtube init-upload"
+ *     summary: "POST super-admin youtube init-upload, videos youtube init-upload"
+ *     description: "POST super-admin youtube init-upload, videos youtube init-upload"
  *     tags:
- *       - "Super Admin - Dashboard"
+ *       - "Super Admin - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -6786,12 +6796,12 @@
  */
 /**
  * @swagger
- * /api/super-admin/youtube/validate:
+ * /api/super-admin/youtube/validate,/videos/youtube/validate:
  *   post:
- *     summary: "POST super-admin youtube validate"
- *     description: "POST super-admin youtube validate"
+ *     summary: "POST super-admin youtube validate, videos youtube validate"
+ *     description: "POST super-admin youtube validate, videos youtube validate"
  *     tags:
- *       - "Super Admin - Dashboard"
+ *       - "Super Admin - Videos"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -6799,10 +6809,20 @@
  *         SuperAdminKey: []
  *     requestBody:
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       '201':
  *         description: Operation completed successfully (تمت العملية بنجاح)
@@ -7596,12 +7616,12 @@
  */
 /**
  * @swagger
- * /api/teacher/youtube/channel:
+ * /api/teacher/youtube/channel,/videos/youtube/channel:
  *   get:
- *     summary: "GET teacher youtube channel"
- *     description: "GET teacher youtube channel"
+ *     summary: "GET teacher youtube channel, videos youtube channel"
+ *     description: "GET teacher youtube channel, videos youtube channel"
  *     tags:
- *       - "Teacher - Profile & Dashboard"
+ *       - "Teacher - Videos & Playlists"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -7621,12 +7641,12 @@
  */
 /**
  * @swagger
- * /api/teacher/youtube/confirm-upload:
+ * /api/teacher/youtube/confirm-upload,/videos/youtube/confirm-upload:
  *   post:
- *     summary: "POST teacher youtube confirm-upload"
- *     description: "POST teacher youtube confirm-upload"
+ *     summary: "POST teacher youtube confirm-upload, videos youtube confirm-upload"
+ *     description: "POST teacher youtube confirm-upload, videos youtube confirm-upload"
  *     tags:
- *       - "Teacher - Profile & Dashboard"
+ *       - "Teacher - Videos & Playlists"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -7662,12 +7682,12 @@
  */
 /**
  * @swagger
- * /api/teacher/youtube/init-upload:
+ * /api/teacher/youtube/init-upload,/videos/youtube/init-upload:
  *   post:
- *     summary: "POST teacher youtube init-upload"
- *     description: "POST teacher youtube init-upload"
+ *     summary: "POST teacher youtube init-upload, videos youtube init-upload"
+ *     description: "POST teacher youtube init-upload, videos youtube init-upload"
  *     tags:
- *       - "Teacher - Profile & Dashboard"
+ *       - "Teacher - Videos & Playlists"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
@@ -7703,21 +7723,31 @@
  */
 /**
  * @swagger
- * /api/teacher/youtube/validate:
+ * /api/teacher/youtube/validate,/videos/youtube/validate:
  *   post:
- *     summary: "POST teacher youtube validate"
- *     description: "POST teacher youtube validate"
+ *     summary: "POST teacher youtube validate, videos youtube validate"
+ *     description: "POST teacher youtube validate, videos youtube validate"
  *     tags:
- *       - "Teacher - Profile & Dashboard"
+ *       - "Teacher - Videos & Playlists"
  *     security:
  *       - ApiAuth: []
  *         ClientToken: []
  *     requestBody:
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             additionalProperties: true
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       '201':
  *         description: Operation completed successfully (تمت العملية بنجاح)

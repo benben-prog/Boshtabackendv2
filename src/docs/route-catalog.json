@@ -953,19 +953,19 @@
   },
   {
     "method": "GET",
-    "path": "/api/assistant/youtube/channel"
+    "path": "/api/assistant/youtube/channel,/videos/youtube/channel"
   },
   {
     "method": "POST",
-    "path": "/api/assistant/youtube/confirm-upload"
+    "path": "/api/assistant/youtube/confirm-upload,/videos/youtube/confirm-upload"
   },
   {
     "method": "POST",
-    "path": "/api/assistant/youtube/init-upload"
+    "path": "/api/assistant/youtube/init-upload,/videos/youtube/init-upload"
   },
   {
     "method": "POST",
-    "path": "/api/assistant/youtube/validate"
+    "path": "/api/assistant/youtube/validate,/videos/youtube/validate"
   },
   {
     "method": "POST",
@@ -2237,19 +2237,19 @@
   },
   {
     "method": "GET",
-    "path": "/api/super-admin/youtube/channel"
+    "path": "/api/super-admin/youtube/channel,/videos/youtube/channel"
   },
   {
     "method": "POST",
-    "path": "/api/super-admin/youtube/confirm-upload"
+    "path": "/api/super-admin/youtube/confirm-upload,/videos/youtube/confirm-upload"
   },
   {
     "method": "POST",
-    "path": "/api/super-admin/youtube/init-upload"
+    "path": "/api/super-admin/youtube/init-upload,/videos/youtube/init-upload"
   },
   {
     "method": "POST",
-    "path": "/api/super-admin/youtube/validate"
+    "path": "/api/super-admin/youtube/validate,/videos/youtube/validate"
   },
   {
     "method": "GET",
@@ -2781,19 +2781,19 @@
   },
   {
     "method": "GET",
-    "path": "/api/teacher/youtube/channel"
+    "path": "/api/teacher/youtube/channel,/videos/youtube/channel"
   },
   {
     "method": "POST",
-    "path": "/api/teacher/youtube/confirm-upload"
+    "path": "/api/teacher/youtube/confirm-upload,/videos/youtube/confirm-upload"
   },
   {
     "method": "POST",
-    "path": "/api/teacher/youtube/init-upload"
+    "path": "/api/teacher/youtube/init-upload,/videos/youtube/init-upload"
   },
   {
     "method": "POST",
-    "path": "/api/teacher/youtube/validate"
+    "path": "/api/teacher/youtube/validate,/videos/youtube/validate"
   },
   {
     "method": "GET",
