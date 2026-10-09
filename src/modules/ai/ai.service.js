@@ -6,6 +6,10 @@ const aiQueries = require("./ai.queries");
 const { getSystemPrompt } = require("./ai.prompts");
 const { resolveStoredPath } = require("../../utils/fileStorage");
 const {
+  formatEgyptTime,
+  getTodayEgypt,
+} = require("../../utils/timezone");
+const {
   assistantFunctionDeclarations,
   executeAssistantTool,
 } = require("./tools/assistant.tools");
@@ -112,6 +116,10 @@ const aiService = {
         };
       }
     }
+
+    userContext.currentDate = getTodayEgypt();
+    userContext.currentTime = formatEgyptTime(new Date(), "HH:mm:ss");
+    userContext.currentDateTimeCairo = formatEgyptTime(new Date());
 
     const systemPromptText = getSystemPrompt(userType, userContext);
 
@@ -341,9 +349,22 @@ const aiService = {
     const tomorrow = new Date();
     tomorrow.setHours(24, 0, 0, 0);
 
+    const nowIso = modelMsg?.created_at
+      ? new Date(modelMsg.created_at).toISOString()
+      : new Date().toISOString();
+
     return {
-      reply: responseText,
+      id: modelMsg.id,
       message_id: modelMsg.id,
+      role: "model",
+      message: responseText,
+      reply: responseText,
+      text: responseText,
+      created_at: nowIso,
+      createdAt: nowIso,
+      timestamp: nowIso,
+      time: nowIso,
+      date: nowIso,
       has_file: !!file,
       file_name: fileName,
       quota: {

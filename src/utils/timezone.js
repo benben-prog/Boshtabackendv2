@@ -30,11 +30,27 @@ const getPart = (parts, type) => {
   return parts.find((p) => p.type === type)?.value || "";
 };
 
-// Validate and normalize date input
+// Normalize Arabic-Indic digits (٠-٩) to Western Arabic digits (0-9)
+const normalizeDigits = (str) => {
+  if (str === null || str === undefined) return "";
+  const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  return String(str).replace(/[٠-٩]/g, (d) => arabicDigits.indexOf(d));
+};
+
+// Validate and normalize date input (supports Arabic digits and string representations)
 const normalizeDate = (date) => {
   if (!date) return null;
+  if (date instanceof Date && !isNaN(date.getTime())) return date;
 
-  const d = typeof date === "string" ? new Date(date) : date;
+  if (typeof date === "string") {
+    let clean = normalizeDigits(date).trim();
+    if (!clean) return null;
+    if (!clean.includes("T") && clean.includes(" ")) clean = clean.replace(" ", "T");
+    const d = new Date(clean);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  const d = new Date(date);
   if (!(d instanceof Date) || isNaN(d.getTime())) return null;
 
   return d;
@@ -119,6 +135,8 @@ const compareEgyptDates = (date1, date2) => {
 
 module.exports = {
   TIMEZONE,
+  normalizeDigits,
+  normalizeDate,
   formatEgyptTime,
   getTodayEgypt,
   getCurrentMonthEgypt,

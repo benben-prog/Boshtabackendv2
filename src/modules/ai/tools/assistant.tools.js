@@ -2,6 +2,13 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { query, transaction } = require("../../../config/database");
 const liveSessionsService = require("../../live_sessions/live_sessions.service");
+const {
+  normalizeDigits,
+  normalizeDate,
+  formatEgyptTime,
+  getTodayEgypt,
+  getCurrentMonthEgypt,
+} = require("../../../utils/timezone");
 
 const assistantFunctionDeclarations = [
   {
@@ -789,13 +796,81 @@ const assistantFunctionDeclarations = [
   },
 ];
 
-function parseSessionStartTime(input) {
+function normalizeAttendanceDate(input) {
+  if (!input) return getTodayEgypt();
+  const clean = normalizeDigits(String(input)).trim();
+  if (
+    clean.includes("اليوم") ||
+    clean.toLowerCase() === "today" ||
+    clean.toLowerCase() === "now"
+  ) {
+    return getTodayEgypt();
+  }
+  if (
+    clean.includes("امس") ||
+    clean.includes("أمس") ||
+    clean.toLowerCase() === "yesterday"
+  ) {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return formatEgyptTime(y, "YYYY-MM-DD");
+  }
+  if (
+    clean.includes("غدا") ||
+    clean.includes("غداً") ||
+    clean.includes("بكرة") ||
+    clean.toLowerCase() === "tomorrow"
+  ) {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    return formatEgyptTime(t, "YYYY-MM-DD");
+  }
+  const match = clean.match(/\d{4}-\d{2}-\d{2}/);
+  if (match) return match[0];
+
+  const parsed = normalizeDate(clean);
+  if (parsed && !isNaN(parsed.getTime())) {
+    return formatEgyptTime(parsed, "YYYY-MM-DD");
+  }
+  return getTodayEgypt();
+}
+
+function normalizePaymentMonth(input) {
+  if (!input) return getCurrentMonthEgypt();
+  const clean = normalizeDigits(String(input)).trim();
+  if (
+    clean.includes("الشهر الحالي") ||
+    clean.includes("هذا الشهر") ||
+    clean.includes("الحالي")
+  ) {
+    return getCurrentMonthEgypt();
+  }
+  const singleMonthMatch = clean.match(/(?:شهر\s*)?(\d{1,2})$/);
+  if (singleMonthMatch && !clean.includes("-")) {
+    const m = parseInt(singleMonthMatch[1], 10);
+    if (m >= 1 && m <= 12) {
+      const year = new Date().getFullYear();
+      return `${year}-${String(m).padStart(2, "0")}`;
+    }
+  }
+  const ymMatch = clean.match(/\d{4}-\d{2}/);
+  if (ymMatch) return ymMatch[0];
+
+  const parsed = normalizeDate(clean);
+  if (parsed && !isNaN(parsed.getTime())) {
+    return formatEgyptTime(parsed, "YYYY-MM");
+  }
+  return getCurrentMonthEgypt();
+}
+
+function parseSessionStartTime(input, defaultOffsetMinutes = 10) {
   const now = new Date();
   if (!input) {
-    return new Date(now.getTime() + 10 * 60000);
+    return new Date(now.getTime() + defaultOffsetMinutes * 60000);
   }
 
-  const str = String(input).trim().toLowerCase();
+  const clean = normalizeDigits(String(input)).trim();
+  const str = clean.toLowerCase();
 
   const arabicWordMap = {
     "عشر دقائق": 10,
@@ -810,6 +885,9 @@ function parseSessionStartTime(input) {
     "ثلث ساعة": 20,
     "نصف ساعة": 30,
     "نص ساعة": 30,
+    "ساعة ونصف": 90,
+    "ساعة ونص": 90,
+    "ساعتين": 120,
     "ساعة": 60,
   };
 
@@ -819,16 +897,16 @@ function parseSessionStartTime(input) {
     }
   }
 
-  const minuteMatch = str.match(/(\d+)\s*(?:دقيقة|دقايق|دقيق|minute|min|m)/i);
+  const minuteMatch = str.match(/(\d+)\s*(?:دقيقة|دقايق|دقيق|minute|min|m\b)/i);
   if (minuteMatch) {
     const mins = parseInt(minuteMatch[1], 10);
-    return new Date(now.getTime() + mins * 60000);
+    if (!isNaN(mins)) return new Date(now.getTime() + mins * 60000);
   }
 
-  const hourMatch = str.match(/(\d+)\s*(?:ساعة|ساعات|hour|hr|h)/i);
+  const hourMatch = str.match(/(\d+)\s*(?:ساعة|ساعات|ساعه|hour|hr|h\b)/i);
   if (hourMatch) {
     const hours = parseInt(hourMatch[1], 10);
-    return new Date(now.getTime() + hours * 3600000);
+    if (!isNaN(hours)) return new Date(now.getTime() + hours * 3600000);
   }
 
   if (
@@ -841,20 +919,52 @@ function parseSessionStartTime(input) {
     return new Date(now.getTime() + 5 * 60000);
   }
 
-  let d = new Date(input);
+  let baseDate = new Date(now);
+  let isFutureDay = false;
+  if (str.includes("بعد بكرة") || str.includes("بعد غد")) {
+    baseDate.setDate(baseDate.getDate() + 2);
+    isFutureDay = true;
+  } else if (str.includes("بكرة") || str.includes("غدا") || str.includes("غداً")) {
+    baseDate.setDate(baseDate.getDate() + 1);
+    isFutureDay = true;
+  }
+
+  const timeMatch = str.match(/(?:الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباحاً|ص|مساء|مساءً|م|am|pm)?/i);
+  if (timeMatch && (isFutureDay || str.includes("الساعة") || str.includes("مساء") || str.includes("صباح"))) {
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+    const meridian = timeMatch[3];
+
+    if (meridian) {
+      if ((meridian.startsWith("م") || meridian.toLowerCase() === "pm") && hours < 12) {
+        hours += 12;
+      } else if ((meridian.startsWith("ص") || meridian.toLowerCase() === "am") && hours === 12) {
+        hours = 0;
+      }
+    } else if (hours < 12 && !isFutureDay) {
+      if (now.getHours() >= hours) {
+        hours += 12;
+      }
+    }
+
+    baseDate.setHours(hours, minutes, 0, 0);
+    return baseDate;
+  }
+
+  let d = new Date(clean);
   if (isNaN(d.getTime())) {
-    const cleaned = String(input).replace(" ", "T");
+    const cleaned = clean.replace(" ", "T");
     d = new Date(cleaned);
   }
 
   if (!isNaN(d.getTime())) {
-    if (d.getTime() < now.getTime()) {
-      return new Date(now.getTime() + 5 * 60000);
+    if (d.getTime() < now.getTime() - 60000 && defaultOffsetMinutes > 0) {
+      return new Date(now.getTime() + defaultOffsetMinutes * 60000);
     }
     return d;
   }
 
-  return new Date(now.getTime() + 10 * 60000);
+  return new Date(now.getTime() + defaultOffsetMinutes * 60000);
 }
 
 async function executeAssistantTool(name, args = {}, context = {}) {
@@ -943,7 +1053,13 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: true,
         exams_count: res.rows.length,
-        exams: res.rows,
+        exams: res.rows.map((exam) => ({
+          ...exam,
+          start_at: exam.start_at ? new Date(exam.start_at).toISOString() : null,
+          end_at: exam.end_at ? new Date(exam.end_at).toISOString() : null,
+          start_at_cairo: exam.start_at ? formatEgyptTime(exam.start_at) : null,
+          end_at_cairo: exam.end_at ? formatEgyptTime(exam.end_at) : null,
+        })),
       };
     }
 
@@ -1088,7 +1204,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
     }
 
     case "get_attendance_report": {
-      const date = args.attendance_date || new Date().toISOString().split("T")[0];
+      const date = normalizeAttendanceDate(args.attendance_date);
       const conditions = ["a.attendance_date = $1"];
       const values = [date];
       let paramIndex = 2;
@@ -1148,14 +1264,15 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      const cleanStartAt = new Date(start_at);
-      const cleanEndAt = new Date(end_at);
-
-      if (isNaN(cleanStartAt.getTime()) || isNaN(cleanEndAt.getTime())) {
-        return {
-          success: false,
-          error: "تاريخ بدء أو انتهاء الامتحان غير صالح",
-        };
+      const durationNum = Math.max(5, Number(duration_minutes) || 60);
+      const cleanStartAt = parseSessionStartTime(start_at, 5);
+      let cleanEndAt = end_at ? parseSessionStartTime(end_at, durationNum + 60) : null;
+      if (
+        !cleanEndAt ||
+        isNaN(cleanEndAt.getTime()) ||
+        cleanEndAt.getTime() <= cleanStartAt.getTime()
+      ) {
+        cleanEndAt = new Date(cleanStartAt.getTime() + (durationNum + 1440) * 60000);
       }
 
       const fullMark = questions.length;
@@ -1178,7 +1295,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
             description || null,
             grade_id,
             group_id || null,
-            duration_minutes,
+            durationNum,
             cleanStartAt.toISOString(),
             cleanEndAt.toISOString(),
             fullMark,
@@ -1227,7 +1344,9 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           questions_count: questions.length,
           start_at: cleanStartAt.toISOString(),
           end_at: cleanEndAt.toISOString(),
-          duration_minutes,
+          start_at_cairo: formatEgyptTime(cleanStartAt),
+          end_at_cairo: formatEgyptTime(cleanEndAt),
+          duration_minutes: durationNum,
         };
       });
 
@@ -1399,9 +1518,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       }
 
       const student = stdRes.rows[0];
-      const targetDate = attendance_date
-        ? attendance_date.trim()
-        : new Date().toISOString().split("T")[0];
+      const targetDate = normalizeAttendanceDate(attendance_date);
 
       // Upsert attendance
       await query(
@@ -1538,9 +1655,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       }
 
       const student = stdRes.rows[0];
-      const targetMonth = month
-        ? String(month).trim()
-        : new Date().toISOString().slice(0, 7);
+      const targetMonth = normalizePaymentMonth(month);
 
       const isCustom = payment_mode === "custom";
       let finalAmount;
@@ -1764,9 +1879,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      const targetDate = exam_date
-        ? String(exam_date).trim()
-        : new Date().toISOString().split("T")[0];
+      const targetDate = normalizeAttendanceDate(exam_date);
 
       const res = await query(
         `INSERT INTO exams (title, grade_id, group_id, total_degree, exam_date, notes, created_by, created_at, updated_at, deleted)
@@ -1786,8 +1899,11 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       const created = res.rows[0];
       return {
         success: true,
-        message: `تم إنشاء الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id}`,
-        exam: created,
+        message: `تم إنشاء الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id} وتاريخ ${targetDate}`,
+        exam: {
+          ...created,
+          exam_date: targetDate,
+        },
       };
     }
 
@@ -1896,13 +2012,14 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         full_mark = 10,
       } = args;
 
-      if (!title || !grade_id || !deadline) {
+      if (!title || !grade_id) {
         return {
           success: false,
-          error:
-            "يجب تحديد عنوان الواجب ومعرف الصف الدراسي وموعد انتهاء التسليم (deadline).",
+          error: "يجب تحديد عنوان الواجب ومعرف الصف الدراسي.",
         };
       }
+
+      const cleanDeadline = parseSessionStartTime(deadline, 24 * 60);
 
       const res = await query(
         `INSERT INTO assignments (title, description, grade_id, group_id, deadline, full_mark, is_closed, created_by, created_at, updated_at, deleted)
@@ -1913,7 +2030,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           description || null,
           grade_id,
           group_id || null,
-          deadline,
+          cleanDeadline.toISOString(),
           Number(full_mark) || 10,
           userId,
         ],
@@ -1922,7 +2039,11 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: true,
         message: `تم إنشاء ونشر الواجب (${res.rows[0].title}) بنجاح للطلاب برقم معرّف #${res.rows[0].id}`,
-        assignment: res.rows[0],
+        assignment: {
+          ...res.rows[0],
+          deadline: cleanDeadline.toISOString(),
+          deadline_cairo: formatEgyptTime(cleanDeadline),
+        },
       };
     }
 
@@ -2050,8 +2171,9 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         resolvedGroupId = null;
       }
 
-      const startTimeObj = parseSessionStartTime(start_time);
+      const startTimeObj = parseSessionStartTime(start_time, 10);
       const durationNum = Math.max(5, Math.min(480, Number(duration_minutes) || 60));
+      const endTimeObj = new Date(startTimeObj.getTime() + durationNum * 60000);
 
       let effectiveUserId = userId;
       if (!effectiveUserId) {
@@ -2075,6 +2197,9 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           },
         );
 
+        const sStart = newSession.start_time ? new Date(newSession.start_time) : startTimeObj;
+        const sEnd = newSession.end_time ? new Date(newSession.end_time) : endTimeObj;
+
         return {
           success: true,
           message: `تم إنشاء وحجز حصة البث المباشر (${newSession.title}) بنجاح وتوليد رابط Google Meet الرسمي.`,
@@ -2082,8 +2207,10 @@ async function executeAssistantTool(name, args = {}, context = {}) {
             id: newSession.id,
             title: newSession.title,
             meet_link: newSession.meet_link,
-            start_time: newSession.start_time,
-            end_time: newSession.end_time,
+            start_time: sStart.toISOString(),
+            end_time: sEnd.toISOString(),
+            start_time_cairo: formatEgyptTime(sStart),
+            end_time_cairo: formatEgyptTime(sEnd),
             duration_minutes: newSession.duration_minutes,
             target_type: newSession.target_type,
             grade_id: newSession.grade_id,
@@ -2094,7 +2221,6 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       } catch (err) {
         console.error("Live session creation error in AI tool:", err.message);
         // Resilient fallback: direct insert into live_sessions
-        const endTimeObj = new Date(startTimeObj.getTime() + durationNum * 60000);
         const fallbackMeetLink = `https://meet.google.com/new`;
         const fallbackRes = await query(
           `INSERT INTO live_sessions (
@@ -2124,8 +2250,10 @@ async function executeAssistantTool(name, args = {}, context = {}) {
             id: fallbackRes.rows[0].id,
             title: fallbackRes.rows[0].title,
             meet_link: fallbackRes.rows[0].meet_link,
-            start_time: fallbackRes.rows[0].start_time,
-            end_time: fallbackRes.rows[0].end_time,
+            start_time: startTimeObj.toISOString(),
+            end_time: endTimeObj.toISOString(),
+            start_time_cairo: formatEgyptTime(startTimeObj),
+            end_time_cairo: formatEgyptTime(endTimeObj),
             duration_minutes: fallbackRes.rows[0].duration_minutes,
             target_type: fallbackRes.rows[0].target_type,
             status: fallbackRes.rows[0].status,
@@ -2166,7 +2294,13 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: true,
         sessions_count: res.rows.length,
-        sessions: res.rows,
+        sessions: res.rows.map((ls) => ({
+          ...ls,
+          start_time: ls.start_time ? new Date(ls.start_time).toISOString() : null,
+          end_time: ls.end_time ? new Date(ls.end_time).toISOString() : null,
+          start_time_cairo: ls.start_time ? formatEgyptTime(ls.start_time) : null,
+          end_time_cairo: ls.end_time ? formatEgyptTime(ls.end_time) : null,
+        })),
       };
     }
 
@@ -2368,6 +2502,13 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           error: "اسم المجموعة والصف الدراسي مطلوبان لإنشاء المجموعة.",
         };
       }
+      const cleanStartTime = start_time
+        ? normalizeDigits(String(start_time)).trim()
+        : null;
+      const cleanEndTime = end_time
+        ? normalizeDigits(String(end_time)).trim()
+        : null;
+
       const res = await query(
         `INSERT INTO groups (name, grade_id, days, start_time, end_time, room, max_students, created_at, updated_at, deleted)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 0)
@@ -2376,8 +2517,8 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           name.trim(),
           resolvedGradeId,
           days || null,
-          start_time || null,
-          end_time || null,
+          cleanStartTime,
+          cleanEndTime,
           room || null,
           max_students ? Number(max_students) : 50,
         ],
@@ -2403,8 +2544,14 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
       const updatedName = name ? name.trim() : grp.name;
       const updatedDays = days !== undefined ? days : grp.days;
-      const updatedStartTime = start_time !== undefined ? start_time : grp.start_time;
-      const updatedEndTime = end_time !== undefined ? end_time : grp.end_time;
+      const updatedStartTime =
+        start_time !== undefined
+          ? (start_time ? normalizeDigits(String(start_time)).trim() : null)
+          : grp.start_time;
+      const updatedEndTime =
+        end_time !== undefined
+          ? (end_time ? normalizeDigits(String(end_time)).trim() : null)
+          : grp.end_time;
       const updatedRoom = room !== undefined ? room : grp.room;
       const updatedMaxStudents =
         max_students !== undefined ? Number(max_students) : grp.max_students;
