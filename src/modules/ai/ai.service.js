@@ -5,11 +5,15 @@ const env = require("../../config/env");
 const aiQueries = require("./ai.queries");
 const { getSystemPrompt } = require("./ai.prompts");
 const { resolveStoredPath } = require("../../utils/fileStorage");
+const {
+  assistantFunctionDeclarations,
+  executeAssistantTool,
+} = require("./tools/assistant.tools");
 
 const FALLBACK_MODELS = [
-  env.GEMINI_MODEL || "gemini-3.5-flash",
+  env.GEMINI_MODEL || "gemini-3.5-flash-lite",
   "gemini-flash-latest",
-  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash",
 ];
 
 const aiService = {
@@ -41,7 +45,7 @@ const aiService = {
     };
   },
 
-  // 2. Send message to AI & receive reply
+  // 2. Send message to AI, handle tools, and receive reply
   sendMessage: async ({ userType, userId, messageText, file = null }) => {
     const text = (messageText || "").trim();
     if (!text && !file) {
@@ -71,7 +75,7 @@ const aiService = {
       throw error;
     }
 
-    // B. Build user context (name, grade)
+    // B. Build user identity context
     let userContext = {};
     if (userType === "student") {
       const student = await aiQueries.getStudentContext(userId);
@@ -79,6 +83,9 @@ const aiService = {
         userContext = {
           userName: student.full_name,
           gradeName: student.grade_name,
+          groupName: student.group_name,
+          barcode: student.barcode,
+          userPhone: student.phone,
         };
       }
     } else {
@@ -86,13 +93,18 @@ const aiService = {
       if (user) {
         userContext = {
           userName: user.full_name,
+          userPhone: user.phone,
+          permissions:
+            user.permissions === "all"
+              ? "إدارة السنتر والأونلاين كاملة"
+              : user.permissions,
         };
       }
     }
 
     const systemPromptText = getSystemPrompt(userType, userContext);
 
-    // C. Read file if provided
+    // C. Read file if provided (PDF or image)
     let filePart = null;
     let fileName = null;
     let filePath = null;
@@ -116,8 +128,8 @@ const aiService = {
       }
     }
 
-    // D. Build recent conversation history for Gemini context
-    const recentMessages = await aiQueries.getRecentContext(userType, userId, 8);
+    // D. Build recent conversation history for Gemini context (last 10 messages)
+    const recentMessages = await aiQueries.getRecentContext(userType, userId, 10);
     const contents = [];
 
     for (const msg of recentMessages) {
@@ -132,7 +144,9 @@ const aiService = {
     if (text) {
       currentParts.push({ text });
     } else if (file) {
-      currentParts.push({ text: "يرجى قراءة وتحليل هذا الملف المرفق وشرحه بالتفصيل وفقاً للمطلوب." });
+      currentParts.push({
+        text: "يرجى قراءة وتحليل هذا الملف المرفق وشرحه أو تلخيصه أو صياغة المطلوب منه وفقاً لتعليماتك.",
+      });
     }
 
     if (filePart) {
@@ -144,7 +158,15 @@ const aiService = {
       parts: currentParts,
     });
 
-    // F. Call Gemini with fallback models
+    // F. Tools setup (Enable assistant tools for assistant or teacher)
+    const tools = [];
+    if (userType === "assistant" || userType === "teacher") {
+      tools.push({
+        functionDeclarations: assistantFunctionDeclarations,
+      });
+    }
+
+    // G. Call Gemini with fallback models & Function Calling execution loop
     const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) {
       const error = new Error("مفتاح Gemini API غير مهيأ في الخادم");
@@ -158,26 +180,87 @@ const aiService = {
     for (const model of FALLBACK_MODELS) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const payload = {
-          system_instruction: {
-            parts: [{ text: systemPromptText }],
-          },
-          contents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-          },
-        };
 
-        const res = await axios.post(url, payload, { timeout: 30000 });
-        const candidate = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidate) {
-          responseText = candidate;
-          break; // Success!
+        let currentTurnContents = [...contents];
+        let functionCallsCount = 0;
+        const maxFunctionCalls = 3;
+
+        while (functionCallsCount < maxFunctionCalls) {
+          const payload = {
+            system_instruction: {
+              parts: [{ text: systemPromptText }],
+            },
+            contents: currentTurnContents,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 8192,
+            },
+          };
+
+          if (tools.length > 0) {
+            payload.tools = tools;
+          }
+
+          const res = await axios.post(url, payload, { timeout: 45000 });
+          const candidateParts = res.data?.candidates?.[0]?.content?.parts || [];
+
+          // Check if Gemini returned a functionCall
+          const functionCallPart = candidateParts.find((p) => p.functionCall);
+
+          if (functionCallPart) {
+            functionCallsCount++;
+            const fnCall = functionCallPart.functionCall;
+            const fnName = fnCall.name;
+            const fnArgs = fnCall.args || {};
+
+            // Execute local tool on backend
+            const fnResult = await executeAssistantTool(fnName, fnArgs, {
+              userId,
+              permissions: userContext.permissions,
+            });
+
+            // Append model turn with functionCall
+            currentTurnContents.push({
+              role: "model",
+              parts: [functionCallPart],
+            });
+
+            // Append user turn with functionResponse
+            currentTurnContents.push({
+              role: "user",
+              parts: [
+                {
+                  functionResponse: {
+                    name: fnName,
+                    response: fnResult,
+                  },
+                },
+              ],
+            });
+
+            // Loop to let Gemini interpret the result and respond
+            continue;
+          }
+
+          // If text was returned, extract it
+          const textPart = candidateParts.find((p) => p.text);
+          if (textPart?.text) {
+            responseText = textPart.text;
+            break;
+          }
+
+          break;
+        }
+
+        if (responseText) {
+          break; // Success with current model!
         }
       } catch (err) {
         lastError = err;
-        console.warn(`[AI Gateway] Model ${model} failed, trying fallback:`, err.response?.data?.error?.message || err.message);
+        console.warn(
+          `[AI Gateway] Model ${model} failed, trying fallback:`,
+          err.response?.data?.error?.message || err.message,
+        );
       }
     }
 
@@ -190,8 +273,9 @@ const aiService = {
       throw error;
     }
 
-    // G. Save user message and model response to history
-    const userMsgToSave = text || (fileName ? `[ملف مرفق: ${fileName}]` : "ملف مرفق");
+    // H. Save user message and model response to history
+    const userMsgToSave =
+      text || (fileName ? `[ملف مرفق: ${fileName}]` : "ملف مرفق");
     await aiQueries.insertMessage({
       userType,
       userId,
@@ -209,7 +293,7 @@ const aiService = {
       message: responseText,
     });
 
-    // H. Increment usage quota
+    // I. Increment daily usage quota
     const updatedUsage = await aiQueries.incrementUsage(
       userType,
       userId,
@@ -231,7 +315,10 @@ const aiService = {
         messages: {
           used: Number(updatedUsage.message_count),
           limit: messageLimit,
-          remaining: Math.max(0, messageLimit - Number(updatedUsage.message_count)),
+          remaining: Math.max(
+            0,
+            messageLimit - Number(updatedUsage.message_count),
+          ),
         },
         files: {
           used: Number(updatedUsage.file_count),

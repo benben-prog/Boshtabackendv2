@@ -104,13 +104,16 @@ const aiQueries = {
     return { deletedCount: result.rowCount };
   },
 
-  // Get student info for context (name, grade)
+  // Get student info for context (name, grade, group, barcode, phone)
   getStudentContext: async (studentId) => {
     const result = await query(
       `
-      SELECT s.id, s.full_name, g.name AS grade_name
+      SELECT 
+        s.id, s.full_name, s.barcode, s.phone,
+        g.name AS grade_name, grp.name AS group_name
       FROM students s
-      LEFT JOIN grades g ON g.id = s.grade_id
+      LEFT JOIN grades g ON g.id = s.grade_id AND g.deleted = 0
+      LEFT JOIN groups grp ON grp.id = s.group_id AND grp.deleted = 0
       WHERE s.id = $1 AND s.deleted = 0
     `,
       [studentId],
@@ -118,11 +121,11 @@ const aiQueries = {
     return result.rows[0] || null;
   },
 
-  // Get staff/teacher info for context
+  // Get staff/teacher info for context (name, phone, role, permissions)
   getUserContext: async (userId) => {
     const result = await query(
       `
-      SELECT id, full_name, role
+      SELECT id, full_name, phone, role, permissions
       FROM users
       WHERE id = $1 AND deleted = 0
     `,
@@ -131,5 +134,6 @@ const aiQueries = {
     return result.rows[0] || null;
   },
 };
+
 
 module.exports = aiQueries;
