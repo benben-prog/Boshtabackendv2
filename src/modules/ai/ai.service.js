@@ -11,10 +11,21 @@ const {
 } = require("./tools/assistant.tools");
 
 const FALLBACK_MODELS = [
-  env.GEMINI_MODEL || "gemini-3.5-flash-lite",
-  "gemini-flash-latest",
-  "gemini-3.5-flash",
+  env.GEMINI_MODEL || "gemini-flash-lite-latest",
+  "gemini-flash-lite-latest",
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
 ];
+
+const getApiKeys = () => {
+  const raw = env.GEMINI_API_KEY || "";
+  return raw
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+};
 
 const aiService = {
   // 1. Get current usage quota
@@ -167,8 +178,8 @@ const aiService = {
     }
 
     // G. Call Gemini with fallback models & Function Calling execution loop
-    const apiKey = env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const apiKeys = getApiKeys();
+    if (apiKeys.length === 0) {
       const error = new Error("مفتاح Gemini API غير مهيأ في الخادم");
       error.statusCode = 500;
       throw error;
@@ -178,98 +189,109 @@ const aiService = {
     let lastError = null;
 
     for (const model of FALLBACK_MODELS) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      for (const apiKey of apiKeys) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        let currentTurnContents = [...contents];
-        let functionCallsCount = 0;
-        const maxFunctionCalls = 3;
+          let currentTurnContents = [...contents];
+          let functionCallsCount = 0;
+          const maxFunctionCalls = 3;
 
-        while (functionCallsCount < maxFunctionCalls) {
-          const payload = {
-            system_instruction: {
-              parts: [{ text: systemPromptText }],
-            },
-            contents: currentTurnContents,
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 8192,
-            },
-          };
+          while (functionCallsCount < maxFunctionCalls) {
+            const payload = {
+              system_instruction: {
+                parts: [{ text: systemPromptText }],
+              },
+              contents: currentTurnContents,
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8192,
+              },
+            };
 
-          if (tools.length > 0) {
-            payload.tools = tools;
-          }
+            if (tools.length > 0) {
+              payload.tools = tools;
+            }
 
-          const res = await axios.post(url, payload, { timeout: 45000 });
-          const candidateParts = res.data?.candidates?.[0]?.content?.parts || [];
+            const res = await axios.post(url, payload, { timeout: 35000 });
+            const candidateParts = res.data?.candidates?.[0]?.content?.parts || [];
 
-          // Check if Gemini returned a functionCall
-          const functionCallPart = candidateParts.find((p) => p.functionCall);
+            // Check if Gemini returned a functionCall
+            const functionCallPart = candidateParts.find((p) => p.functionCall);
 
-          if (functionCallPart) {
-            functionCallsCount++;
-            const fnCall = functionCallPart.functionCall;
-            const fnName = fnCall.name;
-            const fnArgs = fnCall.args || {};
+            if (functionCallPart) {
+              functionCallsCount++;
+              const fnCall = functionCallPart.functionCall;
+              const fnName = fnCall.name;
+              const fnArgs = fnCall.args || {};
 
-            // Execute local tool on backend
-            const fnResult = await executeAssistantTool(fnName, fnArgs, {
-              userId,
-              permissions: userContext.permissions,
-            });
+              // Execute local tool on backend
+              const fnResult = await executeAssistantTool(fnName, fnArgs, {
+                userId,
+                permissions: userContext.permissions,
+              });
 
-            // Append model turn with functionCall
-            currentTurnContents.push({
-              role: "model",
-              parts: [functionCallPart],
-            });
+              // Append model turn with functionCall
+              currentTurnContents.push({
+                role: "model",
+                parts: [functionCallPart],
+              });
 
-            // Append user turn with functionResponse
-            currentTurnContents.push({
-              role: "user",
-              parts: [
-                {
-                  functionResponse: {
-                    name: fnName,
-                    response: fnResult,
+              // Append user turn with functionResponse
+              currentTurnContents.push({
+                role: "user",
+                parts: [
+                  {
+                    functionResponse: {
+                      name: fnName,
+                      response: fnResult,
+                    },
                   },
-                },
-              ],
-            });
+                ],
+              });
 
-            // Loop to let Gemini interpret the result and respond
-            continue;
-          }
+              // Loop to let Gemini interpret the result and respond
+              continue;
+            }
 
-          // If text was returned, extract it
-          const textPart = candidateParts.find((p) => p.text);
-          if (textPart?.text) {
-            responseText = textPart.text;
+            // If text was returned, extract it
+            const textPart = candidateParts.find((p) => p.text);
+            if (textPart?.text) {
+              responseText = textPart.text;
+              break;
+            }
+
             break;
           }
 
-          break;
+          if (responseText) {
+            break; // Success with current key & model!
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(
+            `[AI Gateway] Model ${model} failed:`,
+            err.response?.data?.error?.message || err.message,
+          );
         }
+      }
 
-        if (responseText) {
-          break; // Success with current model!
-        }
-      } catch (err) {
-        lastError = err;
-        console.warn(
-          `[AI Gateway] Model ${model} failed, trying fallback:`,
-          err.response?.data?.error?.message || err.message,
-        );
+      if (responseText) {
+        break; // Success! Exit outer loop
       }
     }
 
     if (!responseText) {
-      const errorMessage =
-        lastError?.response?.data?.error?.message ||
-        "تعذر الحصول على رد من خدمة الذكاء الاصطناعي حالياً، يرجى المحاولة بعد قليل.";
+      const isUpstreamRateLimit = lastError?.response?.status === 429;
+      const errorMessage = isUpstreamRateLimit
+        ? "خوادم الذكاء الاصطناعي تشهد ضغطاً مؤقتاً حالياً، يرجى الانتظار بضع ثوانٍ وإعادة المحاولة."
+        : lastError?.response?.data?.error?.message ||
+          "تعذر الحصول على رد من خدمة الذكاء الاصطناعي حالياً، يرجى المحاولة بعد قليل.";
       const error = new Error(errorMessage);
-      error.statusCode = lastError?.response?.status === 429 ? 429 : 502;
+      // We explicitly set 503 (NOT 429) so frontend never misinterprets Google quota as user message quota!
+      error.statusCode = isUpstreamRateLimit
+        ? 503
+        : lastError?.response?.status || 502;
       throw error;
     }
 
