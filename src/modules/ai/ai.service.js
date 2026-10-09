@@ -235,10 +235,19 @@ const aiService = {
                 const fnName = fnCall.name;
                 const fnArgs = fnCall.args || {};
 
-                const fnResult = await executeAssistantTool(fnName, fnArgs, {
-                  userId,
-                  permissions: userContext.permissions,
-                });
+                let fnResult;
+                try {
+                  fnResult = await executeAssistantTool(fnName, fnArgs, {
+                    userId,
+                    permissions: userContext.permissions,
+                  });
+                } catch (toolExecErr) {
+                  console.error(`Tool execution exception in [${fnName}]:`, toolExecErr.message);
+                  fnResult = {
+                    success: false,
+                    error: `تعذر إتمام العملية: ${toolExecErr.message}`,
+                  };
+                }
 
                 functionResponseParts.push({
                   functionResponse: {

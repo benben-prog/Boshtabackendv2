@@ -2247,7 +2247,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       }
 
       const userRes = await query(
-        "SELECT id, name, password FROM users WHERE id = $1 AND deleted = 0",
+        "SELECT id, full_name, password FROM users WHERE id = $1 AND deleted = 0",
         [effectiveUserId],
       );
       if (userRes.rows.length === 0) {
@@ -2274,7 +2274,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
       return {
         success: true,
-        message: `تم تحديث وتغيير كلمة مرور حسابك (${currentUser.name}) بنجاح. يمكنك الآن تسجيل الدخول بها بأمان.`,
+        message: `تم تحديث وتغيير كلمة مرور حسابك (${currentUser.full_name}) بنجاح. يمكنك الآن تسجيل الدخول بها بأمان.`,
       };
     }
 
