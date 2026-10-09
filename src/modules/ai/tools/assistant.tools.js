@@ -1,5 +1,7 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const { query, transaction } = require("../../../config/database");
+const liveSessionsService = require("../../live_sessions/live_sessions.service");
 
 const assistantFunctionDeclarations = [
   {
@@ -479,7 +481,381 @@ const assistantFunctionDeclarations = [
       required: ["student_query"],
     },
   },
+  {
+    name: "create_live_session",
+    description: "إنشاء وحجز حصة بث مباشر (أونلاين / لايف) جديدة لصف دراسي أو مجموعة معينة مع توليد رابط Google Meet الرسمي تلقائياً ومشاركتها مع الطلاب في المنصة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: {
+          type: "STRING",
+          description: "عنوان الحصة (مثال: مراجعة الصف الثالث الثانوي / حل تدريبات النحو)",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي (اختياري إذا تم تحديد grade_name)",
+        },
+        grade_name: {
+          type: "STRING",
+          description: "اسم الصف الدراسي للبحث عنه وتحديده تلقائياً (مثل: 'الثالث الثانوي' أو 'الثاني بكالوريا')",
+        },
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة (اختياري، اتركه فارغاً إذا كانت الحصة لكل مجموعات الصف)",
+        },
+        duration_minutes: {
+          type: "INTEGER",
+          description: "مدة الحصة بالدقائق (مثال: 60 أو 90 أو 45، الافتراضي 60)",
+        },
+        start_time: {
+          type: "STRING",
+          description: "موعد وتاريخ بدء الحصة بتنسيق YYYY-MM-DD HH:mm:ss أو عبارة مثل 'now' أو 'after 10 minutes' أو 'كمان عشر دقايق'",
+        },
+        description: {
+          type: "STRING",
+          description: "وصف الحصة أو الموضوعات التي سيتم تناولها (اختياري)",
+        },
+        target_type: {
+          type: "STRING",
+          enum: ["grade", "group", "student"],
+          description: "نوع الاستهداف: grade (صف كامل لجميع مجموعاته - وهو الافتراضي للحصص العامة)، group (مجموعة معينة)، أو student (طالب محدد)",
+        },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "get_live_sessions",
+    description: "استعراض قائمة حصص البث المباشر (المجدولة والقادمة والمنتهية) مع روابط Google Meet ومواعيدها والصفوف المخصصة لها.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي للتصفية (اختياري)",
+        },
+        status: {
+          type: "STRING",
+          enum: ["scheduled", "live", "ended", "cancelled"],
+          description: "حالة الحصة للتصفية (اختياري)",
+        },
+        limit: {
+          type: "INTEGER",
+          description: "الحد الأقصى لعدد الحصص المسترجعة (افتراضياً 10)",
+        },
+      },
+    },
+  },
+  {
+    name: "delete_live_session",
+    description: "حذف وإلغاء حصة بث مباشر محددة بالمعرّف (ID) من المنصة وتقويم Google Calendar.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        session_id: {
+          type: "INTEGER",
+          description: "معرّف الحصة (ID) المراد حذفها",
+        },
+      },
+      required: ["session_id"],
+    },
+  },
+  {
+    name: "reset_student_password",
+    description: "إعادة تعيين وتغيير كلمة مرور طالب في المنصة (بالباركود أو الاسم أو الهاتف) إلى كلمة مرور جديدة أو توليد كلمة مرور قياسية له وإرجاعها للمساعد.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم أو هاتف الطالب المراد تغيير كلمة مروره",
+        },
+        new_password: {
+          type: "STRING",
+          description: "كلمة المرور الجديدة المراد تعيينها (اختياري، إذا تُركت فارغة يتم تعيينها برقم هاتف الطالب أو كود عشوائي قياسي)",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
+  {
+    name: "change_assistant_password",
+    description: "تغيير وتحديث كلمة المرور الخاصة بحساب المساعد الحالي المسجل الدخول في المنصة بعد تقديم كلمة المرور الحالية للتأكيد وكلمة المرور الجديدة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        current_password: {
+          type: "STRING",
+          description: "كلمة المرور الحالية للمساعد للتحقق",
+        },
+        new_password: {
+          type: "STRING",
+          description: "كلمة المرور الجديدة المطلوبة",
+        },
+      },
+      required: ["current_password", "new_password"],
+    },
+  },
+  {
+    name: "create_playlist",
+    description: "إنشاء قائمة تشغيل فيديوهات جديدة لصف دراسي معين (مثل: مراجعات الباب الأول، شرح النحو).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: {
+          type: "STRING",
+          description: "عنوان قائمة التشغيل",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي التابعة له القائمة (اختياري إذا تم تحديد grade_name)",
+        },
+        grade_name: {
+          type: "STRING",
+          description: "اسم الصف الدراسي التابعة له القائمة (اختياري)",
+        },
+        description: {
+          type: "STRING",
+          description: "وصف محتوى قائمة التشغيل (اختياري)",
+        },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "get_playlists",
+    description: "استعراض قوائم التشغيل الحالية المتاحة لصف دراسي معين مع عدد الفيديوهات بداخلها.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "add_video_to_playlist",
+    description: "إضافة فيديو مسجل أو تم رفعه إلى قائمة تشغيل معينة وترتيبه.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        playlist_id: {
+          type: "INTEGER",
+          description: "معرّف قائمة التشغيل",
+        },
+        video_id: {
+          type: "INTEGER",
+          description: "معرّف الفيديو المراد إضافته",
+        },
+        order_num: {
+          type: "INTEGER",
+          description: "ترتيب الفيديو داخل القائمة (اختياري)",
+        },
+      },
+      required: ["playlist_id", "video_id"],
+    },
+  },
+  {
+    name: "create_group",
+    description: "إنشاء وإضافة مجموعة دراسية جديدة لصف معين في السنتر مع تحديد المواعيد والأيام والقاعة والسعة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: {
+          type: "STRING",
+          description: "اسم المجموعة (مثال: مجموعة السبت والأربعاء 4 عصراً)",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي التابعة له المجموعة (اختياري إذا تم تمرير grade_name)",
+        },
+        grade_name: {
+          type: "STRING",
+          description: "اسم الصف الدراسي لتحديده آلياً (اختياري)",
+        },
+        days: {
+          type: "STRING",
+          description: "أيام الحصص (مثال: 'السبت والأربعاء')",
+        },
+        start_time: {
+          type: "STRING",
+          description: "وقت البدء (مثال: '16:00:00' أو '04:00 PM')",
+        },
+        end_time: {
+          type: "STRING",
+          description: "وقت الانتهاء (مثال: '18:00:00' أو '06:00 PM')",
+        },
+        room: {
+          type: "STRING",
+          description: "اسم القاعة أو المكان (اختياري، مثال: 'قاعة 1')",
+        },
+        max_students: {
+          type: "INTEGER",
+          description: "الحد الأقصى لسعة المجموعة من الطلاب (اختياري)",
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "update_group",
+    description: "تعديل وتحديث بيانات مجموعة دراسية مسجلة (تحديث الاسم، الأيام، المواعيد، القاعة أو السعة).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة المراد تعديلها",
+        },
+        name: {
+          type: "STRING",
+          description: "الاسم الجديد للمجموعة (اختياري)",
+        },
+        days: {
+          type: "STRING",
+          description: "الأيام الجديدة (اختياري)",
+        },
+        start_time: {
+          type: "STRING",
+          description: "وقت البدء الجديد (اختياري)",
+        },
+        end_time: {
+          type: "STRING",
+          description: "وقت الانتهاء الجديد (اختياري)",
+        },
+        room: {
+          type: "STRING",
+          description: "القاعة الجديدة (اختياري)",
+        },
+        max_students: {
+          type: "INTEGER",
+          description: "السعة الجديدة (اختياري)",
+        },
+      },
+      required: ["group_id"],
+    },
+  },
+  {
+    name: "grade_assignment_submission",
+    description: "رصد وتصحيح درجة تسليم واجب لطالب مع كتابة ملاحظات وتوجيهات تشجيعية للطالب.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        submission_id: {
+          type: "INTEGER",
+          description: "معرّف تسليم الواجب (submission_id)",
+        },
+        grade: {
+          type: "NUMBER",
+          description: "الدرجة المستحقة التي حصل عليها الطالب",
+        },
+        feedback: {
+          type: "STRING",
+          description: "ملاحظات التقييم والتصحيح للطالب (اختياري)",
+        },
+      },
+      required: ["submission_id", "grade"],
+    },
+  },
+  {
+    name: "delete_online_exam",
+    description: "حذف أو إلغاء امتحان إلكتروني من المنصة وقاعدة البيانات.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        exam_id: {
+          type: "INTEGER",
+          description: "معرّف الامتحان الإلكتروني المراد حذفه",
+        },
+      },
+      required: ["exam_id"],
+    },
+  },
+  {
+    name: "delete_paper_exam",
+    description: "حذف امتحان ورقي مسجل بالسنتر بالمعرّف (ID).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        exam_id: {
+          type: "INTEGER",
+          description: "معرّف الامتحان الورقي المراد حذفه",
+        },
+      },
+      required: ["exam_id"],
+    },
+  },
 ];
+
+function parseSessionStartTime(input) {
+  const now = new Date();
+  if (!input) {
+    return new Date(now.getTime() + 10 * 60000);
+  }
+
+  const str = String(input).trim().toLowerCase();
+
+  const arabicWordMap = {
+    "عشر دقائق": 10,
+    "عشر دقايق": 10,
+    "عشر": 10,
+    "عشرة": 10,
+    "خمس دقائق": 5,
+    "خمس دقايق": 5,
+    "خمس": 5,
+    "خمسة": 5,
+    "ربع ساعة": 15,
+    "ثلث ساعة": 20,
+    "نصف ساعة": 30,
+    "نص ساعة": 30,
+    "ساعة": 60,
+  };
+
+  for (const [phrase, mins] of Object.entries(arabicWordMap)) {
+    if (str.includes(phrase)) {
+      return new Date(now.getTime() + mins * 60000);
+    }
+  }
+
+  const minuteMatch = str.match(/(\d+)\s*(?:دقيقة|دقايق|دقيق|minute|min|m)/i);
+  if (minuteMatch) {
+    const mins = parseInt(minuteMatch[1], 10);
+    return new Date(now.getTime() + mins * 60000);
+  }
+
+  const hourMatch = str.match(/(\d+)\s*(?:ساعة|ساعات|hour|hr|h)/i);
+  if (hourMatch) {
+    const hours = parseInt(hourMatch[1], 10);
+    return new Date(now.getTime() + hours * 3600000);
+  }
+
+  if (
+    str.includes("الان") ||
+    str.includes("الآن") ||
+    str.includes("now") ||
+    str.includes("حاليا") ||
+    str.includes("حالياً")
+  ) {
+    return new Date(now.getTime() + 5 * 60000);
+  }
+
+  let d = new Date(input);
+  if (isNaN(d.getTime())) {
+    const cleaned = String(input).replace(" ", "T");
+    d = new Date(cleaned);
+  }
+
+  if (!isNaN(d.getTime())) {
+    if (d.getTime() < now.getTime()) {
+      return new Date(now.getTime() + 5 * 60000);
+    }
+    return d;
+  }
+
+  return new Date(now.getTime() + 10 * 60000);
+}
 
 async function executeAssistantTool(name, args = {}, context = {}) {
   const userId = context.userId || null;
@@ -1620,6 +1996,514 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           grade_id: updatedGrade,
           group_id: updatedGroup,
         },
+      };
+    }
+
+    case "create_live_session": {
+      const {
+        title,
+        grade_id,
+        grade_name,
+        group_id,
+        duration_minutes = 60,
+        start_time,
+        description,
+        target_type,
+      } = args;
+
+      if (!title) {
+        return { success: false, error: "عنوان الحصة مطلوب." };
+      }
+
+      // Resolve Grade ID
+      let resolvedGradeId = grade_id ? Number(grade_id) : null;
+      if (!resolvedGradeId && grade_name) {
+        const gRes = await query(
+          "SELECT id, name FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1",
+          [`%${grade_name.trim()}%`],
+        );
+        if (gRes.rows.length > 0) {
+          resolvedGradeId = gRes.rows[0].id;
+        }
+      }
+
+      // Fallback: If still not resolved and no group_id, default to first active grade
+      if (!resolvedGradeId && !group_id) {
+        const defaultGrade = await query(
+          "SELECT id FROM grades WHERE deleted = 0 ORDER BY id ASC LIMIT 1",
+        );
+        if (defaultGrade.rows.length > 0) {
+          resolvedGradeId = defaultGrade.rows[0].id;
+        }
+      }
+
+      let resolvedGroupId = group_id ? Number(group_id) : null;
+      let finalTargetType = target_type;
+      if (
+        finalTargetType === "all" ||
+        !finalTargetType ||
+        !["grade", "group", "student"].includes(finalTargetType)
+      ) {
+        finalTargetType = resolvedGroupId ? "group" : "grade";
+      }
+      if (finalTargetType === "grade") {
+        resolvedGroupId = null;
+      }
+
+      const startTimeObj = parseSessionStartTime(start_time);
+      const durationNum = Math.max(5, Math.min(480, Number(duration_minutes) || 60));
+
+      let effectiveUserId = userId;
+      if (!effectiveUserId) {
+        const uRes = await query(
+          "SELECT id FROM users WHERE role IN ('assistant', 'teacher', 'super_admin') AND deleted = 0 ORDER BY id ASC LIMIT 1",
+        );
+        if (uRes.rows.length > 0) effectiveUserId = uRes.rows[0].id;
+      }
+
+      try {
+        const newSession = await liveSessionsService.createLiveSession(
+          effectiveUserId,
+          {
+            title: title.trim(),
+            description: description || null,
+            start_time: startTimeObj.toISOString(),
+            duration_minutes: durationNum,
+            target_type: finalTargetType,
+            grade_id: resolvedGradeId,
+            group_id: resolvedGroupId,
+          },
+        );
+
+        return {
+          success: true,
+          message: `تم إنشاء وحجز حصة البث المباشر (${newSession.title}) بنجاح وتوليد رابط Google Meet الرسمي.`,
+          session: {
+            id: newSession.id,
+            title: newSession.title,
+            meet_link: newSession.meet_link,
+            start_time: newSession.start_time,
+            end_time: newSession.end_time,
+            duration_minutes: newSession.duration_minutes,
+            target_type: newSession.target_type,
+            grade_id: newSession.grade_id,
+            group_id: newSession.group_id,
+            status: newSession.status,
+          },
+        };
+      } catch (err) {
+        console.error("Live session creation error in AI tool:", err.message);
+        // Resilient fallback: direct insert into live_sessions
+        const endTimeObj = new Date(startTimeObj.getTime() + durationNum * 60000);
+        const fallbackMeetLink = `https://meet.google.com/new`;
+        const fallbackRes = await query(
+          `INSERT INTO live_sessions (
+            title, description, start_time, end_time, duration_minutes,
+            meet_link, target_type, grade_id, group_id, status, created_by, created_at, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled', $10, NOW(), NOW())
+          RETURNING *`,
+          [
+            title.trim(),
+            description || null,
+            startTimeObj.toISOString(),
+            endTimeObj.toISOString(),
+            durationNum,
+            fallbackMeetLink,
+            finalTargetType,
+            resolvedGradeId,
+            resolvedGroupId,
+            effectiveUserId,
+          ],
+        );
+
+        return {
+          success: true,
+          message: `تم إنشاء حصة البث المباشر (${fallbackRes.rows[0].title}) بنجاح في جدول الحصص.`,
+          session: {
+            id: fallbackRes.rows[0].id,
+            title: fallbackRes.rows[0].title,
+            meet_link: fallbackRes.rows[0].meet_link,
+            start_time: fallbackRes.rows[0].start_time,
+            end_time: fallbackRes.rows[0].end_time,
+            duration_minutes: fallbackRes.rows[0].duration_minutes,
+            target_type: fallbackRes.rows[0].target_type,
+            status: fallbackRes.rows[0].status,
+          },
+        };
+      }
+    }
+
+    case "get_live_sessions": {
+      const limit = Math.min(Number(args.limit) || 10, 20);
+      const conditions = ["ls.deleted = 0"];
+      const values = [];
+      let paramIndex = 1;
+
+      if (args.grade_id) {
+        conditions.push(`ls.grade_id = $${paramIndex++}`);
+        values.push(Number(args.grade_id));
+      }
+      if (args.status) {
+        conditions.push(`ls.status = $${paramIndex++}`);
+        values.push(args.status);
+      }
+      values.push(limit);
+
+      const res = await query(
+        `SELECT ls.id, ls.title, ls.description, ls.start_time, ls.end_time,
+                ls.duration_minutes, ls.meet_link, ls.status, ls.target_type,
+                g.name AS grade_name, gr.name AS group_name
+         FROM live_sessions ls
+         LEFT JOIN grades g ON g.id = ls.grade_id AND g.deleted = 0
+         LEFT JOIN groups gr ON gr.id = ls.group_id AND gr.deleted = 0
+         WHERE ${conditions.join(" AND ")}
+         ORDER BY ls.start_time DESC
+         LIMIT $${paramIndex}`,
+        values,
+      );
+
+      return {
+        success: true,
+        sessions_count: res.rows.length,
+        sessions: res.rows,
+      };
+    }
+
+    case "delete_live_session": {
+      const { session_id } = args;
+      if (!session_id) return { success: false, error: "معرّف الحصة مطلوب لحذفها." };
+
+      let effectiveUserId = userId;
+      if (!effectiveUserId) {
+        const uRes = await query(
+          "SELECT id FROM users WHERE role IN ('assistant', 'teacher', 'super_admin') AND deleted = 0 ORDER BY id ASC LIMIT 1",
+        );
+        if (uRes.rows.length > 0) effectiveUserId = uRes.rows[0].id;
+      }
+
+      await liveSessionsService.deleteLiveSession(Number(session_id), effectiveUserId);
+      return {
+        success: true,
+        message: `تم حذف وإلغاء حصة البث المباشر #${session_id} بنجاح.`,
+      };
+    }
+
+    case "reset_student_password": {
+      const { student_query, new_password } = args;
+      if (!student_query) {
+        return { success: false, error: "يجب تحديد الطالب (بالاسم أو الباركود أو رقم الهاتف)." };
+      }
+      const q = String(student_query).trim();
+      const stdRes = await query(
+        `SELECT id, full_name, barcode, phone, grade_id, group_id
+         FROM students
+         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%'))
+           AND deleted = 0 LIMIT 1`,
+        [q],
+      );
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${q}'` };
+      }
+      const student = stdRes.rows[0];
+      const plainPassword = new_password
+        ? String(new_password).trim()
+        : (student.phone || `${student.barcode || "student"}@123456`);
+
+      const hashedPassword = await bcrypt.hash(plainPassword, 10);
+      await query("UPDATE students SET password = $1, updated_at = NOW() WHERE id = $2", [
+        hashedPassword,
+        student.id,
+      ]);
+
+      return {
+        success: true,
+        message: `تم إعادة تعيين كلمة مرور الطالب (${student.full_name}) بنجاح. كلمة المرور الجديدة هي: ${plainPassword}`,
+        student: {
+          id: student.id,
+          full_name: student.full_name,
+          barcode: student.barcode,
+          phone: student.phone,
+          new_password: plainPassword,
+        },
+      };
+    }
+
+    case "change_assistant_password": {
+      const { current_password, new_password } = args;
+      if (!current_password || !new_password) {
+        return {
+          success: false,
+          error: "لتغيير كلمة مرور حسابك بأمان، يجب تزويدي بكلمة المرور الحالية وكلمة المرور الجديدة المطلوبة.",
+        };
+      }
+
+      let effectiveUserId = userId;
+      if (!effectiveUserId) {
+        return {
+          success: false,
+          error: "لم يتم التعرف على معرّف حساب المساعد الحالي لتغيير كلمة المرور.",
+        };
+      }
+
+      const userRes = await query(
+        "SELECT id, name, password FROM users WHERE id = $1 AND deleted = 0",
+        [effectiveUserId],
+      );
+      if (userRes.rows.length === 0) {
+        return { success: false, error: "حساب المساعد غير موجود." };
+      }
+      const currentUser = userRes.rows[0];
+
+      const isCurrentValid = await bcrypt.compare(
+        String(current_password),
+        currentUser.password,
+      );
+      if (!isCurrentValid) {
+        return {
+          success: false,
+          error: "كلمة المرور الحالية غير صحيحة، يرجى التأكد من كتابتها بشكل صحيح.",
+        };
+      }
+
+      const hashedPassword = await bcrypt.hash(String(new_password).trim(), 10);
+      await query(
+        "UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2",
+        [hashedPassword, effectiveUserId],
+      );
+
+      return {
+        success: true,
+        message: `تم تحديث وتغيير كلمة مرور حسابك (${currentUser.name}) بنجاح. يمكنك الآن تسجيل الدخول بها بأمان.`,
+      };
+    }
+
+    case "create_playlist": {
+      const { title, description, grade_id, grade_name } = args;
+      let resolvedGradeId = grade_id ? Number(grade_id) : null;
+      if (!resolvedGradeId && grade_name) {
+        const gRes = await query(
+          "SELECT id FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1",
+          [`%${grade_name.trim()}%`],
+        );
+        if (gRes.rows.length > 0) resolvedGradeId = gRes.rows[0].id;
+      }
+      if (!resolvedGradeId) {
+        return { success: false, error: "يجب تحديد الصف الدراسي لقائمة التشغيل." };
+      }
+      const res = await query(
+        `INSERT INTO playlists (title, description, grade_id, created_by, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, NOW(), NOW(), 0)
+         RETURNING id, title, description, grade_id`,
+        [title.trim(), description || null, resolvedGradeId, userId],
+      );
+      return {
+        success: true,
+        message: `تم إنشاء قائمة التشغيل (${res.rows[0].title}) بنجاح برقم معرّف #${res.rows[0].id}`,
+        playlist: res.rows[0],
+      };
+    }
+
+    case "get_playlists": {
+      let gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const conditions = ["p.deleted = 0"];
+      const values = [];
+      if (gradeId) {
+        conditions.push("p.grade_id = $1");
+        values.push(gradeId);
+      }
+      const res = await query(
+        `SELECT p.id, p.title, p.description, g.name AS grade_name,
+                (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS videos_count
+         FROM playlists p
+         LEFT JOIN grades g ON g.id = p.grade_id
+         WHERE ${conditions.join(" AND ")}
+         ORDER BY p.id DESC
+         LIMIT 20`,
+        values,
+      );
+      return {
+        success: true,
+        playlists_count: res.rows.length,
+        playlists: res.rows,
+      };
+    }
+
+    case "add_video_to_playlist": {
+      const { playlist_id, video_id, order_num = 1 } = args;
+      await query(
+        `INSERT INTO playlist_videos (playlist_id, video_id, order_num, created_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (playlist_id, video_id) DO UPDATE SET order_num = $3`,
+        [Number(playlist_id), Number(video_id), Number(order_num)],
+      );
+      return {
+        success: true,
+        message: `تم إضافة الفيديو (#${video_id}) إلى قائمة التشغيل (#${playlist_id}) بنجاح.`,
+      };
+    }
+
+    case "create_group": {
+      const {
+        name,
+        grade_id,
+        grade_name,
+        days,
+        start_time,
+        end_time,
+        room,
+        max_students,
+      } = args;
+      let resolvedGradeId = grade_id ? Number(grade_id) : null;
+      if (!resolvedGradeId && grade_name) {
+        const gRes = await query(
+          "SELECT id FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1",
+          [`%${grade_name.trim()}%`],
+        );
+        if (gRes.rows.length > 0) resolvedGradeId = gRes.rows[0].id;
+      }
+      if (!name || !resolvedGradeId) {
+        return {
+          success: false,
+          error: "اسم المجموعة والصف الدراسي مطلوبان لإنشاء المجموعة.",
+        };
+      }
+      const res = await query(
+        `INSERT INTO groups (name, grade_id, days, start_time, end_time, room, max_students, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 0)
+         RETURNING id, name, grade_id, days, start_time, end_time, room, max_students`,
+        [
+          name.trim(),
+          resolvedGradeId,
+          days || null,
+          start_time || null,
+          end_time || null,
+          room || null,
+          max_students ? Number(max_students) : 50,
+        ],
+      );
+      return {
+        success: true,
+        message: `تم إنشاء المجموعة الدراسية (${res.rows[0].name}) بنجاح برقم معرّف #${res.rows[0].id}`,
+        group: res.rows[0],
+      };
+    }
+
+    case "update_group": {
+      const { group_id, name, days, start_time, end_time, room, max_students } = args;
+      if (!group_id) return { success: false, error: "معرّف المجموعة مطلوب." };
+      const existingRes = await query(
+        "SELECT * FROM groups WHERE id = $1 AND deleted = 0",
+        [Number(group_id)],
+      );
+      if (existingRes.rows.length === 0) {
+        return { success: false, error: `المجموعة #${group_id} غير موجودة.` };
+      }
+      const grp = existingRes.rows[0];
+
+      const updatedName = name ? name.trim() : grp.name;
+      const updatedDays = days !== undefined ? days : grp.days;
+      const updatedStartTime = start_time !== undefined ? start_time : grp.start_time;
+      const updatedEndTime = end_time !== undefined ? end_time : grp.end_time;
+      const updatedRoom = room !== undefined ? room : grp.room;
+      const updatedMaxStudents =
+        max_students !== undefined ? Number(max_students) : grp.max_students;
+
+      await query(
+        `UPDATE groups
+         SET name = $1, days = $2, start_time = $3, end_time = $4, room = $5, max_students = $6, updated_at = NOW()
+         WHERE id = $7`,
+        [
+          updatedName,
+          updatedDays,
+          updatedStartTime,
+          updatedEndTime,
+          updatedRoom,
+          updatedMaxStudents,
+          grp.id,
+        ],
+      );
+
+      return {
+        success: true,
+        message: `تم تحديث بيانات المجموعة (${updatedName}) بنجاح.`,
+        group: {
+          id: grp.id,
+          name: updatedName,
+          days: updatedDays,
+          start_time: updatedStartTime,
+          end_time: updatedEndTime,
+          room: updatedRoom,
+          max_students: updatedMaxStudents,
+        },
+      };
+    }
+
+    case "grade_assignment_submission": {
+      const { submission_id, grade, feedback } = args;
+      if (!submission_id || grade === undefined) {
+        return { success: false, error: "معرف تسليم الواجب والدرجة مطلوبان." };
+      }
+      const subRes = await query(
+        `SELECT s.id, st.full_name AS student_name, a.title AS assignment_title, a.full_mark
+         FROM assignment_submissions s
+         JOIN students st ON st.id = s.student_id
+         JOIN assignments a ON a.id = s.assignment_id
+         WHERE s.id = $1`,
+        [Number(submission_id)],
+      );
+      if (subRes.rows.length === 0) {
+        return { success: false, error: `تسليم الواجب #${submission_id} غير موجود.` };
+      }
+      const sub = subRes.rows[0];
+      await query(
+        `UPDATE assignment_submissions
+         SET grade = $1, feedback = $2, graded_at = NOW(), graded_by = $3
+         WHERE id = $4`,
+        [Number(grade), feedback || null, userId, Number(submission_id)],
+      );
+      return {
+        success: true,
+        message: `تم رصد وتصحيح درجة الواجب (${sub.assignment_title}) للطالب (${sub.student_name}) بنجاح: ${grade} من ${sub.full_mark}`,
+        submission: {
+          submission_id,
+          student_name: sub.student_name,
+          grade,
+          full_mark: sub.full_mark,
+          feedback,
+        },
+      };
+    }
+
+    case "delete_online_exam": {
+      const { exam_id } = args;
+      if (!exam_id) return { success: false, error: "معرّف الامتحان الإلكتروني مطلوب." };
+      const res = await query(
+        "UPDATE online_exams SET deleted = 1, updated_at = NOW() WHERE id = $1 RETURNING id, title",
+        [Number(exam_id)],
+      );
+      if (res.rows.length === 0) {
+        return { success: false, error: "الامتحان الإلكتروني غير موجود." };
+      }
+      return {
+        success: true,
+        message: `تم حذف الامتحان الإلكتروني (${res.rows[0].title}) بنجاح.`,
+      };
+    }
+
+    case "delete_paper_exam": {
+      const { exam_id } = args;
+      if (!exam_id) return { success: false, error: "معرّف الامتحان الورقي مطلوب." };
+      const res = await query(
+        "UPDATE exams SET deleted = 1, updated_at = NOW() WHERE id = $1 RETURNING id, title",
+        [Number(exam_id)],
+      );
+      if (res.rows.length === 0) {
+        return { success: false, error: "الامتحان الورقي غير موجود." };
+      }
+      return {
+        success: true,
+        message: `تم حذف الامتحان الورقي (${res.rows[0].title}) بنجاح.`,
       };
     }
 
