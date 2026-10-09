@@ -29,13 +29,17 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "get_students_summary",
-    description: "جلب إحصائيات عامة عن عدد الطلاب النشطين المسجلين في السنتر أو في صف دراسي أو مجموعة محددة.",
+    description: "جلب إحصائيات عامة وتفصيلية عن عدد الطلاب النشطين المسجلين في السنتر وفي كل صف دراسي أو مجموعة محددة. إذا لم يتم تمرير أي مدخلات، ترجع الأداة الإحصائية العامة لجميع الصفوف بالكامل.",
     parameters: {
       type: "OBJECT",
       properties: {
         grade_id: {
           type: "INTEGER",
           description: "معرف الصف الدراسي (اختياري)",
+        },
+        grade_name: {
+          type: "STRING",
+          description: "اسم الصف الدراسي (اختياري، مثل: 'الثالث الثانوي' أو 'الثاني بكالوريا')",
         },
         group_id: {
           type: "INTEGER",
@@ -355,13 +359,26 @@ async function executeAssistantTool(name, args = {}, context = {}) {
     }
 
     case "get_students_summary": {
+      let resolvedGradeId = args.grade_id ? Number(args.grade_id) : null;
+
+      // If grade_name passed, resolve to grade_id
+      if (!resolvedGradeId && args.grade_name) {
+        const gradeRes = await query(
+          "SELECT id, name FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1",
+          [`%${args.grade_name.trim()}%`],
+        );
+        if (gradeRes.rows.length > 0) {
+          resolvedGradeId = gradeRes.rows[0].id;
+        }
+      }
+
       const conditions = ["deleted = 0", "is_active = true"];
       const values = [];
       let paramIndex = 1;
 
-      if (args.grade_id) {
+      if (resolvedGradeId) {
         conditions.push(`grade_id = $${paramIndex++}`);
-        values.push(args.grade_id);
+        values.push(resolvedGradeId);
       }
 
       if (args.group_id) {
@@ -374,11 +391,26 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         values,
       );
 
+      // Always return breakdown by grades for complete instant context
+      const byGradesRes = await query(`
+        SELECT g.id AS grade_id, g.name AS grade_name, COUNT(s.id) AS students_count
+        FROM grades g
+        LEFT JOIN students s ON s.grade_id = g.id AND s.deleted = 0 AND s.is_active = true
+        WHERE g.deleted = 0
+        GROUP BY g.id, g.name
+        ORDER BY g.id ASC
+      `);
+
       return {
         success: true,
         total_active_students: Number(countRes.rows[0].total_students || 0),
+        grades_breakdown: byGradesRes.rows.map((r) => ({
+          grade_id: r.grade_id,
+          grade_name: r.grade_name,
+          active_students_count: Number(r.students_count),
+        })),
         filters_applied: {
-          grade_id: args.grade_id || "all",
+          grade_id: resolvedGradeId || "all",
           group_id: args.group_id || "all",
         },
       };

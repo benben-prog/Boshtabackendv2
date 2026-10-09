@@ -216,41 +216,45 @@ const aiService = {
             const res = await axios.post(url, payload, { timeout: 35000 });
             const candidateParts = res.data?.candidates?.[0]?.content?.parts || [];
 
-            // Check if Gemini returned a functionCall
-            const functionCallPart = candidateParts.find((p) => p.functionCall);
+            // Check if Gemini returned functionCall parts (supports parallel function calling)
+            const functionCallParts = candidateParts.filter((p) => p.functionCall);
 
-            if (functionCallPart) {
+            if (functionCallParts.length > 0) {
               functionCallsCount++;
-              const fnCall = functionCallPart.functionCall;
-              const fnName = fnCall.name;
-              const fnArgs = fnCall.args || {};
 
-              // Execute local tool on backend
-              const fnResult = await executeAssistantTool(fnName, fnArgs, {
-                userId,
-                permissions: userContext.permissions,
-              });
-
-              // Append model turn with functionCall
+              // Append model turn with all candidate parts (including all function calls & signatures)
               currentTurnContents.push({
                 role: "model",
-                parts: [functionCallPart],
+                parts: candidateParts,
               });
 
-              // Append user turn with functionResponse
+              // Execute all tool calls and build responses for all of them
+              const functionResponseParts = [];
+              for (const part of functionCallParts) {
+                const fnCall = part.functionCall;
+                const fnName = fnCall.name;
+                const fnArgs = fnCall.args || {};
+
+                const fnResult = await executeAssistantTool(fnName, fnArgs, {
+                  userId,
+                  permissions: userContext.permissions,
+                });
+
+                functionResponseParts.push({
+                  functionResponse: {
+                    name: fnName,
+                    response: fnResult,
+                  },
+                });
+              }
+
+              // Append user turn with all function responses
               currentTurnContents.push({
                 role: "user",
-                parts: [
-                  {
-                    functionResponse: {
-                      name: fnName,
-                      response: fnResult,
-                    },
-                  },
-                ],
+                parts: functionResponseParts,
               });
 
-              // Loop to let Gemini interpret the result and respond
+              // Loop to let Gemini interpret all results and respond
               continue;
             }
 
