@@ -116,4 +116,20 @@ module.exports = {
     "https://backend.benb3n.cloud/api/teacher/google/callback",
   FRONTEND_URL: process.env.FRONTEND_URL || "https://boshta.benb3n.cloud",
   YOUTUBE_REFRESH_TOKEN: process.env.YOUTUBE_REFRESH_TOKEN || null,
+
+  // Gemini AI Gateway
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+  AI_TEACHER_NAME: process.env.AI_TEACHER_NAME || "مستر محمد بشتة",
+  AI_SUBJECT_NAME: process.env.AI_SUBJECT_NAME || "اللغة العربية",
+  AI_DAILY_MESSAGE_LIMIT: parsePositiveInt(
+    process.env.AI_DAILY_MESSAGE_LIMIT,
+    100,
+    "AI_DAILY_MESSAGE_LIMIT",
+  ),
+  AI_DAILY_FILE_LIMIT: parsePositiveInt(
+    process.env.AI_DAILY_FILE_LIMIT,
+    3,
+    "AI_DAILY_FILE_LIMIT",
+  ),
 };

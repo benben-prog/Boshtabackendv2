@@ -24,12 +24,14 @@ const playlistController = require("../playlists/playlists.controller");
 const playlistVideoController = require("../playlist_videos/playlist_videos.controller");
 const liveSessionsController = require("../live_sessions/live_sessions.controller");
 const youtubeController = require("../videos/youtube.controller");
+const aiController = require("../ai/ai.controller");
 
 // Middleware
 const validate = require("../../middlewares/validate.middleware");
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
 const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
 const videoFilesUpload = require("../../middlewares/uploads/videoFilesUpload");
+const aiUpload = require("../../middlewares/uploads/aiUpload");
 const {
   updateUserPasswordSchema,
 } = require("../../middlewares/validations/users.validation");
@@ -44,6 +46,7 @@ const {
   initYoutubeUploadSchema,
   confirmYoutubeUploadSchema,
 } = require("../../middlewares/validations/youtube_upload.validation");
+const { chatSchema } = require("../../middlewares/validations/ai.validation");
 
 /* ============================================
    TEACHER - DASHBOARD & PROFILE
@@ -506,4 +509,18 @@ routes.post(
   youtubeController.confirmUpload,
 );
 
+/* ============================================
+   AI COPILOT / TEACHER SMART ADVISOR
+   ============================================ */
+routes.post(
+  "/ai/chat",
+  aiUpload.single("file"),
+  validate(chatSchema),
+  aiController.chat,
+);
+routes.get("/ai/quota", aiController.getQuota);
+routes.get("/ai/history", aiController.getHistory);
+routes.delete("/ai/history", aiController.clearHistory);
+
 module.exports = routes;
+

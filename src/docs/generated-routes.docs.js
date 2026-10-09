@@ -5,6 +5,112 @@
  */
 /**
  * @swagger
+ * /api/assistant/ai/chat:
+ *   post:
+ *     summary: "POST assistant ai chat"
+ *     description: "POST assistant ai chat"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/ai/history:
+ *   delete:
+ *     summary: "DELETE assistant ai history"
+ *     description: "DELETE assistant ai history"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/ai/history:
+ *   get:
+ *     summary: "GET assistant ai history"
+ *     description: "GET assistant ai history"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/assistant/ai/quota:
+ *   get:
+ *     summary: "GET assistant ai quota"
+ *     description: "GET assistant ai quota"
+ *     tags:
+ *       - "Assistant - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
  * /api/assistant/attendance/{id}:
  *   delete:
  *     summary: "Delete attendance record (حذف سجل حضور)"
@@ -1320,6 +1426,112 @@
  *                 format: binary
  *     responses:
  *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/student/ai/chat:
+ *   post:
+ *     summary: "POST student ai chat"
+ *     description: "POST student ai chat"
+ *     tags:
+ *       - "Student - Dashboard & Profile"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/student/ai/history:
+ *   delete:
+ *     summary: "DELETE student ai history"
+ *     description: "DELETE student ai history"
+ *     tags:
+ *       - "Student - Dashboard & Profile"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/student/ai/history:
+ *   get:
+ *     summary: "GET student ai history"
+ *     description: "GET student ai history"
+ *     tags:
+ *       - "Student - Dashboard & Profile"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/student/ai/quota:
+ *   get:
+ *     summary: "GET student ai quota"
+ *     description: "GET student ai quota"
+ *     tags:
+ *       - "Student - Dashboard & Profile"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)
  *       '400':
  *         description: Bad Request / Validation Error (بيانات غير صحيحة)
@@ -6825,6 +7037,112 @@
  *                 format: binary
  *     responses:
  *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/ai/chat:
+ *   post:
+ *     summary: "POST teacher ai chat"
+ *     description: "POST teacher ai chat"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       '201':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/ai/history:
+ *   delete:
+ *     summary: "DELETE teacher ai history"
+ *     description: "DELETE teacher ai history"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/ai/history:
+ *   get:
+ *     summary: "GET teacher ai history"
+ *     description: "GET teacher ai history"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
+ *         description: Operation completed successfully (تمت العملية بنجاح)
+ *       '400':
+ *         description: Bad Request / Validation Error (بيانات غير صحيحة)
+ *       '401':
+ *         description: Unauthorized / Token required (غير مصرح - مطلوب تسجيل الدخول)
+ *       '403':
+ *         description: Forbidden / Insufficient permissions (غير مصرح بالوصول لهذا الإجراء)
+ *       '404':
+ *         description: Resource Not Found (العنصر غير موجود)
+ *       '500':
+ *         description: Internal Server Error (خطأ داخلي في السيرفر)
+ */
+/**
+ * @swagger
+ * /api/teacher/ai/quota:
+ *   get:
+ *     summary: "GET teacher ai quota"
+ *     description: "GET teacher ai quota"
+ *     tags:
+ *       - "Teacher - Profile & Dashboard"
+ *     security:
+ *       - ApiAuth: []
+ *         ClientToken: []
+ *     responses:
+ *       '200':
  *         description: Operation completed successfully (تمت العملية بنجاح)
  *       '400':
  *         description: Bad Request / Validation Error (بيانات غير صحيحة)

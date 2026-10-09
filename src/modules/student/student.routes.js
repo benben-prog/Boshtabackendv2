@@ -9,13 +9,16 @@ const studentAnswerController = require("../student_answers/student_answers.cont
 const assignmentController = require("../assignments/assignments.controller");
 const assignmentSubmissionController = require("../assignment_submissions/assignment_submissions.controller");
 const liveSessionsController = require("../live_sessions/live_sessions.controller");
+const aiController = require("../ai/ai.controller");
 const validate = require("../../middlewares/validate.middleware");
 const profileImageUpload = require("../../middlewares/uploads/profileImageUpload");
 const assignmentUpload = require("../../middlewares/uploads/assignmentUpload");
 const examUpload = require("../../middlewares/uploads/examUpload");
+const aiUpload = require("../../middlewares/uploads/aiUpload");
 const {
   updateStudentPasswordSchema,
 } = require("../../middlewares/validations/students.validation");
+const { chatSchema } = require("../../middlewares/validations/ai.validation");
 
 /* ============================================
    DASHBOARD & PROFILE
@@ -210,5 +213,18 @@ routes.get(
   "/live-sessions/:id/preview",
   liveSessionsController.downloadMaterial,
 );
+
+/* ============================================
+   AI COPILOT / SMART ASSISTANT
+   ============================================ */
+routes.post(
+  "/ai/chat",
+  aiUpload.single("file"),
+  validate(chatSchema),
+  aiController.chat,
+);
+routes.get("/ai/quota", aiController.getQuota);
+routes.get("/ai/history", aiController.getHistory);
+routes.delete("/ai/history", aiController.clearHistory);
 
 module.exports = routes;

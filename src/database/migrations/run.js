@@ -25,6 +25,7 @@ const createActivityLogsTable = require("./tables/activity_logs.table");
 const createAttendanceSessionsTable = require("./tables/attendance_sessions.table");
 const createGoogleTokensTable = require("./tables/google_tokens.table");
 const createLiveSessionsTable = require("./tables/live_sessions.table");
+const createAiTable = require("./tables/ai.table");
 
 async function runMigrations() {
   await createGradesTable();
@@ -54,6 +55,7 @@ async function runMigrations() {
   await createAttendanceSessionsTable();
   await createGoogleTokensTable();
   await createLiveSessionsTable();
+  await createAiTable();
   console.log("All tables created successfully");
   process.exit(0);
 }

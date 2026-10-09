@@ -4,6 +4,22 @@
     "path": "/api/assistant/activity-log"
   },
   {
+    "method": "POST",
+    "path": "/api/assistant/ai/chat"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/assistant/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/assistant/ai/quota"
+  },
+  {
     "method": "PUT",
     "path": "/api/assistant/assignment-submissions/{submissionId}/grade"
   },
@@ -994,6 +1010,22 @@
   {
     "method": "GET",
     "path": "/api/parent/{token}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/student/ai/chat"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/student/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/student/ai/quota"
   },
   {
     "method": "GET",
@@ -2254,6 +2286,22 @@
   {
     "method": "GET",
     "path": "/api/teacher/activity-log"
+  },
+  {
+    "method": "POST",
+    "path": "/api/teacher/ai/chat"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/teacher/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/teacher/ai/quota"
   },
   {
     "method": "GET",

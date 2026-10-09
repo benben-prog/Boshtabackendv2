@@ -75,13 +75,13 @@ async function createMessagesTable() {
   await query(`
     CREATE INDEX IF NOT EXISTS idx_messages_queue_priority 
     ON messages(status, 
-      CASE 
+      (CASE 
         WHEN type = 'absence' THEN 1
         WHEN type = 'exam' THEN 2
         WHEN type = 'payment' THEN 3
         WHEN type = 'welcome' THEN 4
         ELSE 5
-      END,
+      END),
       created_at ASC
     )
   `);
