@@ -11,7 +11,7 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "get_online_exams_list",
-    description: "استرجاع قائمة الامتحانات الإلكترونية الحالية في السنتر مع معرفاتها ومواعيدها والصفوف المخصصة لها.",
+    description: "استرجاع قائمة الامتحانات الإلكترونية الحالية في السنتر مع معرفاتها ومواعيدها والصفوف المخصصة لها وحالتها.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -39,6 +39,51 @@ const assistantFunctionDeclarations = [
         group_id: {
           type: "INTEGER",
           description: "معرف المجموعة (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "search_student_details",
+    description: "البحث عن طالب معين في السنتر بالاسم أو الباركود أو رقم الهاتف لمعرفة بياناته وصفه ومجموعته وهاتفه وهاتف ولي أمره وحالته.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        search_query: {
+          type: "STRING",
+          description: "اسم الطالب أو الباركود أو رقم الهاتف للبحث",
+        },
+      },
+      required: ["search_query"],
+    },
+  },
+  {
+    name: "get_exam_results_stats",
+    description: "جلب تقرير إحصائي لنتائج امتحان إلكتروني معين: عدد الطلاب الذين تقدموا للامتحان، أعلى درجة، متوسط الدرجات، وقائمة بأوائل الطلاب ودرجاتهم.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        exam_id: {
+          type: "INTEGER",
+          description: "معرف الامتحان الإلكتروني (ID)",
+        },
+      },
+      required: ["exam_id"],
+    },
+  },
+  {
+    name: "get_attendance_report",
+    description: "جلب تقرير حضور وغياب الطلاب لتاريخ معين أو مجموعة معينة: عدد الحاضرين، عدد الغائبين، وقائمة بأسماء الطلاب الغائبين وأرقام هواتفهم للتواصل.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        attendance_date: {
+          type: "STRING",
+          description: "تاريخ الحصة بتنسيق YYYY-MM-DD (اختياري، الافتراضي هو تاريخ اليوم)",
+        },
+        group_id: {
+          type: "INTEGER",
+          description: "معرف المجموعة لتصفية التقرير (اختياري)",
         },
       },
     },
@@ -251,6 +296,129 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       };
     }
 
+    case "search_student_details": {
+      const search = (args.search_query || "").trim();
+      if (!search) {
+        return { success: false, error: "يرجى تحديد اسم أو كود الطالب للبحث" };
+      }
+
+      const res = await query(
+        `
+        SELECT 
+          s.id, s.full_name, s.barcode, s.phone, s.parent_phone,
+          g.name AS grade_name, grp.name AS group_name,
+          s.is_active, s.created_at
+        FROM students s
+        LEFT JOIN grades g ON g.id = s.grade_id AND g.deleted = 0
+        LEFT JOIN groups grp ON grp.id = s.group_id AND grp.deleted = 0
+        WHERE s.deleted = 0 
+          AND (s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
+        LIMIT 5
+      `,
+        [`%${search}%`],
+      );
+
+      return {
+        success: true,
+        found_count: res.rows.length,
+        students: res.rows,
+      };
+    }
+
+    case "get_exam_results_stats": {
+      const examId = Number(args.exam_id);
+      if (!examId) {
+        return { success: false, error: "معرف الامتحان مطلوب" };
+      }
+
+      const examRes = await query(
+        `
+        SELECT oe.id, oe.title, oe.full_mark, g.name AS grade_name
+        FROM online_exams oe
+        LEFT JOIN grades g ON g.id = oe.grade_id
+        WHERE oe.id = $1 AND oe.deleted = 0
+      `,
+        [examId],
+      );
+
+      if (!examRes.rows[0]) {
+        return { success: false, error: "الامتحان غير موجود" };
+      }
+
+      const statsRes = await query(
+        `
+        SELECT 
+          COUNT(*) AS total_submissions,
+          ROUND(AVG(score)::numeric, 2) AS average_score,
+          MAX(score) AS highest_score,
+          MIN(score) AS lowest_score
+        FROM student_exams
+        WHERE exam_id = $1 AND is_absent = false
+      `,
+        [examId],
+      );
+
+      const topStudentsRes = await query(
+        `
+        SELECT s.full_name, s.barcode, se.score, se.submitted_at
+        FROM student_exams se
+        JOIN students s ON s.id = se.student_id
+        WHERE se.exam_id = $1 AND se.is_absent = false
+        ORDER BY se.score DESC, se.submitted_at ASC
+        LIMIT 5
+      `,
+        [examId],
+      );
+
+      return {
+        success: true,
+        exam: examRes.rows[0],
+        statistics: statsRes.rows[0],
+        top_students: topStudentsRes.rows,
+      };
+    }
+
+    case "get_attendance_report": {
+      const date = args.attendance_date || new Date().toISOString().split("T")[0];
+      const conditions = ["a.attendance_date = $1"];
+      const values = [date];
+      let paramIndex = 2;
+
+      if (args.group_id) {
+        conditions.push(`a.group_id = $${paramIndex++}`);
+        values.push(args.group_id);
+      }
+
+      const summaryRes = await query(
+        `
+        SELECT a.status, COUNT(*) AS count
+        FROM attendance a
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY a.status
+      `,
+        values,
+      );
+
+      const absentRes = await query(
+        `
+        SELECT s.full_name, s.phone, s.parent_phone, grp.name AS group_name
+        FROM attendance a
+        JOIN students s ON s.id = a.student_id
+        LEFT JOIN groups grp ON grp.id = a.group_id
+        WHERE ${conditions.join(" AND ")} AND a.status = 'absent'
+        LIMIT 10
+      `,
+        values,
+      );
+
+      return {
+        success: true,
+        date,
+        summary: summaryRes.rows,
+        absent_students: absentRes.rows,
+      };
+    }
+
     case "create_online_exam": {
       const {
         title,
@@ -271,7 +439,6 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      // Format timestamps safely
       const cleanStartAt = new Date(start_at);
       const cleanEndAt = new Date(end_at);
 
