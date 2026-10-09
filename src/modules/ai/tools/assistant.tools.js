@@ -266,6 +266,219 @@ const assistantFunctionDeclarations = [
       required: ["student_query", "is_active"],
     },
   },
+  {
+    name: "record_student_payment",
+    description: "تسجيل ودفع اشتراك شهر لطالب معين في السنتر (بالباركود أو الاسم أو الهاتف)، بنظام عادي (سعر الشهر الرسمي) أو بنظام مخصص (custom) بمبلغ يحدده المساعد. يُرجى عرض ملخص العملية ومطالبة المساعد بالتأكيد قبل الحفظ أو بعد تأكيده.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم أو هاتف الطالب",
+        },
+        amount: {
+          type: "NUMBER",
+          description: "المبلغ المدفوع بالجنيه (مطلوب إذا كان النظام مخصص custom، أو اتركه فارغاً للنظام العادي)",
+        },
+        payment_mode: {
+          type: "STRING",
+          enum: ["normal", "custom"],
+          description: "وضع الدفع: normal (المبلغ الكامل للشهر) أو custom (مبلغ مخصص كخصم أو إعفاء جزئي)",
+        },
+        month: {
+          type: "STRING",
+          description: "شهر الاشتراك بتنسيق YYYY-MM (اختياري، الافتراضي هو الشهر الحالي)",
+        },
+        notes: {
+          type: "STRING",
+          description: "ملاحظات الدفع (اختياري، مثل: خصم تفوق، سداد نقدي، إيصال)",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
+  {
+    name: "get_student_payment_status",
+    description: "جلب السجل المالي لاشتراكات ومدفوعات طالب معين: الشهور المسددة، الشهور غير المسددة، المبالغ وتواريخ الدفع.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم أو هاتف الطالب",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
+  {
+    name: "record_paper_exam_result",
+    description: "رصد وتحديث درجة طالب في امتحان ورقي مسجل بالسنتر. يُرجى مراجعة وتأكيد الدرجة مع المساعد.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم الطالب",
+        },
+        degree: {
+          type: "NUMBER",
+          description: "الدرجة التي حصل عليها الطالب",
+        },
+        exam_id: {
+          type: "INTEGER",
+          description: "معرّف الامتحان الورقي (اختياري إذا تم تحديد اسم الامتحان)",
+        },
+        exam_name: {
+          type: "STRING",
+          description: "اسم أو عنوان الامتحان للبحث عنه (اختياري)",
+        },
+        notes: {
+          type: "STRING",
+          description: "ملاحظات إضافية على النتيجة (اختياري)",
+        },
+      },
+      required: ["student_query", "degree"],
+    },
+  },
+  {
+    name: "create_paper_exam",
+    description: "إنشاء وحفظ امتحان ورقي جديد لصف أو مجموعة في قاعدة البيانات وتحديد العنوان والدرجة العظمى.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: {
+          type: "STRING",
+          description: "عنوان الامتحان (مثال: امتحان شامل شهر أكتوبر)",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي",
+        },
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة (اختياري، لجميع مجموعات الصف)",
+        },
+        total_degree: {
+          type: "NUMBER",
+          description: "الدرجة العظمى للامتحان (مثال: 50 أو 60)",
+        },
+        exam_date: {
+          type: "STRING",
+          description: "تاريخ الامتحان بتنسيق YYYY-MM-DD (اختياري)",
+        },
+        notes: {
+          type: "STRING",
+          description: "ملاحظات إضافية (اختياري)",
+        },
+      },
+      required: ["title", "grade_id", "total_degree"],
+    },
+  },
+  {
+    name: "start_attendance_session",
+    description: "بدء وفتح جلسة حضور جديدة لمجموعة معينة لتجهيزها لمسح الباركود واستقبال الطلاب.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة التابع لها الحضور",
+        },
+        lock_minutes: {
+          type: "INTEGER",
+          description: "مدة بقاء التسجيل مفتوحاً بالدقائق (افتراضياً 60 دقيقة)",
+        },
+      },
+      required: ["group_id"],
+    },
+  },
+  {
+    name: "close_attendance_session",
+    description: "إغلاق وقفل جلسة حضور مجموعة معينة، وترحيل جميع الطلاب غير الحاضرين كـ 'غائبين' تلقائياً.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة",
+        },
+      },
+      required: ["group_id"],
+    },
+  },
+  {
+    name: "create_assignment",
+    description: "إنشاء واجب منزلي جديد لصف أو مجموعة مع تحديد العنوان والوصف وموعد التسليم والدرجة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: {
+          type: "STRING",
+          description: "عنوان الواجب المنزلي",
+        },
+        description: {
+          type: "STRING",
+          description: "تفاصيل أو تعليمات الواجب (اختياري)",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي",
+        },
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة (اختياري)",
+        },
+        deadline: {
+          type: "STRING",
+          description: "تاريخ ووقت انتهاء تسليم الواجب بتنسيق YYYY-MM-DD HH:mm:ss",
+        },
+        full_mark: {
+          type: "NUMBER",
+          description: "الدرجة العظمى للواجب (افتراضياً 10)",
+        },
+      },
+      required: ["title", "grade_id", "deadline"],
+    },
+  },
+  {
+    name: "update_student_details",
+    description: "تعديل وتحديث بيانات طالب مسجل (نقل لمجموعة أخرى، تغيير الصف، تعديل رقم هاتف الطالب أو ولي الأمر، أو الملاحظات).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم أو هاتف الطالب المطلوب تعديله",
+        },
+        new_name: {
+          type: "STRING",
+          description: "الاسم الجديد للطالب (اختياري)",
+        },
+        new_grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي الجديد (اختياري)",
+        },
+        new_group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة الجديدة (اختياري)",
+        },
+        new_phone: {
+          type: "STRING",
+          description: "رقم هاتف الطالب الجديد (اختياري)",
+        },
+        new_parent_phone: {
+          type: "STRING",
+          description: "رقم هاتف ولي الأمر الجديد (اختياري)",
+        },
+        notes: {
+          type: "STRING",
+          description: "ملاحظات إضافية (اختياري)",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
 ];
 
 async function executeAssistantTool(name, args = {}, context = {}) {
@@ -910,6 +1123,502 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           status: boolActive
             ? "نشط ومفعل"
             : `معطل (${reason || "إيقاف إداري"})`,
+        },
+      };
+    }
+
+    case "record_student_payment": {
+      const {
+        student_query,
+        amount,
+        payment_mode = "normal",
+        month,
+        notes,
+      } = args;
+
+      if (!student_query) {
+        return {
+          success: false,
+          error: "يرجى تحديد الطالب (بالاسم أو الباركود أو رقم الهاتف).",
+        };
+      }
+
+      const q = String(student_query).trim();
+      const stdRes = await query(
+        `SELECT s.id, s.full_name, s.barcode, s.grade_id, g.name AS grade_name, g.monthly_price
+         FROM students s
+         JOIN grades g ON s.grade_id = g.id
+         WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
+           AND s.deleted = 0
+         LIMIT 1`,
+        [q],
+      );
+
+      if (stdRes.rows.length === 0) {
+        return {
+          success: false,
+          error: `لم يتم العثور على طالب يطابق البحث: '${q}'`,
+        };
+      }
+
+      const student = stdRes.rows[0];
+      const targetMonth = month
+        ? String(month).trim()
+        : new Date().toISOString().slice(0, 7);
+
+      const isCustom = payment_mode === "custom";
+      let finalAmount;
+      if (isCustom) {
+        if (!amount || Number(amount) <= 0) {
+          return {
+            success: false,
+            error: "في الوضع المخصص (custom) يجب تحديد مبلغ صحيح أكبر من صفر.",
+          };
+        }
+        finalAmount = Number(amount);
+      } else {
+        finalAmount = Number(student.monthly_price);
+      }
+
+      // Check or create subscription for this month
+      let subRes = await query(
+        `SELECT id, status, required_amount FROM subscriptions 
+         WHERE student_id = $1 AND month = $2 AND deleted = 0 
+         LIMIT 1`,
+        [student.id, targetMonth],
+      );
+
+      let subscriptionId;
+      if (subRes.rows.length === 0) {
+        const createSubRes = await query(
+          `INSERT INTO subscriptions (student_id, month, required_amount, status, created_at, deleted)
+           VALUES ($1, $2, $3, 'unpaid', NOW(), 0)
+           RETURNING id`,
+          [student.id, targetMonth, student.monthly_price],
+        );
+        subscriptionId = createSubRes.rows[0].id;
+      } else {
+        subscriptionId = subRes.rows[0].id;
+      }
+
+      // Record payment & update subscription in transaction
+      const paymentRes = await transaction(async (client) => {
+        const pRes = await client.query(
+          `INSERT INTO payments (subscription_id, student_id, amount, payment_date, payment_mode, notes, created_at)
+           VALUES ($1, $2, $3, NOW() AT TIME ZONE 'Africa/Cairo', $4, $5, NOW())
+           RETURNING id, amount, payment_mode, created_at`,
+          [
+            subscriptionId,
+            student.id,
+            finalAmount,
+            isCustom ? "custom" : "normal",
+            notes || null,
+          ],
+        );
+
+        await client.query(
+          `UPDATE subscriptions SET status = 'paid' WHERE id = $1`,
+          [subscriptionId],
+        );
+
+        return pRes.rows[0];
+      });
+
+      return {
+        success: true,
+        message: `تم سداد اشتراك شهر (${targetMonth}) للطالب (${student.full_name}) بمبلغ (${finalAmount} ج.م) بنجاح وتفعيل حسابه!`,
+        payment: {
+          payment_id: paymentRes.id,
+          student_id: student.id,
+          full_name: student.full_name,
+          barcode: student.barcode,
+          month: targetMonth,
+          amount: finalAmount,
+          payment_mode: isCustom ? "مخصص (custom)" : "عادي (سعر الصف)",
+          status: "مدفوع ومفعل",
+        },
+      };
+    }
+
+    case "get_student_payment_status": {
+      const { student_query } = args;
+      if (!student_query) {
+        return { success: false, error: "يرجى تحديد الطالب للبحث." };
+      }
+
+      const q = String(student_query).trim();
+      const stdRes = await query(
+        `SELECT s.id, s.full_name, s.barcode, s.grade_id, g.name AS grade_name, g.monthly_price
+         FROM students s
+         JOIN grades g ON s.grade_id = g.id
+         WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
+           AND s.deleted = 0
+         LIMIT 1`,
+        [q],
+      );
+
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      }
+
+      const student = stdRes.rows[0];
+      const subsRes = await query(
+        `SELECT sub.id, sub.month, sub.required_amount, sub.status,
+                COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount,
+                (SELECT p.payment_mode FROM payments p WHERE p.subscription_id = sub.id ORDER BY p.id DESC LIMIT 1) AS payment_mode,
+                (SELECT p.created_at FROM payments p WHERE p.subscription_id = sub.id ORDER BY p.id DESC LIMIT 1) AS payment_date
+         FROM subscriptions sub
+         WHERE sub.student_id = $1 AND sub.deleted = 0
+         ORDER BY sub.month DESC
+         LIMIT 6`,
+        [student.id],
+      );
+
+      return {
+        success: true,
+        student: {
+          student_id: student.id,
+          full_name: student.full_name,
+          barcode: student.barcode,
+          grade_name: student.grade_name,
+          monthly_price: student.monthly_price,
+        },
+        subscriptions: subsRes.rows.map((s) => ({
+          month: s.month,
+          required_amount: s.required_amount,
+          paid_amount: s.paid_amount,
+          status: s.status === "paid" ? "مسدد بالكامل" : "غير مسدد",
+          payment_mode: s.payment_mode || "غير مسجل",
+          payment_date: s.payment_date || null,
+        })),
+      };
+    }
+
+    case "record_paper_exam_result": {
+      const { student_query, degree, exam_id, exam_name, notes } = args;
+
+      if (!student_query || degree === undefined) {
+        return {
+          success: false,
+          error: "يجب تحديد الطالب والدرجة التي حصل عليها.",
+        };
+      }
+
+      const q = String(student_query).trim();
+      const stdRes = await query(
+        `SELECT id, full_name, barcode, grade_id FROM students 
+         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%')) 
+           AND deleted = 0 LIMIT 1`,
+        [q],
+      );
+
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      }
+
+      const student = stdRes.rows[0];
+
+      let exam;
+      if (exam_id) {
+        const eRes = await query(
+          "SELECT id, title, total_degree FROM exams WHERE id = $1 AND deleted = 0",
+          [exam_id],
+        );
+        exam = eRes.rows[0];
+      } else if (exam_name) {
+        const eRes = await query(
+          "SELECT id, title, total_degree FROM exams WHERE title ILIKE $1 AND deleted = 0 LIMIT 1",
+          [`%${exam_name.trim()}%`],
+        );
+        exam = eRes.rows[0];
+      } else {
+        const eRes = await query(
+          "SELECT id, title, total_degree FROM exams WHERE grade_id = $1 AND deleted = 0 ORDER BY id DESC LIMIT 1",
+          [student.grade_id],
+        );
+        exam = eRes.rows[0];
+      }
+
+      if (!exam) {
+        return {
+          success: false,
+          error: "لم يتم العثور على الامتحان الورقي المطلوب.",
+        };
+      }
+
+      const numDegree = Number(degree);
+
+      await query(
+        `INSERT INTO exam_results (student_id, exam_id, degree, notes, created_at, updated_at, is_absent)
+         VALUES ($1, $2, $3, $4, NOW(), NOW(), false)
+         ON CONFLICT (student_id, exam_id)
+         DO UPDATE SET degree = EXCLUDED.degree, notes = EXCLUDED.notes, is_absent = false, updated_at = NOW()`,
+        [student.id, exam.id, numDegree, notes || null],
+      );
+
+      return {
+        success: true,
+        message: `تم رصد وحفظ درجة الطالب (${student.full_name}) في امتحان (${exam.title}) بنجاح: ${numDegree} من ${exam.total_degree}`,
+        result: {
+          student_id: student.id,
+          full_name: student.full_name,
+          barcode: student.barcode,
+          exam_id: exam.id,
+          exam_title: exam.title,
+          degree: numDegree,
+          total_degree: exam.total_degree,
+        },
+      };
+    }
+
+    case "create_paper_exam": {
+      const {
+        title,
+        grade_id,
+        group_id,
+        total_degree,
+        exam_date,
+        notes,
+      } = args;
+
+      if (!title || !grade_id || !total_degree) {
+        return {
+          success: false,
+          error: "يجب تحديد عنوان الامتحان ومعرف الصف والدرجة العظمى.",
+        };
+      }
+
+      const targetDate = exam_date
+        ? String(exam_date).trim()
+        : new Date().toISOString().split("T")[0];
+
+      const res = await query(
+        `INSERT INTO exams (title, grade_id, group_id, total_degree, exam_date, notes, created_by, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 0)
+         RETURNING id, title, total_degree, exam_date`,
+        [
+          title.trim(),
+          grade_id,
+          group_id || null,
+          Number(total_degree),
+          targetDate,
+          notes || null,
+          userId,
+        ],
+      );
+
+      const created = res.rows[0];
+      return {
+        success: true,
+        message: `تم إنشاء الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id}`,
+        exam: created,
+      };
+    }
+
+    case "start_attendance_session": {
+      const { group_id, lock_minutes = 60 } = args;
+      if (!group_id) {
+        return { success: false, error: "يجب تحديد معرّف المجموعة." };
+      }
+
+      const grpRes = await query(
+        "SELECT id, name, grade_id FROM groups WHERE id = $1 AND deleted = 0",
+        [group_id],
+      );
+      if (grpRes.rows.length === 0) {
+        return { success: false, error: "المجموعة غير موجودة." };
+      }
+      const group = grpRes.rows[0];
+
+      // Check active session today
+      const existing = await query(
+        `SELECT id, status FROM attendance_sessions 
+         WHERE group_id = $1 AND status = 'active' 
+           AND DATE(started_at AT TIME ZONE 'Africa/Cairo') = DATE(NOW() AT TIME ZONE 'Africa/Cairo')`,
+        [group_id],
+      );
+
+      if (existing.rows.length > 0) {
+        return {
+          success: true,
+          message: `توجد جلسة حضور نشطة بالفعل لمجموعة (${group.name}) ومفتوحة لمسح الباركود.`,
+          session_id: existing.rows[0].id,
+        };
+      }
+
+      const insRes = await query(
+        `INSERT INTO attendance_sessions 
+          (group_id, grade_id, started_by, lock_at, is_makeup_enabled, attendance_locked, status)
+         VALUES 
+          ($1, $2, $3, (NOW() + ($4 || ' minutes')::interval) AT TIME ZONE 'Africa/Cairo', 0, 0, 'active')
+         RETURNING id, started_at, lock_at`,
+        [group.id, group.grade_id, userId, Number(lock_minutes) || 60],
+      );
+
+      return {
+        success: true,
+        message: `تم بدء وفتح جلسة الحضور لمجموعة (${group.name}) بنجاح! الجلسة مفتوحة لمسح الباركود الآن.`,
+        session_id: insRes.rows[0].id,
+      };
+    }
+
+    case "close_attendance_session": {
+      const { group_id } = args;
+      if (!group_id) {
+        return { success: false, error: "يجب تحديد معرّف المجموعة." };
+      }
+
+      const sessRes = await query(
+        `SELECT id, group_id, grade_id FROM attendance_sessions 
+         WHERE group_id = $1 AND status = 'active' LIMIT 1`,
+        [group_id],
+      );
+
+      if (sessRes.rows.length === 0) {
+        return {
+          success: false,
+          error: "لا توجد جلسة حضور نشطة حالياً لهذه المجموعة لإغلاقها.",
+        };
+      }
+
+      const session = sessRes.rows[0];
+
+      // Mark rest absent
+      await query(
+        `INSERT INTO attendance (student_id, group_id, grade_id, attendance_date, status, attendance_time, method, is_makeup, notes)
+         SELECT s.id, $1, s.grade_id, CURRENT_DATE, 'absent', NOW() AT TIME ZONE 'Africa/Cairo', 'manual', 0, 'غياب آلي عند إغلاق الجلسة'
+         FROM students s
+         WHERE s.group_id = $1 AND s.deleted = 0 AND s.is_active = true
+           AND NOT EXISTS (
+             SELECT 1 FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = CURRENT_DATE
+           )
+         ON CONFLICT (student_id, attendance_date) DO NOTHING`,
+        [group_id],
+      );
+
+      await query(
+        `UPDATE attendance_sessions 
+         SET status = 'locked', ended_at = NOW() AT TIME ZONE 'Africa/Cairo', attendance_locked = 1 
+         WHERE id = $1`,
+        [session.id],
+      );
+
+      return {
+        success: true,
+        message:
+          "تم إغلاق الجلسة بنجاح وترحيل جميع الطلاب غير الحاضرين كـ 'غائبين' تلقائياً.",
+      };
+    }
+
+    case "create_assignment": {
+      const {
+        title,
+        description,
+        grade_id,
+        group_id,
+        deadline,
+        full_mark = 10,
+      } = args;
+
+      if (!title || !grade_id || !deadline) {
+        return {
+          success: false,
+          error:
+            "يجب تحديد عنوان الواجب ومعرف الصف الدراسي وموعد انتهاء التسليم (deadline).",
+        };
+      }
+
+      const res = await query(
+        `INSERT INTO assignments (title, description, grade_id, group_id, deadline, full_mark, is_closed, created_by, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, $5, $6, 0, $7, NOW(), NOW(), 0)
+         RETURNING id, title, deadline, full_mark`,
+        [
+          title.trim(),
+          description || null,
+          grade_id,
+          group_id || null,
+          deadline,
+          Number(full_mark) || 10,
+          userId,
+        ],
+      );
+
+      return {
+        success: true,
+        message: `تم إنشاء ونشر الواجب (${res.rows[0].title}) بنجاح للطلاب برقم معرّف #${res.rows[0].id}`,
+        assignment: res.rows[0],
+      };
+    }
+
+    case "update_student_details": {
+      const {
+        student_query,
+        new_name,
+        new_grade_id,
+        new_group_id,
+        new_phone,
+        new_parent_phone,
+        notes,
+      } = args;
+
+      if (!student_query) {
+        return { success: false, error: "يجب تحديد الطالب المطلوب تعديله." };
+      }
+
+      const q = String(student_query).trim();
+      const stdRes = await query(
+        `SELECT id, full_name, barcode, phone, parent_phone, grade_id, group_id, notes 
+         FROM students 
+         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%')) 
+           AND deleted = 0 LIMIT 1`,
+        [q],
+      );
+
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      }
+
+      const student = stdRes.rows[0];
+
+      const updatedName = new_name ? new_name.trim() : student.full_name;
+      const updatedGrade = new_grade_id
+        ? Number(new_grade_id)
+        : student.grade_id;
+      const updatedGroup = new_group_id
+        ? Number(new_group_id)
+        : student.group_id;
+      const updatedPhone = new_phone ? new_phone.trim() : student.phone;
+      const updatedParentPhone = new_parent_phone
+        ? new_parent_phone.trim()
+        : student.parent_phone;
+      const updatedNotes = notes !== undefined ? notes : student.notes;
+
+      await query(
+        `UPDATE students 
+         SET full_name = $1, grade_id = $2, group_id = $3, phone = $4, parent_phone = $5, notes = $6, updated_at = NOW()
+         WHERE id = $7`,
+        [
+          updatedName,
+          updatedGrade,
+          updatedGroup,
+          updatedPhone,
+          updatedParentPhone,
+          updatedNotes,
+          student.id,
+        ],
+      );
+
+      return {
+        success: true,
+        message: `تم تحديث وتعديل بيانات الطالب (${updatedName}) بنجاح.`,
+        student: {
+          student_id: student.id,
+          full_name: updatedName,
+          barcode: student.barcode,
+          phone: updatedPhone,
+          parent_phone: updatedParentPhone,
+          grade_id: updatedGrade,
+          group_id: updatedGroup,
         },
       };
     }
