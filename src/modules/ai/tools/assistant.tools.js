@@ -2426,8 +2426,8 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         return { success: false, error: "يجب تحديد الصف الدراسي لقائمة التشغيل." };
       }
       const res = await query(
-        `INSERT INTO playlists (title, description, grade_id, created_by, created_at, updated_at, deleted)
-         VALUES ($1, $2, $3, $4, NOW(), NOW(), 0)
+        `INSERT INTO playlists (title, description, grade_id, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW())
          RETURNING id, title, description, grade_id`,
         [title.trim(), description || null, resolvedGradeId, userId],
       );
@@ -2440,18 +2440,19 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
     case "get_playlists": {
       let gradeId = args.grade_id ? Number(args.grade_id) : null;
-      const conditions = ["p.deleted = 0"];
+      const conditions = [];
       const values = [];
       if (gradeId) {
         conditions.push("p.grade_id = $1");
         values.push(gradeId);
       }
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
       const res = await query(
         `SELECT p.id, p.title, p.description, g.name AS grade_name,
                 (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS videos_count
          FROM playlists p
-         LEFT JOIN grades g ON g.id = p.grade_id
-         WHERE ${conditions.join(" AND ")}
+         LEFT JOIN grades g ON g.id = p.grade_id AND g.deleted = 0
+         ${whereClause}
          ORDER BY p.id DESC
          LIMIT 20`,
         values,
@@ -2464,12 +2465,12 @@ async function executeAssistantTool(name, args = {}, context = {}) {
     }
 
     case "add_video_to_playlist": {
-      const { playlist_id, video_id, order_num = 1 } = args;
+      const { playlist_id, video_id } = args;
       await query(
-        `INSERT INTO playlist_videos (playlist_id, video_id, order_num, created_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (playlist_id, video_id) DO UPDATE SET order_num = $3`,
-        [Number(playlist_id), Number(video_id), Number(order_num)],
+        `INSERT INTO playlist_videos (playlist_id, video_id, added_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (playlist_id, video_id) DO NOTHING`,
+        [Number(playlist_id), Number(video_id)],
       );
       return {
         success: true,
@@ -2510,9 +2511,9 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         : null;
 
       const res = await query(
-        `INSERT INTO groups (name, grade_id, days, start_time, end_time, room, max_students, created_at, updated_at, deleted)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 0)
-         RETURNING id, name, grade_id, days, start_time, end_time, room, max_students`,
+        `INSERT INTO groups (name, grade_id, days, start_time, end_time, room, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), 0)
+         RETURNING id, name, grade_id, days, start_time, end_time, room`,
         [
           name.trim(),
           resolvedGradeId,
@@ -2520,7 +2521,6 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           cleanStartTime,
           cleanEndTime,
           room || null,
-          max_students ? Number(max_students) : 50,
         ],
       );
       return {
@@ -2531,7 +2531,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
     }
 
     case "update_group": {
-      const { group_id, name, days, start_time, end_time, room, max_students } = args;
+      const { group_id, name, days, start_time, end_time, room } = args;
       if (!group_id) return { success: false, error: "معرّف المجموعة مطلوب." };
       const existingRes = await query(
         "SELECT * FROM groups WHERE id = $1 AND deleted = 0",
@@ -2553,20 +2553,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           ? (end_time ? normalizeDigits(String(end_time)).trim() : null)
           : grp.end_time;
       const updatedRoom = room !== undefined ? room : grp.room;
-      const updatedMaxStudents =
-        max_students !== undefined ? Number(max_students) : grp.max_students;
 
       await query(
         `UPDATE groups
-         SET name = $1, days = $2, start_time = $3, end_time = $4, room = $5, max_students = $6, updated_at = NOW()
-         WHERE id = $7`,
+         SET name = $1, days = $2, start_time = $3, end_time = $4, room = $5, updated_at = NOW()
+         WHERE id = $6 AND deleted = 0`,
         [
           updatedName,
           updatedDays,
           updatedStartTime,
           updatedEndTime,
           updatedRoom,
-          updatedMaxStudents,
           grp.id,
         ],
       );
@@ -2581,14 +2578,14 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           start_time: updatedStartTime,
           end_time: updatedEndTime,
           room: updatedRoom,
-          max_students: updatedMaxStudents,
         },
       };
     }
 
     case "grade_assignment_submission": {
-      const { submission_id, grade, feedback } = args;
-      if (!submission_id || grade === undefined) {
+      const { submission_id, grade, score, feedback } = args;
+      const finalScore = score !== undefined ? score : grade;
+      if (!submission_id || finalScore === undefined) {
         return { success: false, error: "معرف تسليم الواجب والدرجة مطلوبان." };
       }
       const subRes = await query(
@@ -2605,17 +2602,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       const sub = subRes.rows[0];
       await query(
         `UPDATE assignment_submissions
-         SET grade = $1, feedback = $2, graded_at = NOW(), graded_by = $3
+         SET score = $1, feedback = $2, reviewed_at = NOW(), reviewed_by = $3, updated_at = NOW()
          WHERE id = $4`,
-        [Number(grade), feedback || null, userId, Number(submission_id)],
+        [Number(finalScore), feedback || null, userId, Number(submission_id)],
       );
       return {
         success: true,
-        message: `تم رصد وتصحيح درجة الواجب (${sub.assignment_title}) للطالب (${sub.student_name}) بنجاح: ${grade} من ${sub.full_mark}`,
+        message: `تم رصد وتصحيح درجة الواجب (${sub.assignment_title}) للطالب (${sub.student_name}) بنجاح: ${finalScore} من ${sub.full_mark}`,
         submission: {
           submission_id,
           student_name: sub.student_name,
-          grade,
+          score: Number(finalScore),
           full_mark: sub.full_mark,
           feedback,
         },
