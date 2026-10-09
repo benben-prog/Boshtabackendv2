@@ -1204,6 +1204,22 @@
     "path": "/api/super-admin/activity-log"
   },
   {
+    "method": "POST",
+    "path": "/api/super-admin/ai/chat"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/super-admin/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/ai/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/super-admin/ai/quota"
+  },
+  {
     "method": "PUT",
     "path": "/api/super-admin/assignment-submissions/{submissionId}/grade"
   },

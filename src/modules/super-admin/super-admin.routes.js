@@ -32,7 +32,9 @@ const playlistVideoController = require("../playlist_videos/playlist_videos.cont
 const whatsappController = require("../whatsapp_messages/whatsapp_messages.controller");
 const liveSessionsController = require("../live_sessions/live_sessions.controller");
 const youtubeController = require("../videos/youtube.controller");
+const aiController = require("../ai/ai.controller");
 const liveMaterialUpload = require("../../middlewares/uploads/liveMaterialUpload");
+const aiUpload = require("../../middlewares/uploads/aiUpload");
 const {
   createLiveSessionSchema,
   updateLiveSessionSchema,
@@ -44,6 +46,7 @@ const {
   initYoutubeUploadSchema,
   confirmYoutubeUploadSchema,
 } = require("../../middlewares/validations/youtube_upload.validation");
+const { chatSchema } = require("../../middlewares/validations/ai.validation");
 
 // Middleware
 const excelUpload = require("../../middlewares/uploads/excelUpload");
@@ -890,4 +893,18 @@ routes.get(
   liveSessionsController.downloadMaterial,
 );
 
+/* ============================================
+   AI COPILOT / SUPER ADMIN SMART ADVISOR
+   ============================================ */
+routes.post(
+  "/ai/chat",
+  aiUpload.single("file"),
+  validate(chatSchema),
+  aiController.chat,
+);
+routes.get("/ai/quota", aiController.getQuota);
+routes.get("/ai/history", aiController.getHistory);
+routes.delete("/ai/history", aiController.clearHistory);
+
 module.exports = routes;
+
