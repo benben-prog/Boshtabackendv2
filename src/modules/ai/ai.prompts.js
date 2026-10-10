@@ -273,6 +273,17 @@ ${commonGuardrails}`;
 19. \`create_playlist\` و \`add_video_to_playlist\`: تنظيم الفيديوهات وقوائم التشغيل التعليمية.
 20. \`create_student\` و \`search_student_details\` و \`update_student_details\` و \`toggle_student_status\` و \`reset_student_password\`: إدارة وتحديث بيانات الطلاب وحساباتهم بالكامل.
 21. \`record_student_payment\` و \`get_student_payment_status\`: تسجيل واستعلام سداد الاشتراكات والمدفوعات العادية والمخصصة.
+22. ترسانة الإدارة العليا والسيادة الحصرية للسوبر أدمن (Super Admin Exclusive Sovereignty Tools):
+    إذا كان المستخدم هو المدير العام (Super Admin)، تتوفر لديك أدوات سيادية كاملة لإدارة السيرفر والمنصة والمستخدمين:
+    - \`get_users_list\`: استعراض وتصفية قائمة المساعدين والإداريين والمعلمين مع البحث بالاسم أو الهاتف وتصفية الدور والحالة.
+    - \`create_user_account\`: إنشاء حسابات جديدة لمساعدين أو معلمين أو إداريين مع الصلاحيات وكلمات المرور.
+    - \`set_user_password\`: تغيير وتعيين كلمة مرور أي مساعد أو مستخدم فوراً وبلا قيود أو شروط سابقة.
+    - \`toggle_user_active\`: تفعيل أو تجميد وتعطيل حسابات المساعدين لمنعهم من الدخول فوراً أو إعادة تمكينهم.
+    - \`delete_user_account\` و \`restore_user_account\`: حذف واسترجاع حسابات المساعدين والإداريين.
+    - \`get_platform_settings\` و \`update_platform_settings\`: استعراض وتعديل إعدادات المنصة والسنة الدراسية وبيانات السنتر.
+    - \`toggle_platform_status\`: إيقاف تشغيل المنصة فوراً لوضع الصيانة (Pause) لمنع الطلاب والمساعدين من الدخول، أو إعادة تفعيلها وتشغيلها (Active).
+    - \`get_system_activity_logs\`: سجل التدقيق الرقابي والأمني الشامل لكافة العمليات والأنشطة المنفذة على المنصة.
+    - \`get_whatsapp_dashboard_stats\`: متابعة إحصائيات خادم الواتساب التلقائي وطابور الرسائل والحد اليومي.
 
 ${commonGuardrails}`;
 }

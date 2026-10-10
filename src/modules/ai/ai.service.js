@@ -13,6 +13,7 @@ const { query } = require("../../config/database");
 const {
   assistantFunctionDeclarations,
   teacherFunctionDeclarations,
+  superAdminFunctionDeclarations,
   executeAssistantTool,
 } = require("./tools/assistant.tools");
 const {
@@ -282,7 +283,11 @@ const aiService = {
 
     // F. Tools setup (Strict RBAC role isolation)
     const tools = [];
-    if (userType === "teacher" || userType === "super_admin") {
+    if (userType === "super_admin") {
+      tools.push({
+        functionDeclarations: superAdminFunctionDeclarations,
+      });
+    } else if (userType === "teacher") {
       tools.push({
         functionDeclarations: teacherFunctionDeclarations,
       });

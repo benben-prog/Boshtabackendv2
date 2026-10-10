@@ -2,6 +2,9 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { query, transaction } = require("../../../config/database");
 const liveSessionsService = require("../../live_sessions/live_sessions.service");
+const userService = require("../../users/users.service");
+const settingsService = require("../../settings/settings.service");
+const whatsappDispatcher = require("../../whatsapp_messages/whatsapp_dispatcher.service");
 const {
   normalizeDigits,
   normalizeDate,
@@ -1007,6 +1010,223 @@ const assistantFunctionDeclarations = [
   },
 ];
 
+const superAdminOnlyFunctionDeclarations = [
+  {
+    name: "get_users_list",
+    description: "استعراض وتصفية قائمة المساعدين والإداريين والمعلمين في المنصة: إمكانية البحث بالاسم أو الهاتف، التصفية حسب الدور (assistant / teacher / super_admin) والحالة (نشط / معطل) ونوع الصلاحيات.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        search: {
+          type: "STRING",
+          description: "البحث بالاسم أو رقم الهاتف (اختياري)",
+        },
+        role: {
+          type: "STRING",
+          enum: ["all", "assistant", "teacher", "super_admin"],
+          description: "تصفية المستخدمين حسب الدور (اختياري)",
+        },
+        status: {
+          type: "STRING",
+          enum: ["all", "active", "inactive"],
+          description: "تصفية حسب الحالة: active (نشط ومفعّل) أو inactive (معطل) (اختياري)",
+        },
+        permissions: {
+          type: "STRING",
+          description: "تصفية حسب الصلاحية: center_management أو online_management (اختياري)",
+        },
+        limit: {
+          type: "INTEGER",
+          description: "الحد الأقصى لعدد النتائج المسترجعة (افتراضياً 20)",
+        },
+      },
+    },
+  },
+  {
+    name: "create_user_account",
+    description: "إنشاء وإضافة حساب جديد لمساعد أو إداري أو معلم في السنتر والمنصة مع تحديد الدور وكلمة المرور والصلاحيات.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        full_name: {
+          type: "STRING",
+          description: "الاسم الكامل للمستخدم الجديد",
+        },
+        phone: {
+          type: "STRING",
+          description: "رقم الهاتف المصري المكون من 11 رقم يبدأ بـ 01",
+        },
+        password: {
+          type: "STRING",
+          description: "كلمة المرور الأولية للحساب",
+        },
+        role: {
+          type: "STRING",
+          enum: ["assistant", "teacher", "super_admin"],
+          description: "دور المستخدم: assistant (مساعد) أو teacher (مدرس) أو super_admin (مدير عام)",
+        },
+        permissions: {
+          type: "STRING",
+          enum: ["center_management", "online_management"],
+          description: "الصلاحيات: center_management (إدارة السنتر) أو online_management (إدارة الأونلاين)",
+        },
+      },
+      required: ["full_name", "phone", "password", "role", "permissions"],
+    },
+  },
+  {
+    name: "set_user_password",
+    description: "تغيير وتعيين كلمة مرور أي مساعد أو إداري في المنصة فوراً وبشكل مباشر دون الحاجة لكلمة المرور القديمة أو أي تأكيد.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        user_query: {
+          type: "STRING",
+          description: "اسم المساعد أو رقم هاتفه أو معرّفه (ID) لتحديده بدقة",
+        },
+        new_password: {
+          type: "STRING",
+          description: "كلمة المرور الجديدة المراد تعيينها للمستخدم فوراً",
+        },
+      },
+      required: ["user_query", "new_password"],
+    },
+  },
+  {
+    name: "toggle_user_active",
+    description: "تفعيل أو تعطيل (تجميد وحظر مؤقت) لحساب مساعد أو إداري في المنصة لمنعه من الدخول فوراً أو إعادة تمكينه.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        user_query: {
+          type: "STRING",
+          description: "اسم المساعد أو رقم هاتفه أو معرّفه (ID)",
+        },
+      },
+      required: ["user_query"],
+    },
+  },
+  {
+    name: "delete_user_account",
+    description: "حذف حساب مساعد أو إداري من المنصة (حذف مؤقت بالإمكان استرجاعه، أو حذف نهائي دائم).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        user_query: {
+          type: "STRING",
+          description: "اسم المساعد أو هاتفه أو معرّفه (ID)",
+        },
+        permanent: {
+          type: "BOOLEAN",
+          description: "هل الحذف نهائي ودائم؟ (افتراضياً false للحذف المؤقت الآمن)",
+        },
+      },
+      required: ["user_query"],
+    },
+  },
+  {
+    name: "restore_user_account",
+    description: "استرجاع وإعادة تفعيل حساب مساعد أو إداري محذوف مؤقتاً.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        user_query: {
+          type: "STRING",
+          description: "اسم المساعد أو هاتفه أو معرّفه (ID)",
+        },
+      },
+      required: ["user_query"],
+    },
+  },
+  {
+    name: "get_platform_settings",
+    description: "عرض كافة إعدادات المنصة الحالية: حالة المنصة (نشطة/معطلة)، حالة العام الدراسي، اسم السنتر، الهاتف، مدة القفل التلقائي للشاشات، وإعدادات الواتساب.",
+    parameters: {
+      type: "OBJECT",
+      properties: {},
+    },
+  },
+  {
+    name: "update_platform_settings",
+    description: "تعديل وتحديث إعدادات المنصة الرئيسية: اسم السنتر، رقم الهاتف الرسمي، العنوان، مدة القفل، أو حالة العام الدراسي (active/paused/ended).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        center_name: {
+          type: "STRING",
+          description: "اسم السنتر أو المؤسسة التعليمية (اختياري)",
+        },
+        phone: {
+          type: "STRING",
+          description: "رقم هاتف السنتر الرسمي (اختياري)",
+        },
+        address: {
+          type: "STRING",
+          description: "عنوان ومقر السنتر (اختياري)",
+        },
+        default_lock_minutes: {
+          type: "INTEGER",
+          description: "مدة القفل التلقائي بالدقائق (اختياري)",
+        },
+        academic_year_status: {
+          type: "STRING",
+          enum: ["active", "paused", "ended"],
+          description: "حالة العام الدراسي: active (مستمر ونشط)، paused (مؤقت)، ended (منتهي) (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "toggle_platform_status",
+    description: "التحكم في تشغيل المنصة بالكامل: إيقاف المنصة مؤقتاً لجميع المستخدمين (وضع الصيانة Pause)، أو إعادة تشغيلها وتفعيلها (Active).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        action: {
+          type: "STRING",
+          enum: ["pause", "activate", "toggle"],
+          description: "الإجراء: pause (إيقاف المنصة مؤقتاً)، activate (تشغيل وتفعيل المنصة)، toggle (عكس الحالة الحالية)",
+        },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "get_system_activity_logs",
+    description: "سجل التدقيق الرقابي والأمني الشامل: استعراض كافة العمليات والأنشطة المنفذة في المنصة والسنتر من قِبل جميع المستخدمين والمساعدين مع التاريخ والوقت والتفاصيل.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        limit: {
+          type: "INTEGER",
+          description: "الحد الأقصى لعدد السجلات المسترجعة (افتراضياً 20)",
+        },
+        action: {
+          type: "STRING",
+          description: "تصفية حسب نوع الإجراء (مثل: create_student, record_payment, scan_attendance, login) (اختياري)",
+        },
+        user_role: {
+          type: "STRING",
+          enum: ["all", "assistant", "teacher", "super_admin"],
+          description: "تصفية حسب دور منفذ العملية (اختياري)",
+        },
+        date: {
+          type: "STRING",
+          description: "تاريخ العمليات بتنسيق YYYY-MM-DD (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_whatsapp_dashboard_stats",
+    description: "استعراض لوحة إحصائيات خادم رسائل الواتساب: عدد الرسائل المرسلة اليوم، الحد اليومي المتبقي، الرسائل المعلقة في طابور الإرسال، والرسائل الفاشلة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {},
+    },
+  },
+];
+
 function normalizeAttendanceDate(input) {
   if (!input) return getTodayEgypt();
   const clean = normalizeDigits(String(input)).trim();
@@ -1216,6 +1436,42 @@ const TEACHER_ONLY_TOOL_NAMES = new Set([
   "get_unpaid_students_report",
 ]);
 
+const SUPER_ADMIN_ONLY_TOOL_NAMES = new Set([
+  "get_users_list",
+  "create_user_account",
+  "set_user_password",
+  "toggle_user_active",
+  "delete_user_account",
+  "restore_user_account",
+  "get_platform_settings",
+  "update_platform_settings",
+  "toggle_platform_status",
+  "get_system_activity_logs",
+  "get_whatsapp_dashboard_stats",
+]);
+
+async function findUserByQuery(queryStr) {
+  if (!queryStr) return null;
+  const str = String(queryStr).trim();
+  const idNum = parseInt(str, 10);
+  const isNumeric = !isNaN(idNum) && /^\d+$/.test(str) && str.length < 9;
+
+  if (isNumeric) {
+    const res = await query("SELECT * FROM users WHERE id = $1 LIMIT 1", [idNum]);
+    if (res.rows[0]) return res.rows[0];
+  }
+
+  // By phone
+  const resPhone = await query("SELECT * FROM users WHERE phone = $1 LIMIT 1", [str]);
+  if (resPhone.rows[0]) return resPhone.rows[0];
+
+  // By full_name ILIKE
+  const resName = await query("SELECT * FROM users WHERE full_name ILIKE $1 LIMIT 1", [`%${str}%`]);
+  if (resName.rows[0]) return resName.rows[0];
+
+  return null;
+}
+
 async function executeAssistantTool(name, args = {}, context = {}) {
   const userId = context.userId || null;
   const userRole = context.userRole || context.userType || "assistant";
@@ -1227,6 +1483,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: false,
         error: "عفواً، هذه الأداة مخصصة حصرياً لمستر محمد بشتة (صاحب المنصة والإدارة العليا)، ولا تتوفر لحساب المساعدين حفاظاً على سرية وخصوصية البيانات المالية والإدارية.",
+      };
+    }
+  }
+
+  // Strict RBAC Guard: Protect Super Admin sovereign tools
+  if (SUPER_ADMIN_ONLY_TOOL_NAMES.has(name)) {
+    if (userRole !== "super_admin") {
+      return {
+        success: false,
+        error: "عفواً، هذه الأداة حصرية للمدير العام (Super Admin) فقط ولا يمتلك أي مستخدم آخر صلاحية تنفيذها.",
       };
     }
   }
@@ -4135,6 +4401,334 @@ ${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n
       };
     }
 
+    case "get_users_list": {
+      const { search, role, status, permissions, limit = 20 } = args;
+      const result = await userService.getAllUsers({
+        search: search || "",
+        role: role && role !== "all" ? role : null,
+        status: status && status !== "all" ? status : null,
+        permissions: permissions && permissions !== "all" ? permissions : null,
+        limit: limit || 20,
+        page: 1,
+      });
+      return {
+        success: true,
+        total_users_count: result.pagination.total,
+        returned_count: result.users.length,
+        users: result.users.map((u) => ({
+          id: u.id,
+          full_name: u.full_name,
+          phone: u.phone,
+          role: u.role,
+          permissions: u.permissions,
+          status: u.is_active === 1 ? "نشط ومفعّل" : "معطل ومجمّد",
+          created_at: formatEgyptTime(u.created_at, "YYYY-MM-DD HH:mm"),
+        })),
+      };
+    }
+
+    case "create_user_account": {
+      const { full_name, phone, password, role, permissions } = args;
+      if (!full_name || !phone || !password || !role || !permissions) {
+        return {
+          success: false,
+          error: "جميع البيانات مطلوبة (الاسم الكامل، رقم الهاتف، كلمة المرور، الدور، والصلاحيات).",
+        };
+      }
+      try {
+        const newUser = await userService.createUser({
+          full_name: full_name.trim(),
+          phone: phone.trim(),
+          password,
+          role,
+          permissions,
+        });
+        await logActivity({
+          user_id: userId || 1,
+          user_role: "super_admin",
+          user_permissions: userPermissions,
+          action: "create_user",
+          entity_type: "user",
+          entity_id: newUser.id,
+          description: `إنشاء حساب جديد عبر المساعد الذكي للسوبر أدمن: ${newUser.full_name} (${newUser.role})`,
+        });
+        return {
+          success: true,
+          message: `تم إنشاء حساب ${newUser.role === "assistant" ? "المساعد" : newUser.role === "teacher" ? "المعلم" : "الإداري"} بنجاح!`,
+          user: {
+            id: newUser.id,
+            full_name: newUser.full_name,
+            phone: newUser.phone,
+            role: newUser.role,
+            permissions: newUser.permissions,
+          },
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل إنشاء الحساب: ${err.message}`,
+        };
+      }
+    }
+
+    case "set_user_password": {
+      const { user_query, new_password } = args;
+      if (!user_query || !new_password) {
+        return {
+          success: false,
+          error: "مطلوب تحديد المستخدم (الاسم أو الهاتف أو الـ ID) وكلمة المرور الجديدة.",
+        };
+      }
+      const user = await findUserByQuery(user_query);
+      if (!user) {
+        return {
+          success: false,
+          error: `لم يتم العثور على أي مستخدم مطابق لـ: '${user_query}'`,
+        };
+      }
+      await userService.updateUserPassword(user.id, null, new_password, true);
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: "update_password",
+        entity_type: "user",
+        entity_id: user.id,
+        description: `تغيير كلمة المرور للمستخدم ${user.full_name} (ID: ${user.id}) عبر المساعد الذكي للسوبر أدمن`,
+      });
+      return {
+        success: true,
+        message: `تم تعيين وتحديث كلمة المرور للمستخدم (${user.full_name}) بنجاح!`,
+        user_id: user.id,
+        full_name: user.full_name,
+        role: user.role,
+        phone: user.phone,
+      };
+    }
+
+    case "toggle_user_active": {
+      const { user_query } = args;
+      const user = await findUserByQuery(user_query);
+      if (!user) {
+        return {
+          success: false,
+          error: `لم يتم العثور على مستخدم مطابق لـ: '${user_query}'`,
+        };
+      }
+      const updated = await userService.toggleUserActive(user.id);
+      const statusArabic = updated.is_active === 1 ? "نشط ومفعّل" : "معطل ومجمّد";
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: "toggle_user_active",
+        entity_type: "user",
+        entity_id: user.id,
+        description: `تغيير حالة المستخدم ${user.full_name} إلى ${statusArabic} عبر المساعد الذكي`,
+      });
+      return {
+        success: true,
+        message: `تم تغيير حالة المستخدم (${user.full_name}) بنجاح إلى: ${statusArabic}`,
+        user_id: user.id,
+        full_name: user.full_name,
+        new_status: statusArabic,
+        is_active: updated.is_active,
+      };
+    }
+
+    case "delete_user_account": {
+      const { user_query, permanent = false } = args;
+      const user = await findUserByQuery(user_query);
+      if (!user) {
+        return {
+          success: false,
+          error: `لم يتم العثور على مستخدم مطابق لـ: '${user_query}'`,
+        };
+      }
+      if (permanent) {
+        await userService.hardDeleteUser(user.id);
+      } else {
+        await userService.softDeleteUser(user.id);
+      }
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: permanent ? "hard_delete_user" : "soft_delete_user",
+        entity_type: "user",
+        entity_id: user.id,
+        description: `حذف حساب المستخدم ${user.full_name} (${permanent ? "نهائياً" : "مؤقتاً"}) عبر المساعد الذكي`,
+      });
+      return {
+        success: true,
+        message: `تم حذف حساب المستخدم (${user.full_name}) بنجاح (${permanent ? "حذف نهائي" : "حذف مؤقت يمكن استرجاعه"}).`,
+        user_id: user.id,
+        full_name: user.full_name,
+      };
+    }
+
+    case "restore_user_account": {
+      const { user_query } = args;
+      const user = await findUserByQuery(user_query);
+      if (!user) {
+        return {
+          success: false,
+          error: `لم يتم العثور على مستخدم مطابق لـ: '${user_query}'`,
+        };
+      }
+      await userService.restoreUser(user.id);
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: "restore_user",
+        entity_type: "user",
+        entity_id: user.id,
+        description: `استرجاع حساب المستخدم ${user.full_name} عبر المساعد الذكي`,
+      });
+      return {
+        success: true,
+        message: `تم استرجاع وإعادة تفعيل حساب المستخدم (${user.full_name}) بنجاح!`,
+        user_id: user.id,
+        full_name: user.full_name,
+      };
+    }
+
+    case "get_platform_settings": {
+      const settings = await settingsService.getSettings();
+      return {
+        success: true,
+        settings: {
+          center_name: settings?.center_name || "غير محدد",
+          phone: settings?.phone || "غير محدد",
+          address: settings?.address || "غير محدد",
+          platform_status: settings?.platform_status === "active" ? "نشطة وتعمل بشكل طبيعي" : "متوقفة ومغلقة مؤقتاً (Paused)",
+          raw_platform_status: settings?.platform_status || "active",
+          academic_year_status: settings?.academic_year_status || "active",
+          default_lock_minutes: settings?.default_lock_minutes || 30,
+          whatsapp_daily_limit: settings?.whatsapp_daily_limit || 250,
+          whatsapp_delay_seconds: settings?.whatsapp_delay_seconds || 45,
+        },
+      };
+    }
+
+    case "update_platform_settings": {
+      const updated = await settingsService.updateSettings(args);
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: "update_settings",
+        entity_type: "settings",
+        entity_id: 1,
+        description: "تحديث إعدادات المنصة العامة عبر المساعد الذكي للسوبر أدمن",
+      });
+      return {
+        success: true,
+        message: "تم تحديث إعدادات المنصة بنجاح!",
+        settings: updated,
+      };
+    }
+
+    case "toggle_platform_status": {
+      const { action = "toggle" } = args;
+      let newStatus = "active";
+      if (action === "pause") {
+        await query("UPDATE settings SET platform_status = 'paused', updated_at = NOW() WHERE id = 1");
+        newStatus = "paused";
+      } else if (action === "activate") {
+        await query("UPDATE settings SET platform_status = 'active', updated_at = NOW() WHERE id = 1");
+        newStatus = "active";
+      } else {
+        const res = await settingsService.togglePlatformStatus();
+        newStatus = res.platform_status;
+      }
+      await logActivity({
+        user_id: userId || 1,
+        user_role: "super_admin",
+        user_permissions: userPermissions,
+        action: "toggle_platform_status",
+        entity_type: "settings",
+        entity_id: 1,
+        description: `تغيير حالة تشغيل المنصة إلى (${newStatus === "active" ? "نشطة" : "متوقفة مؤقتاً"}) عبر المساعد الذكي للسوبر أدمن`,
+      });
+      return {
+        success: true,
+        platform_status: newStatus,
+        message: newStatus === "active"
+          ? "تم إعادة تشغيل وتفعيل المنصة بنجاح! المنصة متاحة الآن لكافة الطلاب والمساعدين."
+          : "تم إيقاف المنصة مؤقتاً (وضع الصيانة Pause)! تم حظر دخول الطلاب والمساعدين مؤقتاً حتى إشعار آخر.",
+      };
+    }
+
+    case "get_system_activity_logs": {
+      const { limit = 20, action, user_role, date } = args;
+      const conditions = [];
+      const params = [];
+      let paramIdx = 1;
+
+      if (action && action.trim() !== "") {
+        conditions.push(`al.action = $${paramIdx++}`);
+        params.push(action.trim());
+      }
+      if (user_role && user_role !== "all") {
+        conditions.push(`al.user_role = $${paramIdx++}`);
+        params.push(user_role.trim());
+      }
+      if (date && date.trim() !== "") {
+        conditions.push(`DATE(al.created_at) = $${paramIdx++}`);
+        params.push(date.trim());
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+      const parsedLimit = Math.max(1, parseInt(limit, 10) || 20);
+      params.push(parsedLimit);
+
+      const logsSql = `
+        SELECT 
+          al.id,
+          al.user_id,
+          al.user_role,
+          al.action,
+          al.entity_type,
+          al.entity_id,
+          al.description,
+          al.created_at,
+          u.full_name AS user_name,
+          u.phone AS user_phone
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        ${whereClause}
+        ORDER BY al.created_at DESC
+        LIMIT $${paramIdx}
+      `;
+
+      const logsRes = await query(logsSql, params);
+      return {
+        success: true,
+        total_returned: logsRes.rows.length,
+        logs: logsRes.rows.map((log) => ({
+          id: log.id,
+          action: log.action,
+          entity: `${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""}`,
+          description: log.description,
+          user_name: log.user_name || "النظام / المدير العام",
+          user_role: log.user_role,
+          user_phone: log.user_phone || "-",
+          time: formatEgyptTime(log.created_at, "YYYY-MM-DD HH:mm:ss"),
+        })),
+      };
+    }
+
+    case "get_whatsapp_dashboard_stats": {
+      const stats = await whatsappDispatcher.getStats();
+      return {
+        success: true,
+        stats,
+        status_summary: `تم إرسال ${stats.sent_today || 0} رسالة اليوم من أصل ${stats.daily_limit || 250}. المتبقي اليوم: ${stats.remaining_today || 0}. في طابور الانتظار: ${stats.pending || 0}. رسائل فاشلة: ${stats.failed || 0}.`,
+      };
+    }
+
     default:
       return {
         success: false,
@@ -4143,13 +4737,20 @@ ${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n
   }
 }
 
-const teacherFunctionDeclarations = assistantFunctionDeclarations;
 const operationalAssistantFunctionDeclarations = assistantFunctionDeclarations.filter(
-  (t) => !TEACHER_ONLY_TOOL_NAMES.has(t.name),
+  (t) => !TEACHER_ONLY_TOOL_NAMES.has(t.name) && !SUPER_ADMIN_ONLY_TOOL_NAMES.has(t.name),
 );
+const teacherFunctionDeclarations = assistantFunctionDeclarations.filter(
+  (t) => !SUPER_ADMIN_ONLY_TOOL_NAMES.has(t.name),
+);
+const superAdminFunctionDeclarations = [
+  ...assistantFunctionDeclarations,
+  ...superAdminOnlyFunctionDeclarations,
+];
 
 module.exports = {
   assistantFunctionDeclarations: operationalAssistantFunctionDeclarations,
   teacherFunctionDeclarations,
+  superAdminFunctionDeclarations,
   executeAssistantTool,
 };
