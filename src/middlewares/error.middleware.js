@@ -84,7 +84,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message,
-    ...(env.NODE_ENV !== "production" && { stack: err.stack }),
+    ...((env.NODE_ENV !== "production" && process.env.NODE_ENV !== "production" && !err.isOperational && statusCode === 500) && { stack: err.stack }),
   });
 };
 

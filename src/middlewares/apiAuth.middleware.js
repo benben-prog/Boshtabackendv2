@@ -2,16 +2,12 @@ const getApiAuth = require("../utils/apiAuth");
 
 const apiAuthMiddleware = (req, res, next) => {
   try {
-    const url = req.originalUrl || req.url || req.path || "";
-    // Allow direct file downloads, previews, templates, and exports without requiring Basic Auth
-    if (
-      (req.method === "GET" || req.method === "HEAD") &&
-      (url.includes("/download") ||
-        url.includes("/preview") ||
-        url.includes("/template") ||
-        url.includes("/pdf") ||
-        url.includes("/excel"))
-    ) {
+    // Allow direct browser downloads ONLY IF they present a client token in query parameters
+    const hasQueryToken = Boolean(
+      req.query?.token || req.query?.["x-client-key"] || req.query?.key
+    );
+
+    if ((req.method === "GET" || req.method === "HEAD") && hasQueryToken) {
       return next();
     }
 

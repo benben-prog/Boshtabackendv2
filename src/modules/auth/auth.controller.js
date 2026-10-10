@@ -12,7 +12,9 @@ const StudentLogin = async (req, res, next) => {
     const student = await authService.studentAuth(req.body);
 
     if (!student) {
-      throw new Error("رقم الهاتف أو كلمة المرور غير صحيحة");
+      const error = new Error("رقم الهاتف أو كلمة المرور غير صحيحة");
+      error.statusCode = 401;
+      throw error;
     }
 
     const payload = {
@@ -60,7 +62,9 @@ const userLogin = async (req, res, next) => {
     const user = await authService.userAuth(req.body);
 
     if (!user) {
-      throw new Error("رقم الهاتف أو كلمة المرور غير صحيحة");
+      const error = new Error("رقم الهاتف أو كلمة المرور غير صحيحة");
+      error.statusCode = 401;
+      throw error;
     }
 
     const payload = {
@@ -106,13 +110,17 @@ const parentAccess = async (req, res, next) => {
     const { token } = req.body;
 
     if (!token) {
-      throw new Error("التوكن مطلوب");
+      const error = new Error("التوكن مطلوب");
+      error.statusCode = 400;
+      throw error;
     }
 
     const student = await authService.parentAccess(token);
 
     if (!student) {
-      throw new Error("رابط غير صالح أو منتهي الصلاحية");
+      const error = new Error("رابط غير صالح أو منتهي الصلاحية");
+      error.statusCode = 401;
+      throw error;
     }
 
     const payload = {

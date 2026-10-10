@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 const path = require("path");
+const rateLimit = require("express-rate-limit");
 const { UPLOAD_ROOT } = require("./utils/fileStorage");
 const swaggerUi = require("swagger-ui-express");
 
@@ -87,15 +88,29 @@ if (env.NODE_ENV === "production") {
 }
 
 // ============================================
-// CORS (Completely Unrestricted - No Blocking)
+// CORS (Configured & Controlled)
 // ============================================
+
+const allowedOrigins = [
+  "https://boshta.benb3n.cloud",
+  "https://backend.benb3n.cloud",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:8080",
+  ...(env.CORS_ORIGINS || []),
+];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
+  const isAllowed = origin && (allowedOrigins.includes(origin) || env.NODE_ENV !== "production");
+
+  if (isAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Vary", "Origin");
+  } else if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
@@ -324,9 +339,19 @@ const liveDownloadRoutes = [
   "/api/live-sessions/:id/download-material",
   "/api/live-sessions/:id/preview",
 ];
-app.get(liveDownloadRoutes, liveSessionsController.downloadMaterial);
+// Rate Limiter for Authentication (protects against credential stuffing & bcrypt DoS)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "تم تجاوز عدد محاولات الدخول المسموح بها، يرجى المحاولة بعد 15 دقيقة",
+  },
+});
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/student", apiMiddelware, clientAuth, studentAuth, studentModuleRoutes);
 app.use("/api/parent", parentRoutes);
 app.use(
