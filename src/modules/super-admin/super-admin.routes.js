@@ -57,6 +57,7 @@ const {
   createUserSchema,
   updateUserSchema,
   updateUserPasswordSchema,
+  adminSetUserPasswordSchema,
   findUserByPhoneSchema,
 } = require("../../middlewares/validations/users.validation");
 const {
@@ -150,8 +151,8 @@ routes.post("/users/find", validate(findUserByPhoneSchema), usersController.find
 routes.get("/users/:userId", usersController.getUserById);
 routes.post("/users", validate(createUserSchema), usersController.createUser);
 routes.put("/users/:userId", validate(updateUserSchema), usersController.updateUser);
-routes.put("/users/:userId/password", validate(updateUserPasswordSchema), usersController.updateUserPassword);
-routes.put("/users/:userId/reset-password", usersController.resetUserPassword);
+routes.put("/users/:userId/password", validate(adminSetUserPasswordSchema), usersController.updateUserPassword);
+routes.put("/users/:userId/reset-password", validate(adminSetUserPasswordSchema), usersController.resetUserPassword);
 routes.put("/users/:userId/toggle-active", usersController.toggleUserActive);
 routes.delete("/users/:userId", usersController.softDeleteUser);
 routes.delete("/users/:userId/permanent", usersController.hardDeleteUser);

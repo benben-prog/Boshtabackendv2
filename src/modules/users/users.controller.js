@@ -40,13 +40,37 @@ const createUser = async (req, res, next) => {
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const users = await userService.getAllUsers(page);
+    const {
+      search = "",
+      role,
+      is_active,
+      status,
+      permissions,
+      page = 1,
+      limit = 20,
+      all,
+      sortBy,
+      order,
+    } = req.query;
+
+    const result = await userService.getAllUsers({
+      search,
+      role,
+      is_active,
+      status,
+      permissions,
+      page: parseInt(page, 10) || 1,
+      limit: limit === "all" ? "all" : (parseInt(limit, 10) || 20),
+      all: all === "true" || limit === "all",
+      sortBy,
+      order,
+    });
 
     return res.status(200).json({
       success: true,
       message: "تم تحميل المستخدمين بنجاح",
-      data: users,
+      data: result.users,
+      pagination: result.pagination,
     });
   } catch (error) {
     next(error);
@@ -74,6 +98,49 @@ const getUserById = async (req, res, next) => {
 
 const getAllAssistants = async (req, res, next) => {
   try {
+    const {
+      search = "",
+      is_active,
+      status,
+      permissions,
+      page,
+      limit,
+      all,
+      sortBy,
+      order,
+    } = req.query;
+
+    const hasFilters =
+      search ||
+      is_active !== undefined ||
+      status !== undefined ||
+      permissions !== undefined ||
+      page !== undefined ||
+      limit !== undefined ||
+      all !== undefined;
+
+    if (hasFilters) {
+      const result = await userService.getAllUsers({
+        search,
+        role: "assistant",
+        is_active,
+        status,
+        permissions,
+        page: parseInt(page, 10) || 1,
+        limit: limit === "all" ? "all" : (parseInt(limit, 10) || 20),
+        all: all === "true" || (all === undefined && limit === undefined),
+        sortBy,
+        order,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "تم تحميل المساعدين بنجاح",
+        data: result.users,
+        pagination: result.pagination,
+      });
+    }
+
     const assistants = await userService.getAllAssistants();
 
     return res.status(200).json({
@@ -88,6 +155,46 @@ const getAllAssistants = async (req, res, next) => {
 
 const getAllTeachers = async (req, res, next) => {
   try {
+    const {
+      search = "",
+      is_active,
+      status,
+      page,
+      limit,
+      all,
+      sortBy,
+      order,
+    } = req.query;
+
+    const hasFilters =
+      search ||
+      is_active !== undefined ||
+      status !== undefined ||
+      page !== undefined ||
+      limit !== undefined ||
+      all !== undefined;
+
+    if (hasFilters) {
+      const result = await userService.getAllUsers({
+        search,
+        role: "teacher",
+        is_active,
+        status,
+        page: parseInt(page, 10) || 1,
+        limit: limit === "all" ? "all" : (parseInt(limit, 10) || 20),
+        all: all === "true" || (all === undefined && limit === undefined),
+        sortBy,
+        order,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "تم تحميل المدرسين بنجاح",
+        data: result.users,
+        pagination: result.pagination,
+      });
+    }
+
     const teachers = await userService.getAllTeachers();
 
     return res.status(200).json({
@@ -121,6 +228,34 @@ const findUserByPhone = async (req, res, next) => {
 
 const getDeletedUsers = async (req, res, next) => {
   try {
+    const { search = "", role, page, limit, all, sortBy, order } = req.query;
+    const hasFilters =
+      search ||
+      role !== undefined ||
+      page !== undefined ||
+      limit !== undefined ||
+      all !== undefined;
+
+    if (hasFilters) {
+      const result = await userService.getAllUsers({
+        search,
+        role,
+        deleted: 1,
+        page: parseInt(page, 10) || 1,
+        limit: limit === "all" ? "all" : (parseInt(limit, 10) || 20),
+        all: all === "true" || (all === undefined && limit === undefined),
+        sortBy,
+        order,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "تم تحميل المستخدمين المحذوفين بنجاح",
+        data: result.users,
+        pagination: result.pagination,
+      });
+    }
+
     const users = await userService.getDeletedUsers();
 
     return res.status(200).json({
@@ -237,10 +372,24 @@ const updateUserPassword = async (req, res, next) => {
     const { oldPassword, password, newPassword } = req.body;
     const finalNewPassword = password ?? newPassword;
 
+    if (!finalNewPassword) {
+      throw new Error("كلمة المرور الجديدة مطلوبة");
+    }
+
+    const isSuperAdmin = req.clientRole === "super_admin";
+    const isTeacher = req.clientRole === "teacher";
+    // Super admins always bypass oldPassword. Teachers bypass when changing assistant's password.
+    const isManagingOtherUser =
+      (isSuperAdmin || isTeacher) &&
+      req.params.userId &&
+      String(req.params.userId) !== String(req.clientId);
+    const bypassOldPassword = isSuperAdmin || isManagingOtherUser || !oldPassword;
+
     const user = await userService.updateUserPassword(
       userId,
       oldPassword,
       finalNewPassword,
+      bypassOldPassword,
     );
 
     if (!user) {
@@ -248,13 +397,13 @@ const updateUserPassword = async (req, res, next) => {
     }
 
     await logActivity({
-      user_id: req.clientId,
-      user_role: req.clientRole,
+      user_id: req.clientId || 1,
+      user_role: req.clientRole || "super_admin",
       user_permissions: req.clientPermissions,
       action: "update_password",
       entity_type: "user",
       entity_id: userId,
-      description: "تغيير كلمة المرور",
+      description: `تغيير كلمة المرور لمستخدم (ID: ${userId}) بواسطة ${req.clientRole === "super_admin" ? "المدير العام" : "المستخدم"}`,
     });
 
     return res.status(200).json({
@@ -303,7 +452,7 @@ const toggleUserActive = async (req, res, next) => {
 const resetUserPassword = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { password } = req.body;
+    const password = req.body.password ?? req.body.newPassword;
 
     if (!password) {
       throw new Error("كلمة المرور مطلوبة");
@@ -316,13 +465,13 @@ const resetUserPassword = async (req, res, next) => {
     }
 
     await logActivity({
-      user_id: req.clientId,
-      user_role: req.clientRole,
+      user_id: req.clientId || 1,
+      user_role: req.clientRole || "super_admin",
       user_permissions: req.clientPermissions,
       action: "reset_user_password",
       entity_type: "user",
       entity_id: userId,
-      description: `إعادة تعيين باسورد لمستخدم (ID: ${userId})`,
+      description: `إعادة تعيين باسورد لمستخدم (ID: ${userId}) بواسطة ${req.clientRole === "super_admin" ? "المدير العام" : "المستخدم"}`,
     });
 
     return res.status(200).json({

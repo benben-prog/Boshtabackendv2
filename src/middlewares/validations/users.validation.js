@@ -66,9 +66,7 @@ const updateUserSchema = Joi.object({
 
 // Update user password schema (flexible)
 const updateUserPasswordSchema = Joi.object({
-  oldPassword: Joi.string().min(4).max(100).required().messages({
-    "any.required": "كلمة المرور القديمة مطلوبة",
-    "string.empty": "كلمة المرور القديمة مطلوبة",
+  oldPassword: Joi.string().min(4).max(100).optional().allow("", null).messages({
     "string.min": "كلمة المرور القديمة يجب أن تكون 4 أحرف على الأقل",
   }),
   password: Joi.string().min(4).max(100).messages({
@@ -79,16 +77,30 @@ const updateUserPasswordSchema = Joi.object({
   }),
   confirmPassword: Joi.string()
     .valid(Joi.ref("password"), Joi.ref("newPassword"))
-    .required()
+    .optional()
     .messages({
       "any.only": "تأكيد كلمة المرور غير مطابق",
-      "any.required": "تأكيد كلمة المرور مطلوب",
     }),
 })
-  .xor("password", "newPassword")
+  .or("password", "newPassword")
   .messages({
-    "object.missing": "كلمة المرور الجديدة مطلوبة",
-    "object.xor": "أرسل password أو newPassword وليس الاثنين معاً",
+    "object.missing": "كلمة المرور الجديدة مطلوبة (password أو newPassword)",
+  });
+
+// Admin direct password change schema (No oldPassword or confirmation required)
+const adminSetUserPasswordSchema = Joi.object({
+  password: Joi.string().min(4).max(100).messages({
+    "string.min": "كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل",
+  }),
+  newPassword: Joi.string().min(4).max(100).messages({
+    "string.min": "كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل",
+  }),
+  confirmPassword: Joi.string().optional().allow("", null),
+  oldPassword: Joi.string().optional().allow("", null),
+})
+  .or("password", "newPassword")
+  .messages({
+    "object.missing": "كلمة المرور الجديدة مطلوبة (password أو newPassword)",
   });
 
 // Find user by phone schema
@@ -108,5 +120,6 @@ module.exports = {
   createUserSchema,
   updateUserSchema,
   updateUserPasswordSchema,
+  adminSetUserPasswordSchema,
   findUserByPhoneSchema,
 };

@@ -34,9 +34,150 @@ const createUser = async (userData) => {
 // GETTERS
 // ============================================
 
-const getAllUsers = async (page = 1) => {
-  const result = await query(userQueries.getAllUsers, [page]);
-  return result.rows;
+const getAllUsers = async (filtersOrPage = {}) => {
+  const filters =
+    typeof filtersOrPage === "number"
+      ? { page: filtersOrPage }
+      : filtersOrPage || {};
+
+  const {
+    search = "",
+    role = null,
+    is_active = null,
+    status = null,
+    permissions = null,
+    deleted = 0,
+    page = 1,
+    limit = 20,
+    all = false,
+    sortBy = "created_at",
+    order = "DESC",
+  } = filters;
+
+  const conditions = [];
+  const params = [];
+  let paramIndex = 1;
+
+  // Deleted condition
+  conditions.push(`deleted = $${paramIndex++}`);
+  params.push(Number(deleted) === 1 ? 1 : 0);
+
+  // Search condition (full_name or phone)
+  if (search && String(search).trim() !== "") {
+    conditions.push(
+      `(full_name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`,
+    );
+    params.push(`%${String(search).trim()}%`);
+    paramIndex++;
+  }
+
+  // Role condition
+  if (role && role !== "all") {
+    if (Array.isArray(role)) {
+      conditions.push(`role = ANY($${paramIndex++})`);
+      params.push(role);
+    } else {
+      conditions.push(`role = $${paramIndex++}`);
+      params.push(role);
+    }
+  }
+
+  // Status / is_active condition
+  let activeFilter = null;
+  if (status !== null && status !== undefined && status !== "") {
+    if (status === "active") activeFilter = 1;
+    else if (status === "inactive") activeFilter = 0;
+  }
+  if (is_active !== null && is_active !== undefined && is_active !== "") {
+    if (
+      is_active === 1 ||
+      is_active === "1" ||
+      is_active === true ||
+      is_active === "true"
+    ) {
+      activeFilter = 1;
+    } else if (
+      is_active === 0 ||
+      is_active === "0" ||
+      is_active === false ||
+      is_active === "false"
+    ) {
+      activeFilter = 0;
+    }
+  }
+  if (activeFilter !== null) {
+    conditions.push(`is_active = $${paramIndex++}`);
+    params.push(activeFilter);
+  }
+
+  // Permissions condition
+  if (permissions && permissions !== "all" && permissions !== "") {
+    conditions.push(`permissions = $${paramIndex++}`);
+    params.push(permissions);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Count query
+  const countSql = `SELECT COUNT(*) AS total FROM users ${whereClause}`;
+  const countResult = await query(countSql, params);
+  const total = parseInt(countResult.rows[0]?.total || 0, 10);
+
+  // Safe sorting
+  const allowedSortCols = {
+    id: "id",
+    full_name: "full_name",
+    phone: "phone",
+    role: "role",
+    permissions: "permissions",
+    is_active: "is_active",
+    created_at: "created_at",
+  };
+  const sortCol = allowedSortCols[sortBy] || "created_at";
+  const sortDir = String(order).toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+  // Data query
+  let dataSql = `
+    SELECT 
+      id,
+      full_name,
+      phone,
+      role,
+      permissions,
+      profile_image,
+      is_active,
+      created_at,
+      updated_at
+    FROM users
+    ${whereClause}
+    ORDER BY ${sortCol} ${sortDir}
+  `;
+
+  const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+  const isAll = all === true || all === "true" || limit === "all";
+
+  if (!isAll) {
+    const parsedLimit = Math.max(1, parseInt(limit, 10) || 20);
+    const offset = (parsedPage - 1) * parsedLimit;
+    dataSql += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(parsedLimit, offset);
+  }
+
+  const dataResult = await query(dataSql, params);
+  const parsedLimit = isAll ? total : Math.max(1, parseInt(limit, 10) || 20);
+  const totalPages = isAll ? 1 : Math.ceil(total / (parsedLimit || 1)) || 1;
+
+  return {
+    users: dataResult.rows,
+    pagination: {
+      page: parsedPage,
+      limit: parsedLimit,
+      total,
+      totalPages,
+      is_all: isAll,
+    },
+  };
 };
 
 const getUserById = async (userId) => {
@@ -96,7 +237,12 @@ const updateUser = async (userId, userData) => {
   return result.rows[0];
 };
 
-const updateUserPassword = async (userId, oldPassword, newPassword) => {
+const updateUserPassword = async (
+  userId,
+  oldPassword,
+  newPassword,
+  bypassOldPassword = false,
+) => {
   const existing = await query(userQueries.getUserPasswordById, [userId]);
   const user = existing.rows[0];
 
@@ -104,24 +250,30 @@ const updateUserPassword = async (userId, oldPassword, newPassword) => {
     throw new Error("المستخدم غير موجود");
   }
 
-  const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
-  if (!isOldPasswordValid) {
-    throw new Error("كلمة المرور القديمة غير صحيحة");
-  }
+  if (!bypassOldPassword) {
+    if (!oldPassword) {
+      throw new Error("كلمة المرور القديمة مطلوبة");
+    }
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      throw new Error("كلمة المرور القديمة غير صحيحة");
+    }
 
-  const isSamePassword = await bcrypt.compare(newPassword, user.password);
-  if (isSamePassword) {
-    throw new Error("كلمة المرور الجديدة يجب أن تكون مختلفة عن القديمة");
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new Error("كلمة المرور الجديدة يجب أن تكون مختلفة عن القديمة");
+    }
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  const result = await query(userQueries.updateUserPassword, [
+  await query(userQueries.updateUserPassword, [
     userId,
     hashedPassword,
   ]);
 
-  return result.rows[0];
+  const updatedUser = await getUserById(userId);
+  return updatedUser || { id: userId, full_name: user.full_name, role: user.role };
 };
 
 const updateUserProfileImage = async (userId, profileImage) => {
