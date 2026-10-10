@@ -9,10 +9,42 @@ const {
   formatEgyptTime,
   getTodayEgypt,
 } = require("../../utils/timezone");
+const { query } = require("../../config/database");
 const {
   assistantFunctionDeclarations,
   executeAssistantTool,
 } = require("./tools/assistant.tools");
+const {
+  studentFunctionDeclarations,
+  executeStudentTool,
+} = require("./tools/student.tools");
+
+// Helper to check if a student is actively taking an online exam
+const checkStudentActiveExam = async (studentId) => {
+  const result = await query(
+    `
+    SELECT 
+      se.id,
+      se.exam_id,
+      oe.title,
+      se.started_at,
+      oe.duration_minutes,
+      oe.end_at
+    FROM student_exams se
+    JOIN online_exams oe ON se.exam_id = oe.id
+    WHERE se.student_id = $1
+      AND se.submitted_at IS NULL
+      AND (se.is_absent IS FALSE OR se.is_absent IS NULL)
+      AND oe.deleted = 0
+      AND (NOW() AT TIME ZONE 'Africa/Cairo' <= oe.end_at)
+      AND (NOW() AT TIME ZONE 'Africa/Cairo' <= se.started_at + (oe.duration_minutes || ' minutes')::interval)
+    ORDER BY se.started_at DESC
+    LIMIT 1
+  `,
+    [studentId],
+  );
+  return result.rows[0] || null;
+};
 
 const FALLBACK_MODELS = [
   env.GEMINI_MODEL || "gemini-flash-lite-latest",
@@ -45,6 +77,21 @@ const aiService = {
     const tomorrow = new Date();
     tomorrow.setHours(24, 0, 0, 0);
 
+    let isExamLocked = false;
+    let activeExamInfo = null;
+
+    if (userType === "student") {
+      const activeExam = await checkStudentActiveExam(userId);
+      if (activeExam) {
+        isExamLocked = true;
+        activeExamInfo = {
+          id: activeExam.id,
+          exam_id: activeExam.exam_id,
+          title: activeExam.title,
+        };
+      }
+    }
+
     return {
       messages: {
         used: messagesUsed,
@@ -56,6 +103,8 @@ const aiService = {
         limit: fileLimit,
         remaining: Math.max(0, fileLimit - filesUsed),
       },
+      is_exam_locked: isExamLocked,
+      active_exam: activeExamInfo,
       resets_at: tomorrow.toISOString(),
     };
   },
@@ -69,7 +118,49 @@ const aiService = {
       throw error;
     }
 
-    // A. Check daily quotas
+    // A. Check active online exam lockout for students
+    if (userType === "student") {
+      const activeExam = await checkStudentActiveExam(userId);
+      if (activeExam) {
+        if (file) {
+          const diskPath = resolveStoredPath(file.path) || file.path;
+          if (fs.existsSync(diskPath)) {
+            try {
+              fs.unlinkSync(diskPath);
+            } catch (e) {}
+          }
+        }
+
+        const nowIso = new Date().toISOString();
+        const lockMessage = `عفواً يا بطل! أنت تؤدي حالياً امتحاناً إلكترونياً ("${activeExam.title}"). 🔒\n\nتم إغلاق المساعد الذكي مؤقتاً طوال فترة أداء الامتحان حرصاً على تكافؤ الفرص والعدالة الأكاديمية.\nسيُفتح لك المساعد تلقائياً فور انتهائك من تسليم الامتحان أو فور انتهاء وقته المحدد.\n\nركز جيداً في أسئلتك، واستعن بالله وبالتوفيق والدرجة النهائية إن شاء الله! 🌟`;
+
+        const quota = await aiService.getQuota(userType, userId);
+
+        return {
+          id: null,
+          message_id: null,
+          role: "model",
+          message: lockMessage,
+          reply: lockMessage,
+          text: lockMessage,
+          is_exam_locked: true,
+          active_exam: {
+            id: activeExam.id,
+            exam_id: activeExam.exam_id,
+            title: activeExam.title,
+          },
+          created_at: nowIso,
+          createdAt: nowIso,
+          timestamp: nowIso,
+          time: nowIso,
+          date: nowIso,
+          has_file: false,
+          quota,
+        };
+      }
+    }
+
+    // B. Check daily quotas
     const usage = await aiQueries.getTodayUsage(userType, userId);
     const messagesUsed = usage ? Number(usage.message_count) : 0;
     const filesUsed = usage ? Number(usage.file_count) : 0;
@@ -177,11 +268,15 @@ const aiService = {
       parts: currentParts,
     });
 
-    // F. Tools setup (Enable assistant tools for assistant or teacher)
+    // F. Tools setup (Enable assistant tools for assistant or teacher, student tools for student)
     const tools = [];
     if (userType === "assistant" || userType === "teacher") {
       tools.push({
         functionDeclarations: assistantFunctionDeclarations,
+      });
+    } else if (userType === "student") {
+      tools.push({
+        functionDeclarations: studentFunctionDeclarations,
       });
     }
 
@@ -245,15 +340,29 @@ const aiService = {
 
                 let fnResult;
                 try {
-                  fnResult = await executeAssistantTool(fnName, fnArgs, {
-                    userId,
-                    userType,
-                    userRole: userType,
-                    userName: userContext.userName,
-                    permissions: userContext.permissions,
-                  });
+                  if (userType === "student") {
+                    fnResult = await executeStudentTool(fnName, fnArgs, {
+                      userId,
+                      userType,
+                      userName: userContext.userName,
+                      gradeName: userContext.gradeName,
+                      groupName: userContext.groupName,
+                      barcode: userContext.barcode,
+                    });
+                  } else {
+                    fnResult = await executeAssistantTool(fnName, fnArgs, {
+                      userId,
+                      userType,
+                      userRole: userType,
+                      userName: userContext.userName,
+                      permissions: userContext.permissions,
+                    });
+                  }
                 } catch (toolExecErr) {
-                  console.error(`Tool execution exception in [${fnName}]:`, toolExecErr.message);
+                  console.error(
+                    `Tool execution exception in [${fnName}]:`,
+                    toolExecErr.message,
+                  );
                   fnResult = {
                     success: false,
                     error: `تعذر إتمام العملية: ${toolExecErr.message}`,
