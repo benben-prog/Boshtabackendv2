@@ -5,7 +5,13 @@ const getUserRole = (req) => {
   if (req.clientRole === "student") return "student";
   if (req.clientRole === "assistant") return "assistant";
   if (req.clientRole === "teacher") return "teacher";
-  return "teacher"; // Default/super_admin
+  if (req.clientRole === "super_admin") return "super_admin";
+  return "super_admin"; // Default/super_admin
+};
+
+const getUserId = (req) => {
+  // If authenticated via Basic Auth without specific JWT id, default to main admin id (1)
+  return req.clientId || 1;
 };
 
 const aiController = {
@@ -13,7 +19,7 @@ const aiController = {
   chat: async (req, res, next) => {
     try {
       const userType = getUserRole(req);
-      const userId = req.clientId;
+      const userId = getUserId(req);
       const { message } = req.body;
       const file = req.file || null;
 
@@ -42,7 +48,7 @@ const aiController = {
   getQuota: async (req, res, next) => {
     try {
       const userType = getUserRole(req);
-      const userId = req.clientId;
+      const userId = getUserId(req);
       const quota = await aiService.getQuota(userType, userId);
 
       return res.status(200).json({
@@ -59,7 +65,7 @@ const aiController = {
   getHistory: async (req, res, next) => {
     try {
       const userType = getUserRole(req);
-      const userId = req.clientId;
+      const userId = getUserId(req);
       const history = await aiService.getHistory(userType, userId);
 
       return res.status(200).json({
@@ -76,7 +82,7 @@ const aiController = {
   clearHistory: async (req, res, next) => {
     try {
       const userType = getUserRole(req);
-      const userId = req.clientId;
+      const userId = getUserId(req);
       const result = await aiService.clearHistory(userType, userId);
 
       return res.status(200).json({

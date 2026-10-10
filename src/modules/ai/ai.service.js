@@ -196,15 +196,21 @@ const aiService = {
         };
       }
     } else {
-      const user = await aiQueries.getUserContext(userId);
+      const user = userId ? await aiQueries.getUserContext(userId) : null;
       if (user) {
         userContext = {
           userName: user.full_name,
           userPhone: user.phone,
           permissions:
-            user.permissions === "all"
-              ? "إدارة السنتر والأونلاين كاملة"
+            user.role === "super_admin" || user.permissions === "all"
+              ? "إدارة السنتر والمنصة كاملة (المدير العام - Super Admin)"
               : user.permissions,
+        };
+      } else {
+        userContext = {
+          userName: "المدير العام (Super Admin)",
+          userPhone: env.SUPER_ADMIN_USERNAME || "الرئيسي",
+          permissions: "إدارة السنتر والمنصة كاملة (المدير العام - Super Admin)",
         };
       }
     }
@@ -276,7 +282,7 @@ const aiService = {
 
     // F. Tools setup (Strict RBAC role isolation)
     const tools = [];
-    if (userType === "teacher") {
+    if (userType === "teacher" || userType === "super_admin") {
       tools.push({
         functionDeclarations: teacherFunctionDeclarations,
       });
