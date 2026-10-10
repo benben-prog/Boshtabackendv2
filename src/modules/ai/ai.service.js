@@ -12,6 +12,7 @@ const {
 const { query } = require("../../config/database");
 const {
   assistantFunctionDeclarations,
+  teacherFunctionDeclarations,
   executeAssistantTool,
 } = require("./tools/assistant.tools");
 const {
@@ -243,9 +244,14 @@ const aiService = {
     const contents = [];
 
     for (const msg of recentMessages) {
+      let msgText = msg.message || "";
+      // Quota optimization: Truncate very long previous messages in conversation history to save tokens
+      if (msgText.length > 1200) {
+        msgText = msgText.substring(0, 1200) + "... [تم اختصار السياق السابق لترشيد استهلاك الكوتا]";
+      }
       contents.push({
         role: msg.role === "model" ? "model" : "user",
-        parts: [{ text: msg.message }],
+        parts: [{ text: msgText }],
       });
     }
 
@@ -268,9 +274,13 @@ const aiService = {
       parts: currentParts,
     });
 
-    // F. Tools setup (Enable assistant tools for assistant or teacher, student tools for student)
+    // F. Tools setup (Strict RBAC role isolation)
     const tools = [];
-    if (userType === "assistant" || userType === "teacher") {
+    if (userType === "teacher") {
+      tools.push({
+        functionDeclarations: teacherFunctionDeclarations,
+      });
+    } else if (userType === "assistant") {
       tools.push({
         functionDeclarations: assistantFunctionDeclarations,
       });

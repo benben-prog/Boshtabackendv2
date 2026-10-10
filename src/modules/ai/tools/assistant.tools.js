@@ -1205,10 +1205,31 @@ async function logAiActivity(userId, userRole, userPermissions, action, entityTy
   }
 }
 
+const TEACHER_ONLY_TOOL_NAMES = new Set([
+  "get_teacher_dashboard_overview",
+  "get_financial_analytics",
+  "get_assistants_activity_log",
+  "get_assistants_performance_stats",
+  "get_at_risk_students_analysis",
+  "get_groups_comparative_analytics",
+  "get_content_and_video_analytics",
+  "get_unpaid_students_report",
+]);
+
 async function executeAssistantTool(name, args = {}, context = {}) {
   const userId = context.userId || null;
   const userRole = context.userRole || context.userType || "assistant";
   const userPermissions = context.permissions || null;
+
+  // Strict RBAC Guard: Protect executive/financial tools from non-teachers
+  if (TEACHER_ONLY_TOOL_NAMES.has(name)) {
+    if (userRole !== "teacher" && userRole !== "super_admin") {
+      return {
+        success: false,
+        error: "عفواً، هذه الأداة مخصصة حصرياً لمستر محمد بشتة (صاحب المنصة والإدارة العليا)، ولا تتوفر لحساب المساعدين حفاظاً على سرية وخصوصية البيانات المالية والإدارية.",
+      };
+    }
+  }
 
   switch (name) {
     case "get_platform_info": {
@@ -4122,7 +4143,13 @@ ${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n
   }
 }
 
+const teacherFunctionDeclarations = assistantFunctionDeclarations;
+const operationalAssistantFunctionDeclarations = assistantFunctionDeclarations.filter(
+  (t) => !TEACHER_ONLY_TOOL_NAMES.has(t.name),
+);
+
 module.exports = {
-  assistantFunctionDeclarations,
+  assistantFunctionDeclarations: operationalAssistantFunctionDeclarations,
+  teacherFunctionDeclarations,
   executeAssistantTool,
 };
