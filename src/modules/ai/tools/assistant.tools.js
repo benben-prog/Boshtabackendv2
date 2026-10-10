@@ -878,6 +878,133 @@ const assistantFunctionDeclarations = [
       required: ["exam_id"],
     },
   },
+  {
+    name: "get_student_comprehensive_profile",
+    description: "الملف التحليلي الشامل 360 درجة لطالب معين (البيانات، نسبة الحضور والغياب، السجل المالي، نتائج الامتحانات الورقية والإلكترونية، تسليم الواجبات، والتقييم التشخيصي لمستواه).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "باركود أو اسم أو هاتف الطالب للبحث والتحليل",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
+  {
+    name: "get_at_risk_students_analysis",
+    description: "التحليل الذكي للطلاب المعرضين لخطر الهبوط أو الانقطاع (الغياب المتكرر 3+ حصص، تدهور درجات الامتحانات <50%، أو تراكم الديون المالية)، مع بيانات هواتف أولياء الأمور للتدخل الفوري.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي للتصفية (اختياري)",
+        },
+        risk_type: {
+          type: "STRING",
+          enum: ["all", "attendance", "exams", "payments"],
+          description: "نوع الخطر المطلوب حصره: all (الكل)، attendance (غياب متكرر)، exams (هبوط الدرجات)، payments (متأخرات مالية)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_groups_comparative_analytics",
+    description: "التحليل المقارن بين المجموعات الدراسية: يقارن بين جميع المجموعات من حيث أعداد الطلاب، نسبة الحضور المتوسطة، متوسط درجات الامتحانات الورقية والإلكترونية، وترتيب المجموعات من الأكثر التزاماً وتفوقاً إلى الأقل.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي لمقارنة مجموعاته (اختياري، اتركه فارغاً لمقارنة كافة مجموعات السنتر)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_unpaid_students_report",
+    description: "كشف وحصر الطلاب غير المسددين للاشتراك لشهر معين أو الشهر الحالي مع أرقام هواتفهم وهواتف أولياء أمورهم ومجموعاتهم والمبالغ المستحقة لمتابعة التحصيل.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        month: {
+          type: "STRING",
+          description: "شهر الاشتراك بتنسيق YYYY-MM أو اسم الشهر (اختياري، الافتراضي الشهر الحالي)",
+        },
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي للتصفية (اختياري)",
+        },
+        group_id: {
+          type: "INTEGER",
+          description: "معرّف المجموعة للتصفية (اختياري)",
+        },
+        limit: {
+          type: "INTEGER",
+          description: "عدد الطلاب المسترجعين في التقرير (افتراضياً 30)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_assignments_analytics",
+    description: "التقرير التحليلي الشامل للواجبات المنزلية: إجمالي الواجبات المنشورة، نسب التسليم والالتزام، الواجبات المعلقة بانتظار التصحيح، ومعدلات درجات الطلاب.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_assistants_performance_stats",
+    description: "إحصائيات إنتاجية وأداء المساعدين في المنصة: حصر عدد العمليات التي قام بها كل مساعد (مسح الباركود للحضور، تسجيل المدفوعات، إضافة طلاب، رصد درجات).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        date: {
+          type: "STRING",
+          description: "تاريخ محدد بتنسيق YYYY-MM-DD لحصر أداء يوم معين (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_content_and_video_analytics",
+    description: "إحصائيات المحتوى الرقمي والفيديوهات: حصر الفيديوهات المرفوعة، قوائم التشغيل لكل صف، عدد الحصص، وإحصائيات حصص البث المباشر (Google Meet).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "generate_parent_whatsapp_report",
+    description: "توليد وصياغة رسالة واتساب رسمية واحترافية موجهة لولي أمر طالب باسم مستر محمد بشتة: تتضمن تقرير الحضور والغياب، نتائج آخر الامتحانات، تسليم الواجبات، حالة الاشتراك، وملاحظة تربوية مشجعة جاهزة للإرسال.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        student_query: {
+          type: "STRING",
+          description: "اسم الطالب أو الباركود أو رقم الهاتف",
+        },
+        custom_note: {
+          type: "STRING",
+          description: "ملاحظة خاصة من المستر يريد إضافتها للرسالة (اختياري)",
+        },
+      },
+      required: ["student_query"],
+    },
+  },
 ];
 
 function normalizeAttendanceDate(input) {
@@ -3368,6 +3495,623 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           struggling_students: lowestScorers.rows,
         };
       }
+    }
+
+    case "get_student_comprehensive_profile": {
+      const { student_query } = args;
+      if (!student_query) {
+        return { success: false, error: "يرجى تحديد الطالب بالاسم أو الباركود أو رقم الهاتف." };
+      }
+      const q = String(student_query).trim();
+      const stdRes = await query(`
+        SELECT s.*, g.name AS grade_name, g.monthly_price, grp.name AS group_name
+        FROM students s
+        LEFT JOIN grades g ON s.grade_id = g.id
+        LEFT JOIN groups grp ON s.group_id = grp.id
+        WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
+          AND s.deleted = 0
+        LIMIT 1
+      `, [q]);
+
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${q}'` };
+      }
+      const student = stdRes.rows[0];
+
+      // 1. Attendance stats
+      const attStatsRes = await query(`
+        SELECT 
+          COUNT(*) AS total_recorded_days,
+          COUNT(CASE WHEN status = 'present' THEN 1 END) AS present_days,
+          COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_days
+        FROM attendance
+        WHERE student_id = $1
+      `, [student.id]);
+      const attStats = attStatsRes.rows[0];
+      const totalDays = Number(attStats.total_recorded_days || 0);
+      const presentDays = Number(attStats.present_days || 0);
+      const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
+
+      // 2. Paper exams history
+      const paperExamsRes = await query(`
+        SELECT e.id, e.title, er.degree, e.total_degree, er.created_at, er.is_absent
+        FROM exam_results er
+        JOIN exams e ON er.exam_id = e.id
+        WHERE er.student_id = $1
+        ORDER BY er.created_at DESC
+        LIMIT 5
+      `, [student.id]);
+
+      // 3. Online exams history
+      const onlineExamsRes = await query(`
+        SELECT oe.id, oe.title, se.score, oe.full_mark, se.started_at, se.is_absent
+        FROM student_exams se
+        JOIN online_exams oe ON se.exam_id = oe.id
+        WHERE se.student_id = $1
+        ORDER BY se.started_at DESC
+        LIMIT 5
+      `, [student.id]);
+
+      // 4. Assignments submissions
+      const assignRes = await query(`
+        SELECT a.id, a.title, sub.score, a.full_mark, sub.submitted_at, sub.feedback
+        FROM assignment_submissions sub
+        JOIN assignments a ON sub.assignment_id = a.id
+        WHERE sub.student_id = $1
+        ORDER BY sub.submitted_at DESC
+        LIMIT 5
+      `, [student.id]);
+
+      // 5. Subscriptions and financial status
+      const subsRes = await query(`
+        SELECT sub.id, sub.month, sub.required_amount, sub.status,
+               COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount
+        FROM subscriptions sub
+        WHERE sub.student_id = $1 AND sub.deleted = 0
+        ORDER BY sub.month DESC
+        LIMIT 6
+      `, [student.id]);
+
+      // 6. Calculate AI Academic Diagnosis
+      let totalExamPct = 0;
+      let examCount = 0;
+      paperExamsRes.rows.forEach(e => {
+        if (!e.is_absent && e.degree !== null && e.total_degree > 0) {
+          totalExamPct += (Number(e.degree) / Number(e.total_degree)) * 100;
+          examCount++;
+        }
+      });
+      onlineExamsRes.rows.forEach(e => {
+        if (!e.is_absent && e.score !== null && e.full_mark > 0) {
+          totalExamPct += (Number(e.score) / Number(e.full_mark)) * 100;
+          examCount++;
+        }
+      });
+      const avgAcademicScore = examCount > 0 ? Math.round(totalExamPct / examCount) : null;
+
+      let diagnosisStatus = "طالب مستقر ومنتظم";
+      let diagnosticLevel = "good";
+      if (avgAcademicScore !== null && avgAcademicScore >= 85 && attendanceRate >= 85) {
+        diagnosisStatus = "🌟 متفوق ومرشح للوحة الشرف";
+        diagnosticLevel = "excellent";
+      } else if (attendanceRate < 60 || (avgAcademicScore !== null && avgAcademicScore < 50)) {
+        diagnosisStatus = "⚠️ معرض لخطر الهبوط أو الانقطاع (يحتاج تدخل فوري)";
+        diagnosticLevel = "at_risk";
+      } else if (subsRes.rows.filter(s => s.status !== "paid").length >= 2) {
+        diagnosisStatus = "⚠️ متأخر في سداد الاشتراكات (متابعة مالية)";
+        diagnosticLevel = "payment_warning";
+      }
+
+      return {
+        success: true,
+        student: {
+          id: student.id,
+          full_name: student.full_name,
+          barcode: student.barcode,
+          phone: student.phone || "غير مسجل",
+          parent_phone: student.parent_phone || "غير مسجل",
+          parent_token: student.parent_token,
+          grade_name: student.grade_name,
+          group_name: student.group_name,
+          is_active: student.is_active,
+          notes: student.notes,
+        },
+        ai_diagnosis: {
+          status: diagnosisStatus,
+          level: diagnosticLevel,
+          attendance_rate: `${attendanceRate}%`,
+          avg_exam_score: avgAcademicScore !== null ? `${avgAcademicScore}%` : "لا توجد امتحانات مسجلة بعد",
+        },
+        attendance_overview: {
+          total_days: totalDays,
+          present_days: presentDays,
+          absent_days: Number(attStats.absent_days || 0),
+          rate: `${attendanceRate}%`,
+        },
+        recent_paper_exams: paperExamsRes.rows.map(e => ({
+          title: e.title,
+          score: `${e.degree || 0} / ${e.total_degree}`,
+          is_absent: e.is_absent,
+          date: formatEgyptTime(e.created_at, "YYYY-MM-DD"),
+        })),
+        recent_online_exams: onlineExamsRes.rows.map(e => ({
+          title: e.title,
+          score: `${e.score || 0} / ${e.full_mark}`,
+          is_absent: e.is_absent,
+          date: formatEgyptTime(e.started_at, "YYYY-MM-DD"),
+        })),
+        recent_assignments: assignRes.rows.map(a => ({
+          title: a.title,
+          score: a.score !== null ? `${a.score} / ${a.full_mark}` : "قيد التصحيح",
+          feedback: a.feedback,
+        })),
+        recent_subscriptions: subsRes.rows.map(s => ({
+          month: s.month,
+          required: Number(s.required_amount),
+          paid: Number(s.paid_amount),
+          status: s.status === "paid" ? "مسدد" : "غير مسدد",
+        })),
+      };
+    }
+
+    case "get_at_risk_students_analysis": {
+      const gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const riskType = args.risk_type || "all";
+
+      const results = {};
+
+      // 1. Attendance Risk: 3 consecutive absences
+      if (riskType === "all" || riskType === "attendance") {
+        const gradeFilter = gradeId ? "AND s.grade_id = $1" : "";
+        const values = gradeId ? [gradeId] : [];
+        const attRiskRes = await query(`
+          WITH ranked_attendance AS (
+            SELECT 
+              a.student_id,
+              a.group_id,
+              a.attendance_date,
+              a.status,
+              ROW_NUMBER() OVER (
+                PARTITION BY a.student_id 
+                ORDER BY a.attendance_date DESC
+              ) AS rn
+            FROM attendance a
+          ),
+          last_three AS (
+            SELECT 
+              student_id,
+              group_id,
+              COUNT(*) AS total_days,
+              COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_count
+            FROM ranked_attendance
+            WHERE rn <= 3
+            GROUP BY student_id, group_id
+          )
+          SELECT 
+            s.id, s.full_name, s.barcode, s.phone, s.parent_phone,
+            g.name AS grade_name, grp.name AS group_name,
+            lt.absent_count
+          FROM last_three lt
+          JOIN students s ON s.id = lt.student_id
+          LEFT JOIN grades g ON g.id = s.grade_id
+          LEFT JOIN groups grp ON grp.id = s.group_id
+          WHERE lt.absent_count >= 3 AND s.deleted = 0 AND s.is_active = true
+            ${gradeFilter}
+          ORDER BY s.full_name ASC
+          LIMIT 20
+        `, values);
+
+        results.consecutive_absent_students = attRiskRes.rows.map(r => ({
+          name: r.full_name,
+          barcode: r.barcode,
+          phone: r.phone,
+          parent_phone: r.parent_phone,
+          grade: r.grade_name,
+          group: r.group_name,
+          risk: `غائب آخر ${r.absent_count} حصص متتالية`,
+        }));
+      }
+
+      // 2. Exam Score Risk: Average score < 50%
+      if (riskType === "all" || riskType === "exams") {
+        const gradeFilter = gradeId ? "AND s.grade_id = $1" : "";
+        const values = gradeId ? [gradeId] : [];
+        const examRiskRes = await query(`
+          SELECT 
+            s.id, s.full_name, s.barcode, s.parent_phone,
+            g.name AS grade_name, grp.name AS group_name,
+            ROUND(AVG((er.degree::numeric / NULLIF(e.total_degree, 0)) * 100), 1) AS avg_percentage,
+            COUNT(er.id) AS exams_count
+          FROM exam_results er
+          JOIN exams e ON er.exam_id = e.id
+          JOIN students s ON er.student_id = s.id
+          LEFT JOIN grades g ON s.grade_id = g.id
+          LEFT JOIN groups grp ON s.group_id = grp.id
+          WHERE er.is_absent = false AND s.deleted = 0 AND s.is_active = true
+            ${gradeFilter}
+          GROUP BY s.id, s.full_name, s.barcode, s.parent_phone, g.name, grp.name
+          HAVING AVG((er.degree::numeric / NULLIF(e.total_degree, 0)) * 100) < 50
+          ORDER BY avg_percentage ASC
+          LIMIT 20
+        `, values);
+
+        results.academically_struggling_students = examRiskRes.rows.map(r => ({
+          name: r.full_name,
+          barcode: r.barcode,
+          parent_phone: r.parent_phone,
+          grade: r.grade_name,
+          group: r.group_name,
+          avg_score: `${r.avg_percentage}%`,
+          risk: `متوسط درجات ضعيف (${r.avg_percentage}%) في ${r.exams_count} امتحان`,
+        }));
+      }
+
+      // 3. Payment Debt Risk: 2+ unpaid subscriptions
+      if (riskType === "all" || riskType === "payments") {
+        const gradeFilter = gradeId ? "AND s.grade_id = $1" : "";
+        const values = gradeId ? [gradeId] : [];
+        const payRiskRes = await query(`
+          SELECT 
+            s.id, s.full_name, s.barcode, s.parent_phone,
+            g.name AS grade_name, grp.name AS group_name,
+            COUNT(sub.id) AS unpaid_months_count,
+            SUM(sub.required_amount) AS total_debt
+          FROM subscriptions sub
+          JOIN students s ON sub.student_id = s.id
+          LEFT JOIN grades g ON s.grade_id = g.id
+          LEFT JOIN groups grp ON s.group_id = grp.id
+          WHERE sub.status != 'paid' AND sub.deleted = 0 AND s.deleted = 0 AND s.is_active = true
+            ${gradeFilter}
+          GROUP BY s.id, s.full_name, s.barcode, s.parent_phone, g.name, grp.name
+          HAVING COUNT(sub.id) >= 2
+          ORDER BY total_debt DESC
+          LIMIT 20
+        `, values);
+
+        results.debt_accumulated_students = payRiskRes.rows.map(r => ({
+          name: r.full_name,
+          barcode: r.barcode,
+          parent_phone: r.parent_phone,
+          grade: r.grade_name,
+          group: r.group_name,
+          unpaid_months: Number(r.unpaid_months_count),
+          debt: `${r.total_debt} ج.م`,
+          risk: `متأخرات مالية تراكمية عن ${r.unpaid_months_count} شهور`,
+        }));
+      }
+
+      return {
+        success: true,
+        summary: "تقرير حصر وتشخيص الطلاب المعرضين للخطر لتنسيق المتابعة والاتصال بأولياء الأمور.",
+        data: results,
+      };
+    }
+
+    case "get_groups_comparative_analytics": {
+      const gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const conditions = ["grp.deleted = 0"];
+      const values = [];
+      if (gradeId) {
+        conditions.push("grp.grade_id = $1");
+        values.push(gradeId);
+      }
+
+      const res = await query(`
+        SELECT 
+          grp.id AS group_id,
+          grp.name AS group_name,
+          g.name AS grade_name,
+          grp.days,
+          grp.start_time,
+          grp.end_time,
+          grp.room,
+          COUNT(DISTINCT s.id) AS students_count,
+          ROUND(
+            COALESCE(
+              (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0)) * 100, 
+              0
+            ), 1
+          ) AS attendance_rate,
+          ROUND(COALESCE(AVG(er.degree / NULLIF(e.total_degree, 0) * 100), 0)::numeric, 1) AS avg_exam_rate
+        FROM groups grp
+        LEFT JOIN grades g ON grp.grade_id = g.id
+        LEFT JOIN students s ON s.group_id = grp.id AND s.deleted = 0 AND s.is_active = true
+        LEFT JOIN attendance a ON a.group_id = grp.id
+        LEFT JOIN exam_results er ON er.student_id = s.id AND er.is_absent = false
+        LEFT JOIN exams e ON er.exam_id = e.id
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY grp.id, grp.name, g.name, grp.days, grp.start_time, grp.end_time, grp.room
+        ORDER BY attendance_rate DESC, students_count DESC
+      `, values);
+
+      return {
+        success: true,
+        groups_count: res.rows.length,
+        ranking: res.rows.map((g, idx) => ({
+          rank: idx + 1,
+          group_name: g.group_name,
+          grade_name: g.grade_name,
+          time: `${g.days || ""} (${g.start_time || ""} - ${g.end_time || ""})`,
+          room: g.room || "غير محدد",
+          students_count: Number(g.students_count),
+          attendance_rate: `${g.attendance_rate}%`,
+          avg_exam_rate: `${g.avg_exam_rate}%`,
+        })),
+      };
+    }
+
+    case "get_unpaid_students_report": {
+      const targetMonth = normalizePaymentMonth(args.month);
+      const limit = Math.min(Number(args.limit) || 30, 100);
+      const conditions = [
+        "sub.month = $1",
+        "sub.status != 'paid'",
+        "sub.deleted = 0",
+        "s.deleted = 0",
+        "s.is_active = true"
+      ];
+      const values = [targetMonth];
+      let paramIndex = 2;
+
+      if (args.grade_id) {
+        conditions.push(`s.grade_id = $${paramIndex++}`);
+        values.push(Number(args.grade_id));
+      }
+      if (args.group_id) {
+        conditions.push(`s.group_id = $${paramIndex++}`);
+        values.push(Number(args.group_id));
+      }
+      values.push(limit);
+
+      const res = await query(`
+        SELECT 
+          s.id,
+          s.full_name,
+          s.barcode,
+          s.phone,
+          s.parent_phone,
+          g.name AS grade_name,
+          grp.name AS group_name,
+          sub.month,
+          sub.required_amount,
+          COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount
+        FROM subscriptions sub
+        JOIN students s ON sub.student_id = s.id
+        LEFT JOIN grades g ON s.grade_id = g.id
+        LEFT JOIN groups grp ON s.group_id = grp.id
+        WHERE ${conditions.join(" AND ")}
+        ORDER BY g.id ASC, grp.id ASC, s.full_name ASC
+        LIMIT $${paramIndex}
+      `, values);
+
+      return {
+        success: true,
+        month: targetMonth,
+        unpaid_count: res.rows.length,
+        students: res.rows.map(r => ({
+          name: r.full_name,
+          barcode: r.barcode,
+          student_phone: r.phone || "غير مسجل",
+          parent_phone: r.parent_phone || "غير مسجل",
+          grade: r.grade_name,
+          group: r.group_name,
+          required_amount: Number(r.required_amount),
+          paid_amount: Number(r.paid_amount),
+          remaining_amount: Number(r.required_amount) - Number(r.paid_amount),
+        })),
+      };
+    }
+
+    case "get_assignments_analytics": {
+      const gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const conditions = ["a.deleted = 0"];
+      const values = [];
+      if (gradeId) {
+        conditions.push("a.grade_id = $1");
+        values.push(gradeId);
+      }
+
+      const res = await query(`
+        SELECT 
+          a.id,
+          a.title,
+          a.deadline,
+          a.full_mark,
+          a.is_closed,
+          g.name AS grade_name,
+          grp.name AS group_name,
+          COUNT(sub.id) AS total_submissions,
+          COUNT(CASE WHEN sub.score IS NULL THEN 1 END) AS pending_grading,
+          ROUND(AVG(sub.score)::numeric, 2) AS avg_score
+        FROM assignments a
+        LEFT JOIN grades g ON a.grade_id = g.id
+        LEFT JOIN groups grp ON a.group_id = grp.id
+        LEFT JOIN assignment_submissions sub ON sub.assignment_id = a.id
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY a.id, a.title, a.deadline, a.full_mark, a.is_closed, g.name, grp.name
+        ORDER BY a.created_at DESC
+        LIMIT 10
+      `, values);
+
+      return {
+        success: true,
+        assignments_count: res.rows.length,
+        assignments: res.rows.map(a => ({
+          id: a.id,
+          title: a.title,
+          grade: a.grade_name,
+          group: a.group_name || "كل المجموعات",
+          deadline_cairo: formatEgyptTime(a.deadline),
+          full_mark: a.full_mark,
+          status: a.is_closed ? "مغلق" : "مفتوح للتسليم",
+          submissions_count: Number(a.total_submissions),
+          pending_grading_count: Number(a.pending_grading),
+          average_score: a.avg_score !== null ? `${a.avg_score} / ${a.full_mark}` : "لم يتم التصحيح بعد",
+        })),
+      };
+    }
+
+    case "get_assistants_performance_stats": {
+      const conditions = ["al.user_role = 'assistant'"];
+      const values = [];
+      if (args.date) {
+        const cleanDate = normalizeAttendanceDate(args.date);
+        conditions.push("DATE(al.created_at) = $1");
+        values.push(cleanDate);
+      }
+
+      const res = await query(`
+        SELECT 
+          COALESCE(u.full_name, 'مساعد النظام') AS assistant_name,
+          COUNT(*) AS total_operations,
+          COUNT(CASE WHEN al.action LIKE '%attendance%' THEN 1 END) AS attendance_ops,
+          COUNT(CASE WHEN al.action LIKE '%payment%' THEN 1 END) AS payment_ops,
+          COUNT(CASE WHEN al.action LIKE '%exam%' THEN 1 END) AS exam_ops,
+          COUNT(CASE WHEN al.action LIKE '%student%' THEN 1 END) AS student_ops,
+          COUNT(CASE WHEN al.description LIKE '[المساعد الذكي]%' THEN 1 END) AS ai_assistant_ops,
+          MAX(al.created_at) AS last_activity_time
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY u.full_name
+        ORDER BY total_operations DESC
+      `, values);
+
+      return {
+        success: true,
+        date_filtered: args.date || "كل الفترات",
+        assistants_count: res.rows.length,
+        performance_breakdown: res.rows.map(r => ({
+          assistant_name: r.assistant_name,
+          total_actions: Number(r.total_operations),
+          attendance_scans: Number(r.attendance_ops),
+          payment_records: Number(r.payment_ops),
+          exams_operations: Number(r.exam_ops),
+          student_modifications: Number(r.student_ops),
+          ai_assisted_actions: Number(r.ai_assistant_ops),
+          last_active: formatEgyptTime(r.last_activity_time),
+        })),
+      };
+    }
+
+    case "get_content_and_video_analytics": {
+      const gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const conditions = [];
+      const values = [];
+      if (gradeId) {
+        conditions.push("p.grade_id = $1");
+        values.push(gradeId);
+      }
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+      const totals = await query(`
+        SELECT 
+          (SELECT COUNT(*) FROM videos) AS total_videos,
+          (SELECT COUNT(*) FROM playlists) AS total_playlists,
+          (SELECT COUNT(*) FROM live_sessions WHERE deleted = 0) AS total_live_sessions,
+          (SELECT COUNT(*) FROM live_sessions WHERE deleted = 0 AND status = 'scheduled') AS upcoming_live_sessions
+      `);
+
+      const playlistsRes = await query(`
+        SELECT 
+          p.id, p.title, g.name AS grade_name,
+          (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS videos_count
+        FROM playlists p
+        LEFT JOIN grades g ON g.id = p.grade_id
+        ${whereClause}
+        ORDER BY p.id DESC
+      `, values);
+
+      return {
+        success: true,
+        content_overview: {
+          total_videos: Number(totals.rows[0]?.total_videos || 0),
+          total_playlists: Number(totals.rows[0]?.total_playlists || 0),
+          total_live_sessions: Number(totals.rows[0]?.total_live_sessions || 0),
+          upcoming_live_sessions: Number(totals.rows[0]?.upcoming_live_sessions || 0),
+        },
+        playlists: playlistsRes.rows.map(pl => ({
+          playlist_id: pl.id,
+          title: pl.title,
+          grade_name: pl.grade_name,
+          videos_count: Number(pl.videos_count),
+        })),
+      };
+    }
+
+    case "generate_parent_whatsapp_report": {
+      const { student_query, custom_note } = args;
+      if (!student_query) {
+        return { success: false, error: "يرجى تحديد الطالب المراد إعداد التقرير له." };
+      }
+
+      const q = String(student_query).trim();
+      const stdRes = await query(`
+        SELECT s.*, g.name AS grade_name, grp.name AS group_name
+        FROM students s
+        LEFT JOIN grades g ON s.grade_id = g.id
+        LEFT JOIN groups grp ON s.group_id = grp.id
+        WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
+          AND s.deleted = 0
+        LIMIT 1
+      `, [q]);
+
+      if (stdRes.rows.length === 0) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${q}'` };
+      }
+      const student = stdRes.rows[0];
+
+      // Quick attendance rate
+      const attRes = await query(`
+        SELECT 
+          COUNT(*) AS total,
+          COUNT(CASE WHEN status = 'present' THEN 1 END) AS present,
+          COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent
+        FROM attendance WHERE student_id = $1
+      `, [student.id]);
+      const att = attRes.rows[0];
+      const attPct = Number(att.total) > 0 ? Math.round((Number(att.present) / Number(att.total)) * 100) : 100;
+
+      // Latest exam
+      const latestExamRes = await query(`
+        SELECT e.title, er.degree, e.total_degree
+        FROM exam_results er
+        JOIN exams e ON er.exam_id = e.id
+        WHERE er.student_id = $1 AND er.is_absent = false
+        ORDER BY er.created_at DESC LIMIT 1
+      `, [student.id]);
+      const latestExam = latestExamRes.rows[0];
+
+      // Subscription status
+      const curMonth = getCurrentMonthEgypt();
+      const subRes = await query(`
+        SELECT status, required_amount FROM subscriptions 
+        WHERE student_id = $1 AND month = $2 AND deleted = 0 LIMIT 1
+      `, [student.id, curMonth]);
+      const subStatus = subRes.rows[0]?.status === "paid" ? "مسدد بالكامل ✅" : "غير مسدد ⏳";
+
+      const examText = latestExam 
+        ? `📊 درجة آخر امتحان (${latestExam.title}): ${latestExam.degree} من ${latestExam.total_degree}` 
+        : `📊 الامتحانات: لا توجد درجات مرصودة مؤخراً`;
+
+      const parentMessage = `السلام عليكم ورحمة الله وبركاته، تحياتنا لولي أمر الطالب المحترم 🌸
+تقرير متابعة الطالب: *${student.full_name}*
+الفرقة الدراسية: *${student.grade_name || ""}* | المجموعة: *${student.group_name || ""}*
+كود الطالب: *${student.barcode}*
+
+📍 نسبة الحضور والالتزام: *${attPct}%* (حضور ${att.present || 0} حصة / غياب ${att.absent || 0})
+${examText}
+💳 حالة اشتراك شهر (${curMonth}): *${subStatus}*
+${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n${custom_note}\n` : ""}
+مع أطيب تمنياتنا لطلابنا الأعزاء بالتميز والتفوق الدائم 🌟
+*منظومة مستر محمد بشتة - كبير معلمي اللغة العربية*`;
+
+      return {
+        success: true,
+        student_name: student.full_name,
+        parent_phone: student.parent_phone || "غير مسجل",
+        message_text: parentMessage,
+      };
     }
 
     default:
