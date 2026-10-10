@@ -247,6 +247,9 @@ const aiService = {
                 try {
                   fnResult = await executeAssistantTool(fnName, fnArgs, {
                     userId,
+                    userType,
+                    userRole: userType,
+                    userName: userContext.userName,
                     permissions: userContext.permissions,
                   });
                 } catch (toolExecErr) {

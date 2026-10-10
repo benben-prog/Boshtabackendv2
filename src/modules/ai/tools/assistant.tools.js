@@ -9,6 +9,7 @@ const {
   getTodayEgypt,
   getCurrentMonthEgypt,
 } = require("../../../utils/timezone");
+const { logActivity } = require("../../../utils/activityLogger");
 
 const assistantFunctionDeclarations = [
   {
@@ -794,6 +795,89 @@ const assistantFunctionDeclarations = [
       required: ["exam_id"],
     },
   },
+  {
+    name: "get_teacher_dashboard_overview",
+    description: "لوحة التحكم الشاملة والملخص التنفيذي للمنصة والسنتر (خاصة بمستر محمد بشتة): إجمالي الطلاب النشطين، الصفوف، المجموعات، حصص البث المباشر، إحصائيات حضور اليوم، الامتحانات، وموجز الاشتراكات المالية.",
+    parameters: {
+      type: "OBJECT",
+      properties: {},
+    },
+  },
+  {
+    name: "get_financial_analytics",
+    description: "التقرير والتحليل المالي للسنتر والاشتراكات لشهر محدد أو الشهر الحالي: إجمالي المبالغ المطلوبة، المحصلة، المتبقية، نسبة التحصيل، أعداد الطلاب المسددين وغير المسددين، وتوزيع الدخل والتحصيل حسب الصفوف الدراسية.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        month: {
+          type: "STRING",
+          description: "شهر الاشتراك المراد تحليله بتنسيق YYYY-MM أو اسم الشهر مثل 'أكتوبر' أو '10' (اختياري، الافتراضي هو الشهر الحالي)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_assistants_activity_log",
+    description: "سجل رقابة ومتابعة نشاط المساعدين في المنصة والسنتر لمستر محمد بشتة: يعرض آخر العمليات والإجراءات التي قام بها المساعدون (سداد اشتراكات، رصد درجات، تسجيل حضور، إنشاء امتحانات أو حصص، إلخ) مع تمييز العمليات التي تمت عبر المساعد الذكي.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        limit: {
+          type: "INTEGER",
+          description: "الحد الأقصى لعدد العمليات المسترجعة (افتراضياً 15)",
+        },
+        date: {
+          type: "STRING",
+          description: "تاريخ العمليات بتنسيق YYYY-MM-DD لتصفية نشاط يوم محدد (اختياري)",
+        },
+        assistant_name: {
+          type: "STRING",
+          description: "اسم المساعد لتصفية عملياته فقط (اختياري)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_top_students_report",
+    description: "استخراج كشف الطلاب الأوائل والمتفوقين (لوحة الشرف) على مستوى صف دراسي معين أو على مستوى السنتر في الامتحانات الإلكترونية أو الورقية مع درجاتهم ونسبهم المئوية لتكريمهم.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        grade_id: {
+          type: "INTEGER",
+          description: "معرّف الصف الدراسي لحصر الأوائل لصف محدد (اختياري)",
+        },
+        exam_type: {
+          type: "STRING",
+          enum: ["all", "online", "paper"],
+          description: "نوع الامتحانات: all (الكل)، online (الإلكترونية فقط)، paper (الورقية فقط)",
+        },
+        limit: {
+          type: "INTEGER",
+          description: "عدد الطلاب الأوائل المطلوبين في التقرير (افتراضياً 10)",
+        },
+      },
+    },
+  },
+  {
+    name: "analyze_exam_weaknesses",
+    description: "تشخيص وتحليل امتحان معين (إلكتروني أو ورقي) لمعرفة نقاط ضعف الطلاب: متوسط الدرجات، نسبة النجاح، الأسئلة التي كانت نسبة الخطأ فيها هي الأعلى، والطلاب المتعثرين الذين يحتاجون لدعم.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        exam_id: {
+          type: "INTEGER",
+          description: "معرّف الامتحان (ID) المراد تحليله",
+        },
+        exam_type: {
+          type: "STRING",
+          enum: ["online", "paper"],
+          description: "نوع الامتحان: online (إلكتروني) أو paper (ورقي)",
+        },
+      },
+      required: ["exam_id"],
+    },
+  },
 ];
 
 function normalizeAttendanceDate(input) {
@@ -967,8 +1051,37 @@ function parseSessionStartTime(input, defaultOffsetMinutes = 10) {
   return new Date(now.getTime() + defaultOffsetMinutes * 60000);
 }
 
+async function logAiActivity(userId, userRole, userPermissions, action, entityType, entityId, description) {
+  try {
+    let effectiveId = userId;
+    let effectiveRole = userRole;
+    let effectivePerms = userPermissions;
+    if (!effectiveId) {
+      const u = await query("SELECT id, role, permissions FROM users WHERE role IN ('assistant', 'teacher', 'super_admin') AND deleted = 0 LIMIT 1");
+      if (u.rows.length > 0) {
+        effectiveId = u.rows[0].id;
+        effectiveRole = effectiveRole || u.rows[0].role;
+        effectivePerms = effectivePerms || u.rows[0].permissions;
+      }
+    }
+    await logActivity({
+      user_id: effectiveId,
+      user_role: effectiveRole || "assistant",
+      user_permissions: effectivePerms,
+      action: action.startsWith("ai_") ? action : `ai_${action}`,
+      entity_type: entityType,
+      entity_id: entityId ? Number(entityId) : null,
+      description: description.startsWith("[المساعد الذكي]") ? description : `[المساعد الذكي] ${description}`,
+    });
+  } catch (err) {
+    // Silent catch so logging never breaks business operations
+  }
+}
+
 async function executeAssistantTool(name, args = {}, context = {}) {
   const userId = context.userId || null;
+  const userRole = context.userRole || context.userType || "assistant";
+  const userPermissions = context.permissions || null;
 
   switch (name) {
     case "get_platform_info": {
@@ -1350,6 +1463,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       });
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_online_exam",
+        "online_exam",
+        result.exam_id,
+        `إنشاء امتحان إلكتروني: ${result.title} (${questions.length} سؤال)`
+      );
+
       return {
         success: true,
         message: `تم إنشاء وحفظ الامتحان بنجاح على المنصة برقم معرف #${result.exam_id}`,
@@ -1449,6 +1572,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       );
 
       const created = insertRes.rows[0];
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_student",
+        "student",
+        created.id,
+        `تسجيل طالب جديد: ${created.full_name} (${created.barcode})`
+      );
 
       return {
         success: true,
@@ -1551,6 +1684,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
       const statusArabic = status === "present" ? "حاضر" : "غائب";
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "record_attendance",
+        "attendance",
+        student.id,
+        `تسجيل ${statusArabic} للطالب: ${student.full_name} (${targetDate})`
+      );
+
       return {
         success: true,
         message: `تم تسجيل الطالب (${student.full_name}) كـ (${statusArabic}) لتاريخ ${targetDate} بنجاح.`,
@@ -1603,6 +1746,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         WHERE id = $3
       `,
         [boolActive, boolActive ? null : reason || "إيقاف إداري", student.id],
+      );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "toggle_student_status",
+        "student",
+        student.id,
+        `${boolActive ? "تفعيل" : "تجميد"} حساب الطالب: ${student.full_name} (${boolActive ? "نشط" : reason || "إيقاف إداري"})`
       );
 
       return {
@@ -1714,6 +1867,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
         return pRes.rows[0];
       });
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "record_payment",
+        "payment",
+        paymentRes.id,
+        `سداد اشتراك شهر ${targetMonth} للطالب: ${student.full_name} بمبلغ ${finalAmount} ج.م`
+      );
 
       return {
         success: true,
@@ -1847,6 +2010,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         [student.id, exam.id, numDegree, notes || null],
       );
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "record_paper_exam_result",
+        "exam_result",
+        exam.id,
+        `رصد درجة الامتحان الورقي (${exam.title}) للطالب: ${student.full_name} (${numDegree}/${exam.total_degree})`
+      );
+
       return {
         success: true,
         message: `تم رصد وحفظ درجة الطالب (${student.full_name}) في امتحان (${exam.title}) بنجاح: ${numDegree} من ${exam.total_degree}`,
@@ -1897,6 +2070,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       );
 
       const created = res.rows[0];
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_paper_exam",
+        "exam",
+        created.id,
+        `إنشاء امتحان ورقي: ${created.title} (الدرجة: ${created.total_degree})`
+      );
+
       return {
         success: true,
         message: `تم إنشاء الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id} وتاريخ ${targetDate}`,
@@ -1947,6 +2131,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         [group.id, group.grade_id, userId, Number(lock_minutes) || 60],
       );
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "start_attendance_session",
+        "attendance_session",
+        insRes.rows[0].id,
+        `بدء جلسة حضور لمجموعة: ${group.name}`
+      );
+
       return {
         success: true,
         message: `تم بدء وفتح جلسة الحضور لمجموعة (${group.name}) بنجاح! الجلسة مفتوحة لمسح الباركود الآن.`,
@@ -1995,6 +2189,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         [session.id],
       );
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "close_attendance_session",
+        "attendance_session",
+        session.id,
+        `إغلاق جلسة الحضور لمجموعة ID: ${group_id} وترحيل باقي الطلاب غياب`
+      );
+
       return {
         success: true,
         message:
@@ -2034,6 +2238,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           Number(full_mark) || 10,
           userId,
         ],
+      );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_assignment",
+        "assignment",
+        res.rows[0].id,
+        `إنشاء واجب منزلي: ${res.rows[0].title}`
       );
 
       return {
@@ -2103,6 +2317,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           updatedNotes,
           student.id,
         ],
+      );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "update_student_details",
+        "student",
+        student.id,
+        `تحديث بيانات الطالب: ${updatedName} (باركود: ${student.barcode})`
       );
 
       return {
@@ -2200,6 +2424,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         const sStart = newSession.start_time ? new Date(newSession.start_time) : startTimeObj;
         const sEnd = newSession.end_time ? new Date(newSession.end_time) : endTimeObj;
 
+        await logAiActivity(
+          userId,
+          userRole,
+          userPermissions,
+          "create_live_session",
+          "live_session",
+          newSession.id,
+          `إنشاء حصة بث مباشر (Google Meet): ${newSession.title}`
+        );
+
         return {
           success: true,
           message: `تم إنشاء وحجز حصة البث المباشر (${newSession.title}) بنجاح وتوليد رابط Google Meet الرسمي.`,
@@ -2241,6 +2475,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
             resolvedGroupId,
             effectiveUserId,
           ],
+        );
+
+        await logAiActivity(
+          userId,
+          userRole,
+          userPermissions,
+          "create_live_session",
+          "live_session",
+          fallbackRes.rows[0].id,
+          `إنشاء حصة بث مباشر (بديل): ${fallbackRes.rows[0].title}`
         );
 
         return {
@@ -2317,6 +2561,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       }
 
       await liveSessionsService.deleteLiveSession(Number(session_id), effectiveUserId);
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "delete_live_session",
+        "live_session",
+        Number(session_id),
+        `حذف وإلغاء حصة بث مباشر #${session_id}`
+      );
+
       return {
         success: true,
         message: `تم حذف وإلغاء حصة البث المباشر #${session_id} بنجاح.`,
@@ -2349,6 +2604,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         hashedPassword,
         student.id,
       ]);
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "reset_student_password",
+        "student",
+        student.id,
+        `إعادة تعيين كلمة مرور الطالب: ${student.full_name} (${student.barcode})`
+      );
 
       return {
         success: true,
@@ -2406,6 +2671,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         [hashedPassword, effectiveUserId],
       );
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "change_password",
+        "user",
+        effectiveUserId,
+        `تغيير كلمة المرور لحساب: ${currentUser.full_name}`
+      );
+
       return {
         success: true,
         message: `تم تحديث وتغيير كلمة مرور حسابك (${currentUser.full_name}) بنجاح. يمكنك الآن تسجيل الدخول بها بأمان.`,
@@ -2431,6 +2706,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
          RETURNING id, title, description, grade_id`,
         [title.trim(), description || null, resolvedGradeId, userId],
       );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_playlist",
+        "playlist",
+        res.rows[0].id,
+        `إنشاء قائمة تشغيل: ${res.rows[0].title}`
+      );
+
       return {
         success: true,
         message: `تم إنشاء قائمة التشغيل (${res.rows[0].title}) بنجاح برقم معرّف #${res.rows[0].id}`,
@@ -2472,6 +2758,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
          ON CONFLICT (playlist_id, video_id) DO NOTHING`,
         [Number(playlist_id), Number(video_id)],
       );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "add_video_to_playlist",
+        "playlist_video",
+        playlist_id,
+        `إضافة فيديو #${video_id} إلى قائمة التشغيل #${playlist_id}`
+      );
+
       return {
         success: true,
         message: `تم إضافة الفيديو (#${video_id}) إلى قائمة التشغيل (#${playlist_id}) بنجاح.`,
@@ -2523,6 +2820,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           room || null,
         ],
       );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "create_group",
+        "group",
+        res.rows[0].id,
+        `إنشاء مجموعة دراسية: ${res.rows[0].name}`
+      );
+
       return {
         success: true,
         message: `تم إنشاء المجموعة الدراسية (${res.rows[0].name}) بنجاح برقم معرّف #${res.rows[0].id}`,
@@ -2568,6 +2876,16 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         ],
       );
 
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "update_group",
+        "group",
+        grp.id,
+        `تحديث بيانات المجموعة: ${updatedName}`
+      );
+
       return {
         success: true,
         message: `تم تحديث بيانات المجموعة (${updatedName}) بنجاح.`,
@@ -2606,6 +2924,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
          WHERE id = $4`,
         [Number(finalScore), feedback || null, userId, Number(submission_id)],
       );
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "grade_assignment",
+        "assignment_submission",
+        Number(submission_id),
+        `تصحيح واجب (${sub.assignment_title}) للطالب ${sub.student_name}: ${finalScore}/${sub.full_mark}`
+      );
+
       return {
         success: true,
         message: `تم رصد وتصحيح درجة الواجب (${sub.assignment_title}) للطالب (${sub.student_name}) بنجاح: ${finalScore} من ${sub.full_mark}`,
@@ -2629,6 +2958,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       if (res.rows.length === 0) {
         return { success: false, error: "الامتحان الإلكتروني غير موجود." };
       }
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "delete_online_exam",
+        "online_exam",
+        Number(exam_id),
+        `حذف الامتحان الإلكتروني: ${res.rows[0].title}`
+      );
+
       return {
         success: true,
         message: `تم حذف الامتحان الإلكتروني (${res.rows[0].title}) بنجاح.`,
@@ -2645,10 +2985,389 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       if (res.rows.length === 0) {
         return { success: false, error: "الامتحان الورقي غير موجود." };
       }
+
+      await logAiActivity(
+        userId,
+        userRole,
+        userPermissions,
+        "delete_paper_exam",
+        "exam",
+        Number(exam_id),
+        `حذف الامتحان الورقي: ${res.rows[0].title}`
+      );
+
       return {
         success: true,
         message: `تم حذف الامتحان الورقي (${res.rows[0].title}) بنجاح.`,
       };
+    }
+
+    case "get_teacher_dashboard_overview": {
+      const overview = await query(`
+        SELECT 
+          (SELECT COUNT(*) FROM students WHERE deleted = 0 AND is_active = TRUE) AS active_students,
+          (SELECT COUNT(*) FROM students WHERE deleted = 1 OR is_active = FALSE) AS inactive_students,
+          (SELECT COUNT(*) FROM grades WHERE deleted = 0) AS total_grades,
+          (SELECT COUNT(*) FROM groups WHERE deleted = 0) AS total_groups,
+          (SELECT COUNT(*) FROM users WHERE role = 'assistant' AND deleted = 0) AS total_assistants,
+          (SELECT COUNT(*) FROM live_sessions WHERE deleted = 0 AND status = 'scheduled') AS upcoming_live_sessions,
+          (SELECT COUNT(*) FROM online_exams WHERE deleted = 0) AS total_online_exams,
+          (SELECT COUNT(*) FROM exams WHERE deleted = 0) AS total_paper_exams
+      `);
+
+      const attendanceToday = await query(`
+        SELECT 
+          (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'present') AS present_count,
+          (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURRENT_DATE AND status = 'absent') AS absent_count
+      `);
+
+      const curMonth = getCurrentMonthEgypt();
+      const finance = await query(`
+        SELECT 
+          COALESCE(SUM(sub.required_amount), 0) AS total_required,
+          COALESCE(SUM(paid.total_paid), 0) AS total_paid
+        FROM students s
+        LEFT JOIN subscriptions sub ON s.id = sub.student_id 
+          AND sub.month = $1
+          AND sub.deleted = 0
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(p.amount), 0) AS total_paid
+          FROM payments p
+          WHERE p.student_id = s.id 
+            AND p.subscription_id = sub.id
+        ) paid ON true
+        WHERE s.deleted = 0 AND s.is_active = TRUE
+      `, [curMonth]);
+
+      const req = Number(finance.rows[0]?.total_required || 0);
+      const paid = Number(finance.rows[0]?.total_paid || 0);
+      const collectionRate = req > 0 ? Math.round((paid / req) * 100) : 0;
+
+      return {
+        success: true,
+        teacher: "مستر محمد بشتة",
+        date_cairo: getTodayEgypt(),
+        platform_overview: {
+          active_students: Number(overview.rows[0]?.active_students || 0),
+          inactive_students: Number(overview.rows[0]?.inactive_students || 0),
+          grades_count: Number(overview.rows[0]?.total_grades || 0),
+          groups_count: Number(overview.rows[0]?.total_groups || 0),
+          assistants_count: Number(overview.rows[0]?.total_assistants || 0),
+          upcoming_live_sessions: Number(overview.rows[0]?.upcoming_live_sessions || 0),
+          online_exams_count: Number(overview.rows[0]?.total_online_exams || 0),
+          paper_exams_count: Number(overview.rows[0]?.total_paper_exams || 0),
+        },
+        today_attendance: {
+          present: Number(attendanceToday.rows[0]?.present_count || 0),
+          absent: Number(attendanceToday.rows[0]?.absent_count || 0),
+        },
+        current_month_finance: {
+          month: curMonth,
+          total_required: req,
+          total_collected: paid,
+          remaining: Math.max(0, req - paid),
+          collection_percentage: `${collectionRate}%`,
+        },
+      };
+    }
+
+    case "get_financial_analytics": {
+      const targetMonth = normalizePaymentMonth(args.month);
+
+      const summaryRes = await query(`
+        SELECT 
+          COUNT(DISTINCT s.id) AS total_students_count,
+          COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS paid_students_count,
+          COUNT(DISTINCT CASE WHEN sub.status IS NULL OR sub.status != 'paid' THEN s.id END) AS unpaid_students_count,
+          COALESCE(SUM(sub.required_amount), 0) AS total_required,
+          COALESCE(SUM(p_total.paid_amount), 0) AS total_collected
+        FROM students s
+        LEFT JOIN subscriptions sub ON s.id = sub.student_id AND sub.month = $1 AND sub.deleted = 0
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(p.amount), 0) AS paid_amount
+          FROM payments p
+          WHERE p.subscription_id = sub.id
+        ) p_total ON true
+        WHERE s.deleted = 0 AND s.is_active = TRUE
+      `, [targetMonth]);
+
+      const gradeBreakdownRes = await query(`
+        SELECT 
+          g.id AS grade_id,
+          g.name AS grade_name,
+          COUNT(DISTINCT s.id) AS students_count,
+          COUNT(DISTINCT CASE WHEN sub.status = 'paid' THEN s.id END) AS paid_count,
+          COALESCE(SUM(sub.required_amount), 0) AS required_amount,
+          COALESCE(SUM(p_total.paid_amount), 0) AS collected_amount
+        FROM grades g
+        LEFT JOIN students s ON s.grade_id = g.id AND s.deleted = 0 AND s.is_active = TRUE
+        LEFT JOIN subscriptions sub ON s.id = sub.student_id AND sub.month = $1 AND sub.deleted = 0
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(p.amount), 0) AS paid_amount
+          FROM payments p
+          WHERE p.subscription_id = sub.id
+        ) p_total ON true
+        WHERE g.deleted = 0
+        GROUP BY g.id, g.name
+        ORDER BY g.id ASC
+      `, [targetMonth]);
+
+      const totalReq = Number(summaryRes.rows[0]?.total_required || 0);
+      const totalCol = Number(summaryRes.rows[0]?.total_collected || 0);
+      const collectionPercentage = totalReq > 0 ? Math.round((totalCol / totalReq) * 100) : 0;
+
+      return {
+        success: true,
+        month: targetMonth,
+        financial_kpis: {
+          total_students: Number(summaryRes.rows[0]?.total_students_count || 0),
+          paid_students: Number(summaryRes.rows[0]?.paid_students_count || 0),
+          unpaid_students: Number(summaryRes.rows[0]?.unpaid_students_count || 0),
+          total_required_amount: totalReq,
+          total_collected_amount: totalCol,
+          total_remaining_amount: Math.max(0, totalReq - totalCol),
+          collection_percentage: `${collectionPercentage}%`,
+        },
+        grades_breakdown: gradeBreakdownRes.rows.map(g => ({
+          grade_name: g.grade_name,
+          total_students: Number(g.students_count || 0),
+          paid_students: Number(g.paid_count || 0),
+          unpaid_students: Math.max(0, Number(g.students_count || 0) - Number(g.paid_count || 0)),
+          required_amount: Number(g.required_amount || 0),
+          collected_amount: Number(g.collected_amount || 0),
+          collection_rate: Number(g.required_amount) > 0 
+            ? `${Math.round((Number(g.collected_amount) / Number(g.required_amount)) * 100)}%` 
+            : "0%",
+        })),
+      };
+    }
+
+    case "get_assistants_activity_log": {
+      const limit = Math.min(Number(args.limit) || 20, 50);
+      const conditions = ["al.user_role IN ('assistant', 'super_admin')"];
+      const values = [];
+      let paramIndex = 1;
+
+      if (args.date) {
+        const cleanDate = normalizeAttendanceDate(args.date);
+        conditions.push(`DATE(al.created_at) = $${paramIndex++}`);
+        values.push(cleanDate);
+      }
+
+      if (args.assistant_name) {
+        conditions.push(`u.full_name ILIKE $${paramIndex++}`);
+        values.push(`%${args.assistant_name.trim()}%`);
+      }
+
+      values.push(limit);
+
+      const logsRes = await query(`
+        SELECT 
+          al.id,
+          al.user_id,
+          COALESCE(u.full_name, 'مساعد النظام') AS assistant_name,
+          al.user_role,
+          al.action,
+          al.entity_type,
+          al.entity_id,
+          al.description,
+          al.created_at,
+          CASE WHEN al.description LIKE '[المساعد الذكي]%' THEN true ELSE false END AS is_ai_action
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        WHERE ${conditions.join(" AND ")}
+        ORDER BY al.created_at DESC
+        LIMIT $${paramIndex}
+      `, values);
+
+      return {
+        success: true,
+        activities_count: logsRes.rows.length,
+        activities: logsRes.rows.map(l => ({
+          id: l.id,
+          assistant_name: l.assistant_name,
+          action: l.action,
+          entity_type: l.entity_type,
+          description: l.description,
+          is_ai_action: l.is_ai_action,
+          time_cairo: formatEgyptTime(l.created_at),
+        })),
+      };
+    }
+
+    case "get_top_students_report": {
+      const limit = Math.min(Number(args.limit) || 10, 30);
+      const gradeId = args.grade_id ? Number(args.grade_id) : null;
+      const examType = args.exam_type || "all";
+
+      const topStudents = [];
+
+      if (examType === "all" || examType === "online") {
+        const gradeCondition = gradeId ? "AND s.grade_id = $2" : "";
+        const values = [limit];
+        if (gradeId) values.push(gradeId);
+
+        const onlineRes = await query(`
+          SELECT 
+            s.id AS student_id,
+            s.full_name,
+            s.barcode,
+            g.name AS grade_name,
+            oe.title AS exam_title,
+            se.score,
+            oe.full_mark,
+            ROUND((se.score::numeric / NULLIF(oe.full_mark, 0)) * 100, 1) AS percentage,
+            'online' AS exam_type
+          FROM student_exams se
+          JOIN students s ON se.student_id = s.id
+          JOIN online_exams oe ON se.exam_id = oe.id
+          LEFT JOIN grades g ON s.grade_id = g.id
+          WHERE se.is_absent = false AND se.score IS NOT NULL AND s.deleted = 0
+            ${gradeCondition}
+          ORDER BY se.score DESC
+          LIMIT $1
+        `, values);
+
+        topStudents.push(...onlineRes.rows);
+      }
+
+      if (examType === "all" || examType === "paper") {
+        const gradeCondition = gradeId ? "AND s.grade_id = $2" : "";
+        const values = [limit];
+        if (gradeId) values.push(gradeId);
+
+        const paperRes = await query(`
+          SELECT 
+            s.id AS student_id,
+            s.full_name,
+            s.barcode,
+            g.name AS grade_name,
+            e.title AS exam_title,
+            er.degree AS score,
+            e.total_degree AS full_mark,
+            ROUND((er.degree::numeric / NULLIF(e.total_degree, 0)) * 100, 1) AS percentage,
+            'paper' AS exam_type
+          FROM exam_results er
+          JOIN students s ON er.student_id = s.id
+          JOIN exams e ON er.exam_id = e.id
+          LEFT JOIN grades g ON s.grade_id = g.id
+          WHERE er.is_absent = false AND er.degree IS NOT NULL AND s.deleted = 0
+            ${gradeCondition}
+          ORDER BY er.degree DESC
+          LIMIT $1
+        `, values);
+
+        topStudents.push(...paperRes.rows);
+      }
+
+      topStudents.sort((a, b) => Number(b.percentage || 0) - Number(a.percentage || 0));
+
+      return {
+        success: true,
+        top_students: topStudents.slice(0, limit),
+      };
+    }
+
+    case "analyze_exam_weaknesses": {
+      const examId = Number(args.exam_id);
+      const examType = args.exam_type || "online";
+      if (!examId) return { success: false, error: "معرّف الامتحان مطلوب لتحليله." };
+
+      if (examType === "online") {
+        const examRes = await query(`
+          SELECT oe.id, oe.title, oe.full_mark, g.name AS grade_name
+          FROM online_exams oe
+          LEFT JOIN grades g ON oe.grade_id = g.id
+          WHERE oe.id = $1 AND oe.deleted = 0
+        `, [examId]);
+        if (examRes.rows.length === 0) return { success: false, error: "الامتحان الإلكتروني غير موجود." };
+
+        const exam = examRes.rows[0];
+
+        const statsRes = await query(`
+          SELECT 
+            COUNT(*) AS total_attendees,
+            ROUND(AVG(score)::numeric, 2) AS avg_score,
+            MAX(score) AS max_score,
+            MIN(score) AS min_score,
+            COUNT(CASE WHEN score >= (oe.full_mark / 2.0) THEN 1 END) AS passed_count,
+            COUNT(CASE WHEN score < (oe.full_mark / 2.0) THEN 1 END) AS failed_count
+          FROM student_exams se
+          JOIN online_exams oe ON se.exam_id = oe.id
+          WHERE se.exam_id = $1 AND se.is_absent = false
+          GROUP BY oe.full_mark
+        `, [examId]);
+
+        const questionsRes = await query(`
+          SELECT 
+            q.id AS question_id,
+            q.question_text,
+            q."order",
+            COUNT(sa.id) AS total_answers,
+            COUNT(CASE WHEN sa.is_correct = 1 THEN 1 END) AS correct_answers,
+            COUNT(CASE WHEN sa.is_correct = 0 THEN 1 END) AS wrong_answers,
+            CASE 
+              WHEN COUNT(sa.id) > 0 THEN 
+                ROUND((COUNT(CASE WHEN sa.is_correct = 0 THEN 1 END)::numeric / COUNT(sa.id)) * 100, 1)
+              ELSE 0 
+            END AS error_rate_percentage
+          FROM questions q
+          LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.exam_id = $1
+          WHERE q.exam_id = $1
+          GROUP BY q.id, q.question_text, q."order"
+          ORDER BY error_rate_percentage DESC, q."order" ASC
+        `, [examId]);
+
+        return {
+          success: true,
+          exam_info: exam,
+          performance_kpis: statsRes.rows[0] || { total_attendees: 0, avg_score: 0 },
+          most_difficult_questions: questionsRes.rows.slice(0, 5),
+          recommendation: questionsRes.rows.length > 0 && Number(questionsRes.rows[0].error_rate_percentage) > 40
+            ? `تنبيه أكاديمي: السؤال رقم (${questionsRes.rows[0].order}) به أعلى نسبة خطأ (${questionsRes.rows[0].error_rate_percentage}%)، يُوصى بمراجعته وتوضيح فكرته للطلاب في الحصة القادمة.`
+            : "المستوى العام جيد ومستقر.",
+        };
+      } else {
+        const examRes = await query(`
+          SELECT e.id, e.title, e.total_degree AS full_mark, g.name AS grade_name
+          FROM exams e
+          LEFT JOIN grades g ON e.grade_id = g.id
+          WHERE e.id = $1 AND e.deleted = 0
+        `, [examId]);
+        if (examRes.rows.length === 0) return { success: false, error: "الامتحان الورقي غير موجود." };
+
+        const exam = examRes.rows[0];
+
+        const statsRes = await query(`
+          SELECT 
+            COUNT(*) AS total_attendees,
+            ROUND(AVG(degree)::numeric, 2) AS avg_score,
+            MAX(degree) AS max_score,
+            MIN(degree) AS min_score,
+            COUNT(CASE WHEN degree >= (e.total_degree / 2.0) THEN 1 END) AS passed_count,
+            COUNT(CASE WHEN degree < (e.total_degree / 2.0) THEN 1 END) AS failed_count
+          FROM exam_results er
+          JOIN exams e ON er.exam_id = e.id
+          WHERE er.exam_id = $1 AND er.is_absent = false
+          GROUP BY e.total_degree
+        `, [examId]);
+
+        const lowestScorers = await query(`
+          SELECT s.full_name, s.barcode, er.degree, er.notes
+          FROM exam_results er
+          JOIN students s ON er.student_id = s.id
+          WHERE er.exam_id = $1 AND er.is_absent = false
+          ORDER BY er.degree ASC
+          LIMIT 5
+        `, [examId]);
+
+        return {
+          success: true,
+          exam_info: exam,
+          performance_kpis: statsRes.rows[0] || { total_attendees: 0, avg_score: 0 },
+          struggling_students: lowestScorers.rows,
+        };
+      }
     }
 
     default:
