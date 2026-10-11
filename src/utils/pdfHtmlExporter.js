@@ -634,6 +634,77 @@ function renderPasswordsReportHtml({ passwords = [], meta = {}, excelUrl = null 
   });
 }
 
+/**
+ * 5. Render Attendance Printable HTML Report (PDF)
+ * Guarantees Present students first, then Absent students
+ */
+function renderAttendanceReportHtml({ attendance = [], meta = {}, excelUrl = null }) {
+  // Sort attendees first (present), then absentees (absent), then student name
+  const sorted = [...attendance].sort((a, b) => {
+    const aOrder = a.status === "present" ? 1 : a.status === "absent" ? 2 : 3;
+    const bOrder = b.status === "present" ? 1 : b.status === "absent" ? 2 : 3;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return (a.full_name || "").localeCompare(b.full_name || "", "ar");
+  });
+
+  const tableHeaders = [
+    { label: "م", align: "center" },
+    { label: "الباركود", align: "center" },
+    { label: "اسم الطالب", align: "right" },
+    { label: "الحالة", align: "center" },
+    { label: "وقت الحضور", align: "center" },
+    { label: "طريقة التسجيل", align: "center" },
+    { label: "نوع الحضور", align: "center" },
+    { label: "ملاحظات", align: "right" },
+  ];
+
+  const tableRows = sorted.map((r, idx) => {
+    const isPresent = r.status === "present";
+    const statusBadge = isPresent
+      ? `<span class="status-badge" style="background-color: #dcfce7; color: #166534; font-weight: bold;">حاضر</span>`
+      : `<span class="status-badge" style="background-color: #fee2e2; color: #991b1b; font-weight: bold;">غائب</span>`;
+
+    const timeDisplay = r.attendance_time ? formatEgyptTime(r.attendance_time, "HH:mm") : "-";
+    const methodDisplay = r.method === "barcode" ? "باركود" : r.method === "manual" ? "يدوي" : (r.method || "-");
+    const makeupDisplay = r.is_makeup ? "حصة تعويضية" : "حصة أساسية";
+
+    return [
+      idx + 1,
+      r.barcode || "-",
+      `<strong>${r.full_name || "-"}</strong>`,
+      statusBadge,
+      timeDisplay,
+      methodDisplay,
+      makeupDisplay,
+      r.notes || "-",
+    ];
+  });
+
+  const presentCount = sorted.filter(r => r.status === "present").length;
+  const absentCount = sorted.filter(r => r.status === "absent").length;
+  const total = sorted.length;
+  const attendanceRate = total > 0 ? `${Math.round((presentCount / total) * 100)}%` : "-";
+
+  return wrapHtmlReport({
+    title: meta.title || "كشف الحضور والغياب",
+    subtitle: `التاريخ: ${meta.date || formatEgyptTime(new Date(), "YYYY-MM-DD")}`,
+    badges: [
+      { label: "المرحلة الدراسية", value: meta.gradeName || null },
+      { label: "المجموعة", value: meta.groupName || null },
+      { label: "التاريخ", value: meta.date || null },
+    ],
+    statsCards: [
+      { label: "إجمالي الطلاب المسجلين", value: total, color: "primary" },
+      { label: "عدد الحاضرين", value: presentCount, color: "success" },
+      { label: "عدد الغائبين", value: absentCount, color: "danger" },
+      { label: "نسبة الحضور", value: attendanceRate, color: "primary" },
+    ],
+    tableHeaders,
+    tableRows,
+    excelUrl,
+  });
+}
+
 function sendReportHtml(res, html) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.send(html);
@@ -644,5 +715,6 @@ module.exports = {
   renderExamResultsReportHtml,
   renderPaymentsReportHtml,
   renderPasswordsReportHtml,
+  renderAttendanceReportHtml,
   sendReportHtml,
 };

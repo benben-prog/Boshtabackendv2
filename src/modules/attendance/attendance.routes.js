@@ -81,6 +81,15 @@ routes.get(
   "/group/:groupId/date/:date",
   attendanceController.getAttendanceByGroupAndDate,
 );
+// Export attendance report (PDF / Print)
+routes.get(
+  "/group/:groupId/date/:date/export/pdf",
+  attendanceController.exportAttendancePdf,
+);
+routes.get(
+  "/export/pdf",
+  attendanceController.exportAttendancePdf,
+);
 // Get attendance by group and date
 routes.get(
   "/absent/group/:groupId/date/:date",

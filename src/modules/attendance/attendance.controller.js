@@ -1,5 +1,11 @@
 const attendanceService = require("./attendance.service");
 const { logActivity } = require("../../utils/activityLogger");
+const { query } = require("../../config/database");
+const { getTodayEgypt } = require("../../utils/timezone");
+const {
+  renderAttendanceReportHtml,
+  sendReportHtml,
+} = require("../../utils/pdfHtmlExporter");
 
 // ============================================
 // SESSION MANAGEMENT
@@ -222,6 +228,48 @@ const getAttendanceByGroupAndDate = async (req, res, next) => {
     next(error);
   }
 };
+
+const exportAttendancePdf = async (req, res, next) => {
+  try {
+    const groupId = req.params.groupId || req.query.groupId || req.query.group_id;
+    const date = req.params.date || req.query.date || getTodayEgypt();
+
+    if (!groupId) {
+      throw new Error("معرّف المجموعة مطلوب لتصدير كشف الحضور والغياب");
+    }
+
+    const attendance = await attendanceService.getAttendanceByGroupAndDate(
+      groupId,
+      date,
+    );
+
+    const groupRes = await query(
+      `SELECT g.id, g.name AS group_name, gr.name AS grade_name
+       FROM groups g
+       LEFT JOIN grades gr ON g.grade_id = gr.id
+       WHERE g.id = $1`,
+      [groupId],
+    );
+    const groupInfo = groupRes.rows[0];
+
+    const meta = {
+      title: `كشف الحضور والغياب - ${groupInfo?.group_name || `المجموعة ${groupId}`}`,
+      gradeName: groupInfo?.grade_name || null,
+      groupName: groupInfo?.group_name || `المجموعة ${groupId}`,
+      date,
+    };
+
+    const html = renderAttendanceReportHtml({
+      attendance,
+      meta,
+    });
+
+    return sendReportHtml(res, html);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAbsentByGroupAndDate = async (req, res, next) => {
   try {
     const { groupId, date } = req.params;
@@ -506,4 +554,5 @@ module.exports = {
   getStudentsWithThreeConsecutiveAbsences,
   getDashboard,
   getAbsentStudentsByDate,
+  exportAttendancePdf,
 };

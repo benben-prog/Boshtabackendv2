@@ -166,7 +166,9 @@ SELECT
 FROM attendance a
 JOIN students s ON a.student_id = s.id
 WHERE a.group_id = $1 AND a.attendance_date = $2
-ORDER BY s.full_name ASC
+ORDER BY 
+  CASE WHEN a.status = 'present' THEN 1 WHEN a.status = 'absent' THEN 2 ELSE 3 END ASC,
+  s.full_name ASC
 `;
 
 // Get attendance by group and date
@@ -209,7 +211,10 @@ FROM attendance a
 JOIN students s ON a.student_id = s.id
 WHERE a.group_id = $1 
   AND TO_CHAR(a.attendance_date, 'YYYY-MM') = $2
-ORDER BY a.attendance_date DESC, s.full_name ASC
+ORDER BY 
+  a.attendance_date DESC,
+  CASE WHEN a.status = 'present' THEN 1 WHEN a.status = 'absent' THEN 2 ELSE 3 END ASC,
+  s.full_name ASC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 

@@ -194,6 +194,14 @@ routes.get(
   attendanceController.getAttendanceByGroupAndDate,
 );
 routes.get(
+  "/attendance/group/:groupId/date/:date/export/pdf",
+  attendanceController.exportAttendancePdf,
+);
+routes.get(
+  "/attendance/export/pdf",
+  attendanceController.exportAttendancePdf,
+);
+routes.get(
   "/attendance/group/:groupId/month/:month",
   attendanceController.getAttendanceByGroupAndMonth,
 );
