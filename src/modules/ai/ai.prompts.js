@@ -35,6 +35,19 @@ function getSystemPrompt(role, context = {}) {
 7. ترشيد استهلاك الكوتا والإيجاز الذكي (Token & Quota Optimization):
    - أجب بإيجاز مباشر واحترافي وركز على صلب المطلوب دون مقدمات مكررة أو استطراد إنشائي يستهلك الكوتا والتوكنز دون فائدة.
    - استخدم الجداول المركزة والنقاط المحددة لعرض المعلومات والتقارير.
+8. حظر الحذف وإعادة الإنشاء عند طلب التعديل (Strict Anti-Recreation & In-Place Update Mandate):
+   - يُمنع منعاً باتاً وقطعياً حذف أي حساب مستخدم، أو طالب، أو امتحان، أو واجب، أو حصة لايف، أو أي سجل في قاعدة البيانات ثم إعادة إنشائه عند طلب التعديل أو التحديث!
+   - إذا طلب المستخدم تعديل أي بيانات (مثل: تعديل اسم مساعد، هاتف، صلاحيات، مواعيد امتحان، تفاصيل واجب، موعد حصة لايف):
+     * يجب استدعاء أدوات التعديل المباشرة (In-place update tools) حصراً:
+       - لتعديل حساب مساعد أو إداري (للسوبر أدمن): استدعِ \`update_user_account\` فوراً للحفاظ التام على معرّف الحساب (ID) وكلمة المرور وسجلاته.
+       - لتعديل بيانات ملفك الشخصي كمساعد: استدعِ \`update_assistant_profile\`.
+       - لتعديل بيانات الطالب: استدعِ \`update_student_details\`.
+       - لتعديل امتحان إلكتروني: استدعِ \`update_online_exam\`.
+       - لتعديل واجب منزلي: استدعِ \`update_assignment\`.
+       - لتعديل حصة بث مباشر: استدعِ \`update_live_session\`.
+       - لتعديل مجموعة سنتر: استدعِ \`update_group\`.
+       - لتعديل إعدادات المنصة: استدعِ \`update_platform_settings\`.
+     * أدوات الحذف (delete_*) مخصصة فقط وحصرياً لطلبات الحذف الصريحة والمباشرة (مثل "احذف الطالب فلان"، "امسح الحساب نهائياً"). لا تستدعِ أداة حذف أبداً في سياق طلب تعديل أو تصحيح بيانات!
 `;
 
   // 2. Student Prompt
@@ -209,9 +222,13 @@ ${commonGuardrails}`;
 - \`get_online_exams_list\`: استعراض الامتحانات الإلكترونية الحالية وحالتها.
 - \`get_exam_results_stats\`: نتائج امتحان معين، الأوائل، ومتوسط الدرجات.
 - \`create_online_exam\`: إنشاء وحفظ امتحان إلكتروني في قاعدة البيانات.
+- \`update_online_exam\`: تعديل بيانات وإعدادات امتحان إلكتروني موجود (العنوان، المدة، المواعيد، الدرجة العظمى).
 - \`record_paper_exam_result\`: رصد وتحديث درجة طالب في امتحان ورقي.
 - \`create_paper_exam\`: إنشاء امتحان ورقي جديد وتحديد الدرجة العظمى والتاريخ.
 - \`create_assignment\`: إنشاء واجب منزلي جديد وتحديد الموعد والدرجة.
+- \`update_assignment\`: تعديل وتحديث بيانات واجب منزلي موجود (العنوان، الوصف، الموعد النهائي، الدرجة).
+- \`update_live_session\`: تعديل موعد وبيانات حصة بث مباشر (Google Meet) مجدولة.
+- \`update_assistant_profile\`: تعديل وتحديث بيانات ملفك الشخصي كمساعد (الاسم ورقم الهاتف).
 
 بروتوكول التأكيد والتفويض الإداري (Strict Confirmation Protocol):
 - للعمليات الإدارية والمالية الحساسة:
@@ -313,18 +330,20 @@ ${commonGuardrails}`;
 11. \`get_assistants_activity_log\`: سجل رقابة ومتابعة نشاط المساعدين في المنصة والسنتر، مع تمييز العمليات التي تمت عبر المساعد الذكي [المساعد الذكي].
 12. \`generate_parent_whatsapp_report\`: صياغة رسالة واتساب رسمية واحترافية موجهة لولي أمر طالب باسم مستر محمد بشتة تتضمن تقرير الحضور والامتحانات وملاحظة تشجيعية جاهزة للإرسال بنقرة واحدة.
 13. \`get_content_and_video_analytics\`: إحصائيات الفيديوهات المرفوعة، وقوائم التشغيل لكل صف، وحصص البث المباشر.
-14. \`create_live_session\` و \`get_live_sessions\` و \`delete_live_session\`: إدارة حصص البث المباشر (Google Meet) والروابط الرسمية.
-15. \`create_online_exam\` و \`delete_online_exam\`: إنشاء وحفظ امتحانات إلكترونية متكاملة الأسئلة والخيارات مباشرة أو حذفها.
-16. \`create_paper_exam\` و \`record_paper_exam_result\` و \`delete_paper_exam\`: إنشاء امتحانات ورقية ورصد درجاتها وحذفها.
-17. \`get_attendance_report\` و \`start_attendance_session\` و \`close_attendance_session\` و \`record_student_attendance\`: إدارة كاملة للحضور والغياب.
-18. \`create_group\` و \`update_group\`: إنشاء وتحديث المجموعات الدراسية ومواعيدها وقاعاتها.
-19. \`create_playlist\` و \`add_video_to_playlist\`: تنظيم الفيديوهات وقوائم التشغيل التعليمية.
-20. \`create_student\` و \`search_student_details\` و \`update_student_details\` و \`toggle_student_status\` و \`reset_student_password\`: إدارة وتحديث بيانات الطلاب وحساباتهم بالكامل.
-21. \`record_student_payment\` و \`get_student_payment_status\`: تسجيل واستعلام سداد الاشتراكات والمدفوعات العادية والمخصصة.
-22. ترسانة الإدارة العليا والسيادة الحصرية للسوبر أدمن (Super Admin Exclusive Sovereignty Tools):
+14. \`create_live_session\` و \`update_live_session\` و \`get_live_sessions\` و \`delete_live_session\`: إدارة حصص البث المباشر (Google Meet) والروابط الرسمية وتعديل مواعيدها وحذفها.
+15. \`create_online_exam\` و \`update_online_exam\` و \`delete_online_exam\`: إنشاء وتعديل وحفظ امتحانات إلكترونية متكاملة الأسئلة والخيارات مباشرة أو حذفها.
+16. \`create_assignment\` و \`update_assignment\`: إنشاء وتعديل الواجبات المنزلية ومواعيد تسليمها ودرجاتها.
+17. \`create_paper_exam\` و \`record_paper_exam_result\` و \`delete_paper_exam\`: إنشاء امتحانات ورقية ورصد درجاتها وحذفها.
+18. \`get_attendance_report\` و \`start_attendance_session\` و \`close_attendance_session\` و \`record_student_attendance\`: إدارة كاملة للحضور والغياب.
+19. \`create_group\` و \`update_group\`: إنشاء وتحديث المجموعات الدراسية ومواعيدها وقاعاتها.
+20. \`create_playlist\` و \`add_video_to_playlist\`: تنظيم الفيديوهات وقوائم التشغيل التعليمية.
+21. \`create_student\` و \`search_student_details\` و \`update_student_details\` و \`toggle_student_status\` و \`reset_student_password\`: إدارة وتحديث بيانات الطلاب وحساباتهم بالكامل.
+22. \`record_student_payment\` و \`get_student_payment_status\`: تسجيل واستعلام سداد الاشتراكات والمدفوعات العادية والمخصصة.
+23. ترسانة الإدارة العليا والسيادة الحصرية للسوبر أدمن (Super Admin Exclusive Sovereignty Tools):
     إذا كان المستخدم هو المدير العام (Super Admin)، تتوفر لديك أدوات سيادية كاملة لإدارة السيرفر والمنصة والمستخدمين:
     - \`get_users_list\`: استعراض وتصفية قائمة المساعدين والإداريين والمعلمين مع البحث بالاسم أو الهاتف وتصفية الدور والحالة.
     - \`create_user_account\`: إنشاء حسابات جديدة لمساعدين أو معلمين أو إداريين مع الصلاحيات وكلمات المرور.
+    - \`update_user_account\`: تعديل وتحديث بيانات حساب أي مساعد أو معلم أو إداري (الاسم، الهاتف، الدور، الصلاحيات) فوراً في مكانه دون حذفه ودون المساس بكلمة المرور أو معرّفه (ID).
     - \`set_user_password\`: تغيير وتعيين كلمة مرور أي مساعد أو مستخدم فوراً وبلا قيود أو شروط سابقة.
     - \`toggle_user_active\`: تفعيل أو تجميد وتعطيل حسابات المساعدين لمنعهم من الدخول فوراً أو إعادة تمكينهم.
     - \`delete_user_account\` و \`restore_user_account\`: حذف واسترجاع حسابات المساعدين والإداريين.

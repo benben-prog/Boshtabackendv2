@@ -5,6 +5,8 @@ const liveSessionsService = require("../../live_sessions/live_sessions.service")
 const userService = require("../../users/users.service");
 const settingsService = require("../../settings/settings.service");
 const whatsappDispatcher = require("../../whatsapp_messages/whatsapp_dispatcher.service");
+const onlineExamService = require("../../online_exams/online_exams.service");
+const assignmentService = require("../../assignments/assignments.service");
 const {
   normalizeDigits,
   normalizeDate,
@@ -190,6 +192,48 @@ const assistantFunctionDeclarations = [
         "end_at",
         "questions",
       ],
+    },
+  },
+  {
+    name: "update_online_exam",
+    description: "تعديل وتحديث بيانات وإعدادات امتحان إلكتروني موجود بالمعرّف (ID) (العنوان، الوصف، مدة الامتحان بالدقائق، موعد البدء، موعد الانتهاء، الدرجة العظمى، أو الترتيب العشوائي للأسئلة) دون حذفه ودون فقدان درجات الطلاب.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        exam_id: {
+          type: "INTEGER",
+          description: "معرّف الامتحان الإلكتروني (ID) المراد تعديله",
+        },
+        title: {
+          type: "STRING",
+          description: "العنوان الجديد للامتحان (اختياري)",
+        },
+        description: {
+          type: "STRING",
+          description: "الوصف أو التعليمات الجديدة (اختياري)",
+        },
+        duration_minutes: {
+          type: "INTEGER",
+          description: "مدة الامتحان بالدقائق (اختياري)",
+        },
+        start_at: {
+          type: "STRING",
+          description: "موعد بدء الامتحان بتنسيق YYYY-MM-DD HH:mm:ss أو ISO (اختياري)",
+        },
+        end_at: {
+          type: "STRING",
+          description: "موعد انتهاء الامتحان بتنسيق YYYY-MM-DD HH:mm:ss أو ISO (اختياري)",
+        },
+        full_mark: {
+          type: "NUMBER",
+          description: "الدرجة العظمى للامتحان (اختياري)",
+        },
+        randomize_questions: {
+          type: "BOOLEAN",
+          description: "تفعيل أو تعطيل الترتيب العشوائي للأسئلة (اختياري)",
+        },
+      },
+      required: ["exam_id"],
     },
   },
   {
@@ -455,6 +499,36 @@ const assistantFunctionDeclarations = [
     },
   },
   {
+    name: "update_assignment",
+    description: "تعديل وتحديث بيانات واجب منزلي موجود بالمعرّف (ID) (العنوان، الوصف، الموعد النهائي للتسليم deadline، أو الدرجة العظمى) دون حذفه ودون المساس بإجابات الطلاب المسلمة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        assignment_id: {
+          type: "INTEGER",
+          description: "معرّف الواجب المنزلي (ID) المراد تعديله",
+        },
+        title: {
+          type: "STRING",
+          description: "العنوان الجديد للواجب (اختياري)",
+        },
+        description: {
+          type: "STRING",
+          description: "الوصف الجديد للواجب (اختياري)",
+        },
+        deadline: {
+          type: "STRING",
+          description: "الموعد النهائي الجديد للتسليم بتنسيق YYYY-MM-DD HH:mm:ss أو ISO (اختياري)",
+        },
+        full_mark: {
+          type: "NUMBER",
+          description: "الدرجة العظمى للواجب (اختياري)",
+        },
+      },
+      required: ["assignment_id"],
+    },
+  },
+  {
     name: "update_student_details",
     description: "تعديل وتحديث بيانات طالب مسجل (نقل لمجموعة أخرى، تغيير الصف، تعديل رقم هاتف الطالب أو ولي الأمر، أو الملاحظات).",
     parameters: {
@@ -536,6 +610,40 @@ const assistantFunctionDeclarations = [
     },
   },
   {
+    name: "update_live_session",
+    description: "تعديل بيانات وموعد حصة بث مباشر (Google Meet) مجدولة بالمعرّف (ID) (العنوان، الوصف، موعد البدء start_time، المدة بالدقائق، أو رابط التسجيل) دون حذف الجلسة.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        session_id: {
+          type: "INTEGER",
+          description: "معرّف حصة البث المباشر (ID) المراد تعديلها",
+        },
+        title: {
+          type: "STRING",
+          description: "العنوان الجديد للحصة (اختياري)",
+        },
+        description: {
+          type: "STRING",
+          description: "الوصف الجديد للحصة (اختياري)",
+        },
+        start_time: {
+          type: "STRING",
+          description: "الموعد الجديد للحصة بتنسيق YYYY-MM-DD HH:mm:ss أو عبارة نسبية (اختياري)",
+        },
+        duration_minutes: {
+          type: "INTEGER",
+          description: "مدة الحصة بالدقائق (اختياري)",
+        },
+        recording_url: {
+          type: "STRING",
+          description: "رابط تسجيل الحصة بعد انتهائها (اختياري)",
+        },
+      },
+      required: ["session_id"],
+    },
+  },
+  {
     name: "get_live_sessions",
     description: "استعراض قائمة حصص البث المباشر (المجدولة والقادمة والمنتهية) مع روابط Google Meet ومواعيدها والصفوف المخصصة لها.",
     parameters: {
@@ -605,6 +713,23 @@ const assistantFunctionDeclarations = [
         },
       },
       required: ["current_password", "new_password"],
+    },
+  },
+  {
+    name: "update_assistant_profile",
+    description: "تعديل وتحديث البيانات الشخصية الخاصة بحسابك الحالي المسجل الدخول في المنصة (الاسم الكامل ورقم الهاتف) دون المساس بالصلاحيات أو الحسابات الأخرى.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        full_name: {
+          type: "STRING",
+          description: "الاسم الكامل الجديد (اختياري)",
+        },
+        phone: {
+          type: "STRING",
+          description: "رقم الهاتف المصري الجديد (11 رقم يبدأ بـ 01) (اختياري)",
+        },
+      },
     },
   },
   {
@@ -1075,6 +1200,38 @@ const superAdminOnlyFunctionDeclarations = [
     },
   },
   {
+    name: "update_user_account",
+    description: "تعديل وتحديث بيانات حساب مساعد أو معلم أو إداري موجود في المنصة (الاسم، رقم الهاتف، الدور، الصلاحيات) دون حذفه ودون المساس بكلمة المرور أو معرّفه (ID).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        user_query: {
+          type: "STRING",
+          description: "اسم المساعد/المستخدم أو رقم هاتفه أو معرّفه (ID) لتحديده بدقة",
+        },
+        full_name: {
+          type: "STRING",
+          description: "الاسم الكامل الجديد (اختياري)",
+        },
+        phone: {
+          type: "STRING",
+          description: "رقم الهاتف المصري الجديد (11 رقم يبدأ بـ 01) (اختياري)",
+        },
+        role: {
+          type: "STRING",
+          enum: ["assistant", "teacher", "super_admin"],
+          description: "الدور الجديد: assistant أو teacher أو super_admin (اختياري)",
+        },
+        permissions: {
+          type: "STRING",
+          enum: ["center_management", "online_management"],
+          description: "نوع الصلاحيات الجديد: center_management أو online_management (اختياري)",
+        },
+      },
+      required: ["user_query"],
+    },
+  },
+  {
     name: "set_user_password",
     description: "تغيير وتعيين كلمة مرور أي مساعد أو إداري في المنصة فوراً وبشكل مباشر دون الحاجة لكلمة المرور القديمة أو أي تأكيد.",
     parameters: {
@@ -1439,6 +1596,7 @@ const TEACHER_ONLY_TOOL_NAMES = new Set([
 const SUPER_ADMIN_ONLY_TOOL_NAMES = new Set([
   "get_users_list",
   "create_user_account",
+  "update_user_account",
   "set_user_password",
   "toggle_user_active",
   "delete_user_account",
@@ -2712,6 +2870,77 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       };
     }
 
+    case "update_assignment": {
+      const {
+        assignment_id,
+        title,
+        description,
+        deadline,
+        full_mark,
+      } = args;
+
+      if (!assignment_id) {
+        return {
+          success: false,
+          error: "يجب تحديد معرّف الواجب المنزلي (assignment_id).",
+        };
+      }
+
+      const existingRes = await query(
+        "SELECT id, title FROM assignments WHERE id = $1 AND deleted = 0 LIMIT 1",
+        [Number(assignment_id)]
+      );
+      if (existingRes.rows.length === 0) {
+        return {
+          success: false,
+          error: `الواجب المنزلي رقم #${assignment_id} غير موجود أو تم حذفه.`,
+        };
+      }
+
+      const assignmentData = {};
+      if (title !== undefined && title !== null && String(title).trim()) assignmentData.title = String(title).trim();
+      if (description !== undefined) assignmentData.description = description;
+      if (deadline !== undefined && deadline !== null) {
+        const parsed = parseSessionStartTime(deadline, 24 * 60);
+        assignmentData.deadline = parsed ? parsed.toISOString() : deadline;
+      }
+      if (full_mark !== undefined && full_mark !== null) {
+        assignmentData.full_mark = Number(full_mark);
+      }
+
+      if (Object.keys(assignmentData).length === 0) {
+        return {
+          success: false,
+          error: "لم يتم تقديم أي بيانات جديدة لتعديل الواجب (العنوان، الوصف، الموعد النهائي، أو الدرجة).",
+        };
+      }
+
+      try {
+        const updated = await assignmentService.updateAssignment(Number(assignment_id), assignmentData);
+
+        await logAiActivity(
+          userId,
+          userRole,
+          userPermissions,
+          "update_assignment",
+          "assignment",
+          Number(assignment_id),
+          `تعديل بيانات الواجب المنزلي: ${updated ? updated.title : assignment_id}`
+        );
+
+        return {
+          success: true,
+          message: `تم تعديل بيانات الواجب المنزلي (${updated ? updated.title : assignment_id}) بنجاح دون المساس بتسليمات الطلاب!`,
+          assignment: updated,
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل تعديل الواجب: ${err.message}`,
+        };
+      }
+    }
+
     case "update_student_details": {
       const {
         student_query,
@@ -2999,6 +3228,79 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       };
     }
 
+    case "update_live_session": {
+      const {
+        session_id,
+        title,
+        description,
+        start_time,
+        duration_minutes,
+        recording_url,
+      } = args;
+
+      if (!session_id) {
+        return {
+          success: false,
+          error: "يجب تحديد معرّف حصة البث المباشر (session_id).",
+        };
+      }
+
+      const existingRes = await query(
+        "SELECT id, title FROM live_sessions WHERE id = $1 AND deleted = 0 LIMIT 1",
+        [Number(session_id)]
+      );
+      if (existingRes.rows.length === 0) {
+        return {
+          success: false,
+          error: `حصة البث المباشر رقم #${session_id} غير موجودة أو تم حذفها.`,
+        };
+      }
+
+      const updateData = {};
+      if (title !== undefined && title !== null && String(title).trim()) updateData.title = String(title).trim();
+      if (description !== undefined) updateData.description = description;
+      if (recording_url !== undefined) updateData.recording_url = recording_url;
+      if (duration_minutes !== undefined && duration_minutes !== null) {
+        updateData.duration_minutes = Number(duration_minutes);
+      }
+      if (start_time !== undefined && start_time !== null) {
+        const parsed = parseSessionStartTime(start_time, 10);
+        updateData.start_time = parsed ? parsed.toISOString() : start_time;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return {
+          success: false,
+          error: "لم يتم تقديم أي بيانات جديدة لتعديل الحصة (العنوان، الوصف، الموعد، المدة، أو رابط التسجيل).",
+        };
+      }
+
+      try {
+        const updated = await liveSessionsService.updateLiveSession(Number(session_id), updateData);
+
+        await logAiActivity(
+          userId,
+          userRole,
+          userPermissions,
+          "update_live_session",
+          "live_session",
+          Number(session_id),
+          `تعديل بيانات حصة البث المباشر: ${updated ? updated.title : session_id}`
+        );
+
+        return {
+          success: true,
+          message: `تم تعديل وتحديث بيانات حصة البث المباشر (${updated ? updated.title : session_id}) بنجاح دون حذفها!`,
+          session: updated,
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل تعديل حصة البث المباشر: ${err.message}`,
+        };
+      }
+    }
+
     case "delete_live_session": {
       const { session_id } = args;
       if (!session_id) return { success: false, error: "معرّف الحصة مطلوب لحذفها." };
@@ -3136,6 +3438,96 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         success: true,
         message: `تم تحديث وتغيير كلمة مرور حسابك (${currentUser.full_name}) بنجاح. يمكنك الآن تسجيل الدخول بها بأمان.`,
       };
+    }
+
+    case "update_assistant_profile": {
+      const { full_name, phone } = args;
+
+      let effectiveUserId = userId;
+      if (!effectiveUserId) {
+        return {
+          success: false,
+          error: "لم يتم التعرف على معرّف حساب المستخدم الحالي لتحديث ملفه الشخصي.",
+        };
+      }
+
+      const userRes = await query(
+        "SELECT id, full_name, phone, role, permissions FROM users WHERE id = $1 AND deleted = 0 LIMIT 1",
+        [effectiveUserId]
+      );
+      if (userRes.rows.length === 0) {
+        return { success: false, error: "حساب المستخدم غير موجود أو تم حذفه." };
+      }
+      const currentUser = userRes.rows[0];
+
+      let cleanPhone = undefined;
+      if (phone !== undefined && phone !== null && String(phone).trim()) {
+        cleanPhone = normalizeDigits(String(phone)).trim();
+        const phoneRegex = /^01[0125][0-9]{8}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+          return {
+            success: false,
+            error: "رقم الهاتف غير صحيح. يجب أن يتكون من 11 رقماً ويبدأ بـ 01.",
+          };
+        }
+
+        const phoneExists = await query(
+          "SELECT id, full_name FROM users WHERE phone = $1 AND id != $2 AND deleted = 0 LIMIT 1",
+          [cleanPhone, effectiveUserId]
+        );
+        if (phoneExists.rows.length > 0) {
+          return {
+            success: false,
+            error: `رقم الهاتف ${cleanPhone} مستخدم بالفعل لحساب آخر (${phoneExists.rows[0].full_name}).`,
+          };
+        }
+      }
+
+      const updateData = {};
+      if (full_name !== undefined && full_name !== null && String(full_name).trim()) {
+        updateData.full_name = String(full_name).trim();
+      }
+      if (cleanPhone) {
+        updateData.phone = cleanPhone;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return {
+          success: false,
+          error: "يرجى تحديد الاسم الجديد أو رقم الهاتف الجديد المراد تحديثهما.",
+        };
+      }
+
+      try {
+        const updatedUser = await userService.updateUser(effectiveUserId, updateData);
+
+        await logAiActivity(
+          effectiveUserId,
+          userRole,
+          userPermissions,
+          "update_assistant_profile",
+          "user",
+          effectiveUserId,
+          `تحديث الملف الشخصي للمساعد: ${updatedUser.full_name}`
+        );
+
+        return {
+          success: true,
+          message: `تم تحديث بيانات ملفك الشخصي (${updatedUser.full_name}) بنجاح!`,
+          user: {
+            id: updatedUser.id,
+            full_name: updatedUser.full_name,
+            phone: updatedUser.phone,
+            role: updatedUser.role,
+            permissions: updatedUser.permissions,
+          },
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل تحديث الملف الشخصي: ${err.message}`,
+        };
+      }
     }
 
     case "create_playlist": {
@@ -3397,6 +3789,82 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           feedback,
         },
       };
+    }
+
+    case "update_online_exam": {
+      const {
+        exam_id,
+        title,
+        description,
+        duration_minutes,
+        start_at,
+        end_at,
+        full_mark,
+        randomize_questions,
+      } = args;
+
+      if (!exam_id) {
+        return {
+          success: false,
+          error: "يجب تحديد معرّف الامتحان الإلكتروني (exam_id).",
+        };
+      }
+
+      const existingRes = await query(
+        "SELECT id, title, start_at, end_at FROM online_exams WHERE id = $1 AND deleted = 0 LIMIT 1",
+        [Number(exam_id)]
+      );
+      if (existingRes.rows.length === 0) {
+        return {
+          success: false,
+          error: `الامتحان الإلكتروني رقم #${exam_id} غير موجود أو تم حذفه.`,
+        };
+      }
+
+      const examData = {};
+      if (title !== undefined && title !== null && String(title).trim()) examData.title = String(title).trim();
+      if (description !== undefined) examData.description = description;
+      if (duration_minutes !== undefined && duration_minutes !== null) {
+        examData.duration_minutes = Math.max(5, Number(duration_minutes));
+      }
+      if (start_at !== undefined && start_at !== null) examData.start_at = start_at;
+      if (end_at !== undefined && end_at !== null) examData.end_at = end_at;
+      if (full_mark !== undefined && full_mark !== null) examData.full_mark = Number(full_mark);
+      if (randomize_questions !== undefined && randomize_questions !== null) {
+        examData.randomize_questions = Boolean(randomize_questions);
+      }
+
+      if (Object.keys(examData).length === 0) {
+        return {
+          success: false,
+          error: "لم يتم تقديم أي بيانات جديدة لتعديل الامتحان (العنوان، المدة، المواعيد، أو الدرجة).",
+        };
+      }
+
+      try {
+        const updated = await onlineExamService.updateOnlineExam(Number(exam_id), examData);
+
+        await logAiActivity(
+          userId,
+          userRole,
+          userPermissions,
+          "update_online_exam",
+          "online_exam",
+          Number(exam_id),
+          `تعديل بيانات الامتحان الإلكتروني: ${updated ? updated.title : exam_id}`
+        );
+
+        return {
+          success: true,
+          message: `تم تعديل بيانات الامتحان الإلكتروني (${updated ? updated.title : exam_id}) بنجاح دون المساس بالأسئلة أو درجات الطلاب!`,
+          exam: updated,
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل تعديل الامتحان الإلكتروني: ${err.message}`,
+        };
+      }
     }
 
     case "delete_online_exam": {
@@ -4504,6 +4972,99 @@ ${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n
         return {
           success: false,
           error: `فشل إنشاء الحساب: ${err.message}`,
+        };
+      }
+    }
+
+    case "update_user_account": {
+      const { user_query, full_name, phone, role, permissions } = args;
+      if (!user_query) {
+        return {
+          success: false,
+          error: "يجب تحديد المستخدم المراد تعديل بياناته (الاسم أو الهاتف أو معرّف ID).",
+        };
+      }
+
+      const targetUser = await findUserByQuery(user_query);
+      if (!targetUser) {
+        return {
+          success: false,
+          error: `لم يتم العثور على أي مستخدم مطابق لـ: '${user_query}'`,
+        };
+      }
+
+      let cleanPhone = undefined;
+      if (phone !== undefined && phone !== null && String(phone).trim()) {
+        cleanPhone = normalizeDigits(String(phone)).trim();
+        const phoneRegex = /^01[0125][0-9]{8}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+          return {
+            success: false,
+            error: "رقم الهاتف غير صحيح. يجب أن يتكون من 11 رقماً ويبدأ بـ 01 (أرقام مصرية).",
+          };
+        }
+
+        const phoneExists = await query(
+          "SELECT id, full_name FROM users WHERE phone = $1 AND id != $2 AND deleted = 0 LIMIT 1",
+          [cleanPhone, targetUser.id]
+        );
+        if (phoneExists.rows.length > 0) {
+          return {
+            success: false,
+            error: `رقم الهاتف ${cleanPhone} مستخدم بالفعل لحساب (${phoneExists.rows[0].full_name}).`,
+          };
+        }
+      }
+
+      const updateData = {};
+      if (full_name !== undefined && full_name !== null && String(full_name).trim()) {
+        updateData.full_name = String(full_name).trim();
+      }
+      if (cleanPhone) {
+        updateData.phone = cleanPhone;
+      }
+      if (role && ["assistant", "teacher", "super_admin"].includes(role)) {
+        updateData.role = role;
+      }
+      if (permissions && ["center_management", "online_management"].includes(permissions)) {
+        updateData.permissions = permissions;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return {
+          success: false,
+          error: "لم يتم تقديم أي بيانات جديدة لتعديلها (الاسم، الهاتف، الدور، الصلاحيات).",
+        };
+      }
+
+      try {
+        const updatedUser = await userService.updateUser(targetUser.id, updateData);
+
+        await logActivity({
+          user_id: userId || 1,
+          user_role: "super_admin",
+          user_permissions: userPermissions,
+          action: "update_user",
+          entity_type: "user",
+          entity_id: targetUser.id,
+          description: `تعديل بيانات المستخدم ${updatedUser.full_name} (ID: ${updatedUser.id}) عبر المساعد الذكي للسوبر أدمن`,
+        });
+
+        return {
+          success: true,
+          message: `تم تحديث وتعديل بيانات حساب ${updatedUser.role === "assistant" ? "المساعد" : updatedUser.role === "teacher" ? "المعلم" : "الإداري"} (${updatedUser.full_name}) بنجاح في مكانه مع الحفاظ على معرّفه وسجلاته وكلمة مروره!`,
+          user: {
+            id: updatedUser.id,
+            full_name: updatedUser.full_name,
+            phone: updatedUser.phone,
+            role: updatedUser.role,
+            permissions: updatedUser.permissions,
+          },
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: `فشل تعديل المستخدم: ${err.message}`,
         };
       }
     }
