@@ -1450,6 +1450,27 @@ const SUPER_ADMIN_ONLY_TOOL_NAMES = new Set([
   "get_whatsapp_dashboard_stats",
 ]);
 
+const CENTER_ONLY_TOOL_NAMES = new Set([
+  "create_student",
+  "update_student_details",
+  "toggle_student_status",
+  "reset_student_password",
+  "search_student_details",
+  "get_students_summary",
+  "record_student_payment",
+  "get_student_payment_status",
+  "record_student_attendance",
+  "start_attendance_session",
+  "close_attendance_session",
+  "get_attendance_report",
+  "create_paper_exam",
+  "record_paper_exam_result",
+  "delete_paper_exam",
+  "create_group",
+  "update_group",
+  "generate_parent_whatsapp_report",
+]);
+
 async function findUserByQuery(queryStr) {
   if (!queryStr) return null;
   const str = String(queryStr).trim();
@@ -1493,6 +1514,22 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: false,
         error: "عفواً، هذه الأداة حصرية للمدير العام (Super Admin) فقط ولا يمتلك أي مستخدم آخر صلاحية تنفيذها.",
+      };
+    }
+  }
+
+  // Strict RBAC Guard: Protect Center tools from Online Assistants
+  if (CENTER_ONLY_TOOL_NAMES.has(name)) {
+    const isOnlineAssistant =
+      userRole === "assistant" &&
+      (userPermissions === "online_management" ||
+        context.rawPermissions === "online_management" ||
+        context.isOnlineAssistant === true);
+
+    if (isOnlineAssistant) {
+      return {
+        success: false,
+        error: "عفواً، حسابك يمتلك صلاحية إدارة الأونلاين فقط (online_management). هذه الأداة مخصصة لإدارة السنتر والعمليات الميدانية (حضور وغياب، مدفوعات، امتحانات ورقية، ومجموعات السنتر) ولا يمكنك تنفيذها.",
       };
     }
   }
@@ -4740,6 +4777,9 @@ ${custom_note ? `\n📝 ملاحظة خاصة من مستر محمد بشتة:\n
 const operationalAssistantFunctionDeclarations = assistantFunctionDeclarations.filter(
   (t) => !TEACHER_ONLY_TOOL_NAMES.has(t.name) && !SUPER_ADMIN_ONLY_TOOL_NAMES.has(t.name),
 );
+const onlineAssistantFunctionDeclarations = operationalAssistantFunctionDeclarations.filter(
+  (t) => !CENTER_ONLY_TOOL_NAMES.has(t.name),
+);
 const teacherFunctionDeclarations = assistantFunctionDeclarations.filter(
   (t) => !SUPER_ADMIN_ONLY_TOOL_NAMES.has(t.name),
 );
@@ -4750,6 +4790,7 @@ const superAdminFunctionDeclarations = [
 
 module.exports = {
   assistantFunctionDeclarations: operationalAssistantFunctionDeclarations,
+  onlineAssistantFunctionDeclarations,
   teacherFunctionDeclarations,
   superAdminFunctionDeclarations,
   executeAssistantTool,

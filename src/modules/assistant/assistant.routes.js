@@ -395,6 +395,153 @@ routes.delete(
   playlistVideoController.removeVideoFromPlaylist,
 );
 
+
+/* ---------- Read-only Grades & Groups for Online Dropdowns ---------- */
+routes.get("/grades", gradesController.getAllGrades);
+routes.get("/grades/:id", gradesController.getGradeById);
+routes.get("/groups/grade/:gradeId", groupsController.getGroupsByGradeId);
+
+/* ---------- Student Answers ---------- */
+routes.get(
+  "/student-answers/essay/pending",
+  studentAnswerController.getEssayAnswersForGrading,
+);
+routes.get(
+  "/student-answers/essay/exam/:examId",
+  studentAnswerController.getEssayAnswersByExam,
+);
+routes.get(
+  "/student-answers/question/:questionId/stats",
+  studentAnswerController.getQuestionAnswerStats,
+);
+routes.get(
+  "/student-answers/question/:questionId/options",
+  studentAnswerController.getMostSelectedOptions,
+);
+routes.get(
+  "/student-answers/:answerId/download",
+  studentAnswerController.downloadAnswerFile,
+);
+routes.put(
+  "/student-answers/:answerId/grade",
+  studentAnswerController.gradeEssayAnswer,
+);
+
+
+/* ---------- Student Exams ---------- */
+routes.get(
+  "/student-exams/exam/:examId/stats",
+  studentExamController.getExamAttemptStats,
+);
+routes.get(
+  "/student-exams/exam/:examId",
+  studentExamController.getStudentExamsByExamId,
+);
+routes.get(
+  "/student-exams/grade/:gradeId/stats",
+  studentExamController.getGradeExamAttemptsStats,
+);
+routes.get(
+  "/student-exams/group/:groupId/stats",
+  studentExamController.getGroupExamAttemptsStats,
+);
+
+
+/* ============================================
+   GOOGLE OAUTH & MEET INTEGRATION (ONLINE MANAGEMENT)
+   ============================================ */
+routes.get(
+  "/google/auth-url",
+  onlineManagementAuth,
+  liveSessionsController.getGoogleAuthUrl,
+);
+routes.get(
+  "/google/status",
+  onlineManagementAuth,
+  liveSessionsController.getGoogleStatus,
+);
+routes.post(
+  "/google/disconnect",
+  onlineManagementAuth,
+  liveSessionsController.disconnectGoogle,
+);
+routes.post(
+  "/google/exchange-code",
+  onlineManagementAuth,
+  validate(exchangeCodeSchema),
+  liveSessionsController.exchangeCode,
+);
+
+/* ============================================
+   LIVE SESSIONS (ONLINE MANAGEMENT)
+   ============================================ */
+routes.get(
+  "/live-sessions",
+  onlineManagementAuth,
+  liveSessionsController.getAllLiveSessions,
+);
+routes.get(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveSessionsController.getLiveSessionById,
+);
+routes.post(
+  "/live-sessions",
+  onlineManagementAuth,
+  liveMaterialUpload.single("file"),
+  validate(createLiveSessionSchema),
+  liveSessionsController.createLiveSession,
+);
+routes.put(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveMaterialUpload.single("file"),
+  validate(updateLiveSessionSchema),
+  liveSessionsController.updateLiveSession,
+);
+routes.delete(
+  "/live-sessions/:id",
+  onlineManagementAuth,
+  liveSessionsController.deleteLiveSession,
+);
+routes.post(
+  "/live-sessions/:id/sync-recording",
+  onlineManagementAuth,
+  liveSessionsController.syncRecording,
+);
+routes.put(
+  "/live-sessions/:id/recording",
+  onlineManagementAuth,
+  validate(updateRecordingSchema),
+  liveSessionsController.updateRecordingUrl,
+);
+routes.get(
+  "/live-sessions/:id/download-material",
+  liveSessionsController.downloadMaterial,
+);
+routes.get(
+  "/live-sessions/:id/download",
+  liveSessionsController.downloadMaterial,
+);
+routes.get(
+  "/live-sessions/:id/preview",
+  liveSessionsController.downloadMaterial,
+);
+
+/* ============================================
+   AI COPILOT / ASSISTANT SMART AGENT
+   ============================================ */
+routes.post(
+  "/ai/chat",
+  aiUpload.single("file"),
+  validate(chatSchema),
+  aiController.chat,
+);
+routes.get("/ai/quota", aiController.getQuota);
+routes.get("/ai/history", aiController.getHistory);
+routes.delete("/ai/history", aiController.clearHistory);
+
+
 /* ============================================
    CENTER MANAGEMENT ROUTES
    ============================================ */
@@ -438,7 +585,6 @@ routes.post(
 
 /* ---------- Grades ---------- */
 // Static routes first
-routes.get("/grades", gradesController.getAllGrades);
 routes.get("/grades/groups-count", gradesController.getGradesWithGroupsCount);
 routes.get(
   "/grades/students-count",
@@ -449,7 +595,6 @@ routes.post("/grades/find", validate(findGradeByNameSchema), gradesController.fi
 // Dynamic routes (longer paths first)
 routes.get("/grades/:id/details", gradesController.getGradeDetails);
 routes.get("/grades/:id/stats", gradesController.getGradeStats);
-routes.get("/grades/:id", gradesController.getGradeById);
 // Mutations
 routes.post("/grades", validate(createGradeSchema), gradesController.createGrade);
 routes.put("/grades/:id", validate(updateGradeSchema), gradesController.updateGrade);
@@ -466,7 +611,6 @@ routes.get(
 );
 routes.get("/groups/stats", groupsController.getAllGroupsStats);
 routes.post("/groups/find", validate(findGroupByNameSchema), groupsController.findGroupByName);
-routes.get("/groups/grade/:gradeId", groupsController.getGroupsByGradeId);
 // Dynamic routes (longer paths first)
 routes.get("/groups/:id/full-stats", groupsController.getGroupFullStats);
 routes.get("/groups/:id/stats", groupsController.getGroupStats);
@@ -476,32 +620,6 @@ routes.post("/groups", validate(createGroupSchema), groupsController.createGroup
 routes.put("/groups/:id", validate(updateGroupSchema), groupsController.updateGroup);
 routes.delete("/groups/:id", groupsController.softDeleteGroup);
 routes.delete("/groups/:id/permanent", groupsController.hardDeleteGroup);
-
-/* ---------- Student Answers ---------- */
-routes.get(
-  "/student-answers/essay/pending",
-  studentAnswerController.getEssayAnswersForGrading,
-);
-routes.get(
-  "/student-answers/essay/exam/:examId",
-  studentAnswerController.getEssayAnswersByExam,
-);
-routes.get(
-  "/student-answers/question/:questionId/stats",
-  studentAnswerController.getQuestionAnswerStats,
-);
-routes.get(
-  "/student-answers/question/:questionId/options",
-  studentAnswerController.getMostSelectedOptions,
-);
-routes.get(
-  "/student-answers/:answerId/download",
-  studentAnswerController.downloadAnswerFile,
-);
-routes.put(
-  "/student-answers/:answerId/grade",
-  studentAnswerController.gradeEssayAnswer,
-);
 
 /* ---------- Students ---------- */
 // Static routes first
@@ -779,24 +897,6 @@ routes.post(
 routes.put("/exam-results/:id", validate(updateExamResultSchema), examResultsController.updateExamResult);
 routes.delete("/exam-results/:id", examResultsController.deleteExamResult);
 
-/* ---------- Student Exams ---------- */
-routes.get(
-  "/student-exams/exam/:examId/stats",
-  studentExamController.getExamAttemptStats,
-);
-routes.get(
-  "/student-exams/exam/:examId",
-  studentExamController.getStudentExamsByExamId,
-);
-routes.get(
-  "/student-exams/grade/:gradeId/stats",
-  studentExamController.getGradeExamAttemptsStats,
-);
-routes.get(
-  "/student-exams/group/:groupId/stats",
-  studentExamController.getGroupExamAttemptsStats,
-);
-
 /* ============================================
    WHATSAPP - TEMPLATES
    ============================================ */
@@ -838,100 +938,6 @@ routes.delete(
   "/whatsapp/messages/:messageId",
   whatsappController.deleteMessage,
 );
-
-/* ============================================
-   GOOGLE OAUTH & MEET INTEGRATION (ONLINE MANAGEMENT)
-   ============================================ */
-routes.get(
-  "/google/auth-url",
-  onlineManagementAuth,
-  liveSessionsController.getGoogleAuthUrl,
-);
-routes.get(
-  "/google/status",
-  onlineManagementAuth,
-  liveSessionsController.getGoogleStatus,
-);
-routes.post(
-  "/google/disconnect",
-  onlineManagementAuth,
-  liveSessionsController.disconnectGoogle,
-);
-routes.post(
-  "/google/exchange-code",
-  onlineManagementAuth,
-  validate(exchangeCodeSchema),
-  liveSessionsController.exchangeCode,
-);
-
-/* ============================================
-   LIVE SESSIONS (ONLINE MANAGEMENT)
-   ============================================ */
-routes.get(
-  "/live-sessions",
-  onlineManagementAuth,
-  liveSessionsController.getAllLiveSessions,
-);
-routes.get(
-  "/live-sessions/:id",
-  onlineManagementAuth,
-  liveSessionsController.getLiveSessionById,
-);
-routes.post(
-  "/live-sessions",
-  onlineManagementAuth,
-  liveMaterialUpload.single("file"),
-  validate(createLiveSessionSchema),
-  liveSessionsController.createLiveSession,
-);
-routes.put(
-  "/live-sessions/:id",
-  onlineManagementAuth,
-  liveMaterialUpload.single("file"),
-  validate(updateLiveSessionSchema),
-  liveSessionsController.updateLiveSession,
-);
-routes.delete(
-  "/live-sessions/:id",
-  onlineManagementAuth,
-  liveSessionsController.deleteLiveSession,
-);
-routes.post(
-  "/live-sessions/:id/sync-recording",
-  onlineManagementAuth,
-  liveSessionsController.syncRecording,
-);
-routes.put(
-  "/live-sessions/:id/recording",
-  onlineManagementAuth,
-  validate(updateRecordingSchema),
-  liveSessionsController.updateRecordingUrl,
-);
-routes.get(
-  "/live-sessions/:id/download-material",
-  liveSessionsController.downloadMaterial,
-);
-routes.get(
-  "/live-sessions/:id/download",
-  liveSessionsController.downloadMaterial,
-);
-routes.get(
-  "/live-sessions/:id/preview",
-  liveSessionsController.downloadMaterial,
-);
-
-/* ============================================
-   AI COPILOT / ASSISTANT SMART AGENT
-   ============================================ */
-routes.post(
-  "/ai/chat",
-  aiUpload.single("file"),
-  validate(chatSchema),
-  aiController.chat,
-);
-routes.get("/ai/quota", aiController.getQuota);
-routes.get("/ai/history", aiController.getHistory);
-routes.delete("/ai/history", aiController.clearHistory);
 
 module.exports = routes;
 

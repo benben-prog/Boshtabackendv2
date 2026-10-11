@@ -12,6 +12,7 @@ const {
 const { query } = require("../../config/database");
 const {
   assistantFunctionDeclarations,
+  onlineAssistantFunctionDeclarations,
   teacherFunctionDeclarations,
   superAdminFunctionDeclarations,
   executeAssistantTool,
@@ -202,6 +203,8 @@ const aiService = {
         userContext = {
           userName: user.full_name,
           userPhone: user.phone,
+          rawPermissions: user.permissions,
+          isOnlineAssistant: user.role === "assistant" && user.permissions === "online_management",
           permissions:
             user.role === "super_admin" || user.permissions === "all"
               ? "إدارة السنتر والمنصة كاملة (المدير العام - Super Admin)"
@@ -211,6 +214,8 @@ const aiService = {
         userContext = {
           userName: "المدير العام (Super Admin)",
           userPhone: env.SUPER_ADMIN_USERNAME || "الرئيسي",
+          rawPermissions: "all",
+          isOnlineAssistant: false,
           permissions: "إدارة السنتر والمنصة كاملة (المدير العام - Super Admin)",
         };
       }
@@ -264,12 +269,24 @@ const aiService = {
 
     // E. Build current user turn parts
     const currentParts = [];
-    if (text) {
-      currentParts.push({ text });
-    } else if (file) {
-      currentParts.push({
-        text: "يرجى قراءة وتحليل هذا الملف المرفق وشرحه أو تلخيصه أو صياغة المطلوب منه وفقاً لتعليماتك.",
-      });
+    if (file) {
+      const fileGuardInstruction = `[توجيه أمني وإرشادي إلزامي للملف المرفق]:
+افحص محتوى هذا الملف المرفق أولاً:
+إذا كان الملف يحتوي على أي كود برمجي (Programming/Code/Scripts)، أو علوم حاسب، أو أي مادة دراسية أخرى خارج نطاق مادة "${env.AI_SUBJECT_NAME || "اللغة العربية"}":
+ارفض فوراً وبشكل قاطع شرحه أو تحليله والتزم بالرد المعتمد الصارم لرفض المحتوى الخارج عن تخصص مادة اللغة العربية.
+أما إذا كان الملف يخص منهج وفروع مادة اللغة العربية حصراً: فقم بشرحه ومساعدة المستخدم فيه بدقة.`;
+
+      if (text) {
+        currentParts.push({ text: `${text}\n\n${fileGuardInstruction}` });
+      } else {
+        currentParts.push({
+          text: `يرجى فحص وتحليل هذا الملف المرفق وفقاً لتعليمات التخصص:\n\n${fileGuardInstruction}`,
+        });
+      }
+    } else {
+      if (text) {
+        currentParts.push({ text });
+      }
     }
 
     if (filePart) {
@@ -292,9 +309,15 @@ const aiService = {
         functionDeclarations: teacherFunctionDeclarations,
       });
     } else if (userType === "assistant") {
-      tools.push({
-        functionDeclarations: assistantFunctionDeclarations,
-      });
+      if (userContext.isOnlineAssistant || userContext.rawPermissions === "online_management") {
+        tools.push({
+          functionDeclarations: onlineAssistantFunctionDeclarations,
+        });
+      } else {
+        tools.push({
+          functionDeclarations: assistantFunctionDeclarations,
+        });
+      }
     } else if (userType === "student") {
       tools.push({
         functionDeclarations: studentFunctionDeclarations,
@@ -377,6 +400,8 @@ const aiService = {
                       userRole: userType,
                       userName: userContext.userName,
                       permissions: userContext.permissions,
+                      rawPermissions: userContext.rawPermissions,
+                      isOnlineAssistant: userContext.isOnlineAssistant,
                     });
                   }
                 } catch (toolExecErr) {
