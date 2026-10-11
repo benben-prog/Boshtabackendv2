@@ -232,8 +232,9 @@ const swaggerAuth = (req, res, next) => {
     return res.status(404).json({ success: false, message: "المسار غير موجود" });
   }
 
-  const docsSecret = process.env.DOCS_ACCESS_TOKEN;
-  if (docsSecret && env.NODE_ENV === "production") {
+  const isProd = env.NODE_ENV === "production" || process.env.NODE_ENV === "production";
+  const docsSecret = process.env.DOCS_ACCESS_TOKEN || (isProd ? "boshta_docs_2026" : null);
+  if (docsSecret && isProd) {
     const path = req.path || "";
     // Allow static UI assets (css, js, images) to load cleanly
     if (
