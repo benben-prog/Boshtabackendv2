@@ -234,13 +234,30 @@ const swaggerAuth = (req, res, next) => {
 
   const docsSecret = process.env.DOCS_ACCESS_TOKEN;
   if (docsSecret && env.NODE_ENV === "production") {
+    const path = req.path || "";
+    // Allow static UI assets (css, js, images) to load cleanly
+    if (
+      path.endsWith(".css") ||
+      path.endsWith(".js") ||
+      path.endsWith(".png") ||
+      path.endsWith(".ico")
+    ) {
+      return next();
+    }
+
+    const referer = req.headers.referer || "";
+    const isRefererAuthorized =
+      referer.includes(`key=${docsSecret}`) ||
+      referer.includes(`token=${docsSecret}`) ||
+      referer.includes(`secret=${docsSecret}`);
+
     const provided =
       req.headers["x-docs-token"] ||
       req.query.token ||
       req.query.key ||
       req.query.secret;
 
-    if (provided !== docsSecret) {
+    if (provided !== docsSecret && !isRefererAuthorized) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بالوصول لتوثيق API",
