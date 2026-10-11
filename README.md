@@ -92,7 +92,7 @@ The upload verification script checks absolute storage resolution, Multer wrappe
 ## Security and deployment notes
 
 Use a strong, unique `JWT_SECRET`, API credential values, and super-admin key in production. Set `NODE_ENV=production`, provide the production database configuration, and set an explicit `UPLOAD_ROOT` on persistent storage. Place the API behind HTTPS and configure the reverse proxy to preserve request bodies for multipart uploads. Restrict access to uploaded files through the application’s intended static routes and do not expose the entire project directory.
-
+final touch in 10/11/2026
 ## References
 
 [1]: https://spec.openapis.org/oas/v3.0.3 "OpenAPI Specification 3.0.3"
