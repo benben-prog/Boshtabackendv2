@@ -402,6 +402,8 @@ const aiService = {
                       permissions: userContext.permissions,
                       rawPermissions: userContext.rawPermissions,
                       isOnlineAssistant: userContext.isOnlineAssistant,
+                      uploadedFilePath: filePath,
+                      uploadedFileName: fileName,
                     });
                   }
                 } catch (toolExecErr) {

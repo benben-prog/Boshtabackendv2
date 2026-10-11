@@ -11,6 +11,7 @@ const {
   normalizeDigits,
   normalizeDate,
   formatEgyptTime,
+  getNowEgypt,
   getTodayEgypt,
   getCurrentMonthEgypt,
 } = require("../../../utils/timezone");
@@ -110,7 +111,7 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "create_online_exam",
-    description: "إنشاء وحفظ امتحان إلكتروني في قاعدة البيانات بكامل أسئلته وخياراته. تحذير وإلزام: لا تستدعِ هذه الأداة مطلقاً في أول مرة؛ يجب أولاً عرض تفاصيل الامتحان والأسئلة المقترحة على المساعد وسؤاله إن كان يؤكد الإنشاء. استدعِ هذه الأداة فقط عندما يرد المساعد بوضوح بالتأكيد (مثل 'أكد', 'موافق', 'احفظ', 'أنشئ الآن').",
+    description: "إنشاء وحفظ امتحان إلكتروني (كويز أو اختبار إلكتروني) في قاعدة البيانات بكامل أسئلته وخياراته. استخدم هذه الأداة حصراً للامتحانات الإلكترونية (وليس الواجبات والتكليفات). المواعيد تُحدد بتوقيت القاهرة الرسمي (Africa/Cairo) بصيغة YYYY-MM-DD HH:mm:ss دون طرح أي ساعات.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -400,17 +401,17 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "create_paper_exam",
-    description: "إنشاء وحفظ امتحان ورقي جديد لصف أو مجموعة في قاعدة البيانات وتحديد العنوان والدرجة العظمى.",
+    description: "إنشاء وحفظ امتحان ورقي جديد لصف أو مجموعة في جدول الامتحانات الورقية للسنتر لترصيد الدرجات لاحقاً. استخدم هذه الأداة حصراً لأي طلب امتحان ورقي أو امتحان سنتر.",
     parameters: {
       type: "OBJECT",
       properties: {
         title: {
           type: "STRING",
-          description: "عنوان الامتحان (مثال: امتحان شامل شهر أكتوبر)",
+          description: "عنوان الامتحان الورقي (مثال: امتحان شامل شهر أكتوبر)",
         },
         grade_id: {
           type: "INTEGER",
-          description: "معرّف الصف الدراسي",
+          description: "معرّف الصف الدراسي (اختياري، إن لم يُذكر يُحدد تلقائياً)",
         },
         group_id: {
           type: "INTEGER",
@@ -418,18 +419,18 @@ const assistantFunctionDeclarations = [
         },
         total_degree: {
           type: "NUMBER",
-          description: "الدرجة العظمى للامتحان (مثال: 50 أو 60)",
+          description: "الدرجة العظمى للامتحان (افتراضياً 50)",
         },
         exam_date: {
           type: "STRING",
-          description: "تاريخ الامتحان بتنسيق YYYY-MM-DD (اختياري)",
+          description: "تاريخ الامتحان بتنسيق YYYY-MM-DD (افتراضياً تاريخ اليوم)",
         },
         notes: {
           type: "STRING",
           description: "ملاحظات إضافية (اختياري)",
         },
       },
-      required: ["title", "grade_id", "total_degree"],
+      required: ["title"],
     },
   },
   {
@@ -466,17 +467,17 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "create_assignment",
-    description: "إنشاء واجب منزلي جديد لصف أو مجموعة مع تحديد العنوان والوصف وموعد التسليم والدرجة.",
+    description: "إنشاء تكليف أو واجب دراسي جديد (واجب منزلي / واجب إلكتروني / تكليف) لطلاب صف أو مجموعة مع تحديد موعد التسليم (الديدلاين) والدرجة. استخدم هذه الأداة حصراً لأي طلب واجب أو تكليف وليس create_online_exam.",
     parameters: {
       type: "OBJECT",
       properties: {
         title: {
           type: "STRING",
-          description: "عنوان الواجب المنزلي",
+          description: "عنوان الواجب المنزلي أو الإلكتروني",
         },
         description: {
           type: "STRING",
-          description: "تفاصيل أو تعليمات الواجب (اختياري)",
+          description: "تفاصيل أو تعليمات أو أسئلة الواجب (اختياري)",
         },
         grade_id: {
           type: "INTEGER",
@@ -484,18 +485,22 @@ const assistantFunctionDeclarations = [
         },
         group_id: {
           type: "INTEGER",
-          description: "معرّف المجموعة (اختياري)",
+          description: "معرّف المجموعة (اختياري، اتركه null لجميع مجموعات الصف)",
         },
         deadline: {
           type: "STRING",
-          description: "تاريخ ووقت انتهاء تسليم الواجب بتنسيق YYYY-MM-DD HH:mm:ss",
+          description: "تاريخ ووقت انتهاء تسليم الواجب بتوقيت القاهرة YYYY-MM-DD HH:mm:ss",
         },
         full_mark: {
           type: "NUMBER",
           description: "الدرجة العظمى للواجب (افتراضياً 10)",
         },
+        file_path: {
+          type: "STRING",
+          description: "مسار ملف الواجب إن وجد (اختياري)",
+        },
       },
-      required: ["title", "grade_id", "deadline"],
+      required: ["title", "grade_id"],
     },
   },
   {
@@ -530,13 +535,13 @@ const assistantFunctionDeclarations = [
   },
   {
     name: "update_student_details",
-    description: "تعديل وتحديث بيانات طالب مسجل (نقل لمجموعة أخرى، تغيير الصف، تعديل رقم هاتف الطالب أو ولي الأمر، أو الملاحظات).",
+    description: "تعديل وتحديث بيانات طالب مسجل (الاسم، الباركود، كلمة المرور، نقل لمجموعة أخرى، تغيير الصف، تعديل رقم هاتف الطالب أو ولي الأمر، أو الملاحظات). يتم البحث عن الطالب بالاسم أو الباركود أو الهاتف أو المعرّف (ID).",
     parameters: {
       type: "OBJECT",
       properties: {
         student_query: {
           type: "STRING",
-          description: "باركود أو اسم أو هاتف الطالب المطلوب تعديله",
+          description: "اسم الطالب أو الباركود أو رقم الهاتف أو المعرّف (ID)",
         },
         new_name: {
           type: "STRING",
@@ -557,6 +562,14 @@ const assistantFunctionDeclarations = [
         new_parent_phone: {
           type: "STRING",
           description: "رقم هاتف ولي الأمر الجديد (اختياري)",
+        },
+        new_barcode: {
+          type: "STRING",
+          description: "كود أو باركود الطالب الجديد (اختياري)",
+        },
+        new_password: {
+          type: "STRING",
+          description: "كلمة المرور الجديدة للطالب (اختياري)",
         },
         notes: {
           type: "STRING",
@@ -1452,7 +1465,7 @@ function normalizePaymentMonth(input) {
 }
 
 function parseSessionStartTime(input, defaultOffsetMinutes = 10) {
-  const now = new Date();
+  const now = getNowEgypt();
   if (!input) {
     return new Date(now.getTime() + defaultOffsetMinutes * 60000);
   }
@@ -1460,53 +1473,77 @@ function parseSessionStartTime(input, defaultOffsetMinutes = 10) {
   const clean = normalizeDigits(String(input)).trim();
   const str = clean.toLowerCase();
 
-  const arabicWordMap = {
-    "عشر دقائق": 10,
-    "عشر دقايق": 10,
-    "عشر": 10,
-    "عشرة": 10,
-    "خمس دقائق": 5,
-    "خمس دقايق": 5,
-    "خمس": 5,
-    "خمسة": 5,
-    "ربع ساعة": 15,
-    "ثلث ساعة": 20,
-    "نصف ساعة": 30,
-    "نص ساعة": 30,
-    "ساعة ونصف": 90,
-    "ساعة ونص": 90,
-    "ساعتين": 120,
-    "ساعة": 60,
-  };
+  // 1. Immediate / Now
+  if (
+    /^(الان|الآن|now|حاليا|حالياً|فوراً|فورا)$/.test(str) ||
+    str === "now" ||
+    str.includes("حالياً") ||
+    str.includes("حاليا")
+  ) {
+    return new Date(now.getTime() + Math.max(1, defaultOffsetMinutes) * 60000);
+  }
 
-  for (const [phrase, mins] of Object.entries(arabicWordMap)) {
-    if (str.includes(phrase)) {
-      return new Date(now.getTime() + mins * 60000);
+  // 2. Full date pattern: "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss" (TEST FIRST!)
+  const datePattern = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?/;
+  const m = clean.match(datePattern);
+  if (m) {
+    const pad = (n) => String(n || 0).padStart(2, "0");
+    const h = m[4] !== undefined ? pad(m[4]) : "00";
+    const min = m[5] !== undefined ? pad(m[5]) : "00";
+    const sec = m[6] !== undefined ? pad(m[6]) : "00";
+    const isoString = `${m[1]}-${m[2]}-${m[3]}T${h}:${min}:${sec}`;
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) {
+      return d;
     }
   }
 
-  const minuteMatch = str.match(/(\d+)\s*(?:دقيقة|دقايق|دقيق|minute|min|m\b)/i);
-  if (minuteMatch) {
-    const mins = parseInt(minuteMatch[1], 10);
-    if (!isNaN(mins)) return new Date(now.getTime() + mins * 60000);
+  // 3. Relative Arabic phrases (ONLY when NOT clock time like "الساعة 5")
+  const isClockTime = /(?:الساعة|ص\b|م\b|صباحا|مساء|am\b|pm\b|\b\d{1,2}:\d{2}\b)/.test(str);
+
+  if (!isClockTime) {
+    const arabicWordMap = {
+      "ساعة ونصف": 90,
+      "ساعة ونص": 90,
+      "ساعتين": 120,
+      "نصف ساعة": 30,
+      "نص ساعة": 30,
+      "ثلث ساعة": 20,
+      "ربع ساعة": 15,
+      "عشر دقائق": 10,
+      "عشر دقايق": 10,
+      "خمس دقائق": 5,
+      "خمس دقايق": 5,
+      "اربع دقايق": 4,
+      "أربع دقائق": 4,
+      "ثلاث دقائق": 3,
+      "تلات دقايق": 3,
+      "دقيقتين": 2,
+      "دقيقة": 1,
+      "ساعة": 60,
+      "ساعه": 60,
+    };
+
+    for (const [phrase, mins] of Object.entries(arabicWordMap)) {
+      if (str.includes(phrase)) {
+        return new Date(now.getTime() + mins * 60000);
+      }
+    }
+
+    const minuteMatch = str.match(/(?:بعد|كمان|خلال)?\s*(\d+)\s*(?:دقيقة|دقايق|دقيق|دقائق|minute|min|m\b)/i);
+    if (minuteMatch) {
+      const mins = parseInt(minuteMatch[1], 10);
+      if (!isNaN(mins)) return new Date(now.getTime() + mins * 60000);
+    }
+
+    const hourMatch = str.match(/(?:بعد|كمان|خلال)?\s*(\d+)\s*(?:ساعة|ساعات|ساعه|hour|hr|h\b)/i);
+    if (hourMatch) {
+      const hours = parseInt(hourMatch[1], 10);
+      if (!isNaN(hours)) return new Date(now.getTime() + hours * 3600000);
+    }
   }
 
-  const hourMatch = str.match(/(\d+)\s*(?:ساعة|ساعات|ساعه|hour|hr|h\b)/i);
-  if (hourMatch) {
-    const hours = parseInt(hourMatch[1], 10);
-    if (!isNaN(hours)) return new Date(now.getTime() + hours * 3600000);
-  }
-
-  if (
-    str.includes("الان") ||
-    str.includes("الآن") ||
-    str.includes("now") ||
-    str.includes("حاليا") ||
-    str.includes("حالياً")
-  ) {
-    return new Date(now.getTime() + 5 * 60000);
-  }
-
+  // 4. Absolute clock time: e.g. "الساعة 09:36 مساءً", "9:36 مساء", "21:36"
   let baseDate = new Date(now);
   let isFutureDay = false;
   if (str.includes("بعد بكرة") || str.includes("بعد غد")) {
@@ -1517,38 +1554,40 @@ function parseSessionStartTime(input, defaultOffsetMinutes = 10) {
     isFutureDay = true;
   }
 
-  const timeMatch = str.match(/(?:الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباحاً|ص|مساء|مساءً|م|am|pm)?/i);
-  if (timeMatch && (isFutureDay || str.includes("الساعة") || str.includes("مساء") || str.includes("صباح"))) {
+  const timeMatch = str.match(/(?:الساعة\s*)?(\d{1,2})(?::(\d{2}))?(?::(\d{2}))?\s*(صباحا|صباحاً|ص|مساء|مساءً|م|am|pm)?/i);
+  if (timeMatch && (isFutureDay || str.includes("الساعة") || str.includes("مساء") || str.includes("صباح") || str.includes(":") || timeMatch[4])) {
     let hours = parseInt(timeMatch[1], 10);
     const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-    const meridian = timeMatch[3];
+    const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+    const meridian = timeMatch[4];
 
     if (meridian) {
-      if ((meridian.startsWith("م") || meridian.toLowerCase() === "pm") && hours < 12) {
+      const mer = meridian.toLowerCase();
+      if ((mer.startsWith("م") || mer === "pm") && hours < 12) {
         hours += 12;
-      } else if ((meridian.startsWith("ص") || meridian.toLowerCase() === "am") && hours === 12) {
+      } else if ((mer.startsWith("ص") || mer === "am") && hours === 12) {
         hours = 0;
       }
     } else if (hours < 12 && !isFutureDay) {
-      if (now.getHours() >= hours) {
+      const currentEgyptHours = parseInt(formatEgyptTime(now, "HH:mm:ss").split(":")[0], 10);
+      if (currentEgyptHours >= hours && (hours + 12) <= 23) {
         hours += 12;
       }
     }
 
-    baseDate.setHours(hours, minutes, 0, 0);
-    return baseDate;
-  }
+    const egyptDateStr = formatEgyptTime(baseDate, "YYYY-MM-DD");
+    const pad = (n) => String(n).padStart(2, "0");
+    const targetIsoLike = `${egyptDateStr}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
-  let d = new Date(clean);
-  if (isNaN(d.getTime())) {
-    const cleaned = clean.replace(" ", "T");
-    d = new Date(cleaned);
-  }
-
-  if (!isNaN(d.getTime())) {
-    if (d.getTime() < now.getTime() - 60000 && defaultOffsetMinutes > 0) {
-      return new Date(now.getTime() + defaultOffsetMinutes * 60000);
+    const d = new Date(targetIsoLike);
+    if (!isNaN(d.getTime())) {
+      return d;
     }
+  }
+
+  // 5. Fallback native Date parse
+  let d = new Date(clean);
+  if (!isNaN(d.getTime())) {
     return d;
   }
 
@@ -1647,6 +1686,59 @@ async function findUserByQuery(queryStr) {
   // By full_name ILIKE
   const resName = await query("SELECT * FROM users WHERE full_name ILIKE $1 LIMIT 1", [`%${str}%`]);
   if (resName.rows[0]) return resName.rows[0];
+
+  return null;
+}
+
+async function findStudentByQuery(studentQuery) {
+  if (!studentQuery) return null;
+  const raw = String(studentQuery).trim();
+  const cleanQ = normalizeDigits(raw)
+    .replace(/^(الطالب|طالب|كود|باركود|رقم|هاتف)\s+/i, "")
+    .trim();
+
+  // 1. By ID, barcode, or phone if numeric
+  const isNum = /^\d+$/.test(cleanQ);
+  if (isNum) {
+    const byIdOrCode = await query(
+      `SELECT id, full_name, barcode, phone, parent_phone, grade_id, group_id, notes
+       FROM students
+       WHERE (id = $1 OR barcode = $2 OR phone = $2 OR parent_phone = $2)
+         AND deleted = 0
+       LIMIT 1`,
+      [parseInt(cleanQ, 10), cleanQ]
+    );
+    if (byIdOrCode.rows[0]) return byIdOrCode.rows[0];
+  }
+
+  // 2. By barcode, phone, or name ILIKE
+  const byName = await query(
+    `SELECT id, full_name, barcode, phone, parent_phone, grade_id, group_id, notes
+     FROM students
+     WHERE (barcode = $1 OR phone = $1 OR parent_phone = $1 OR full_name ILIKE ('%' || $2 || '%'))
+       AND deleted = 0
+     ORDER BY CASE 
+       WHEN full_name ILIKE $2 THEN 1 
+       WHEN full_name ILIKE ($2 || '%') THEN 2 
+       ELSE 3 
+     END
+     LIMIT 1`,
+    [cleanQ, cleanQ]
+  );
+  if (byName.rows[0]) return byName.rows[0];
+
+  // 3. Fallback to raw string if it differed from cleanQ
+  if (raw !== cleanQ) {
+    const byRaw = await query(
+      `SELECT id, full_name, barcode, phone, parent_phone, grade_id, group_id, notes
+       FROM students
+       WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%'))
+         AND deleted = 0
+       LIMIT 1`,
+      [raw]
+    );
+    if (byRaw.rows[0]) return byRaw.rows[0];
+  }
 
   return null;
 }
@@ -1849,6 +1941,10 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         return { success: false, error: "يرجى تحديد اسم أو كود الطالب للبحث" };
       }
 
+      const cleanSearch = normalizeDigits(search)
+        .replace(/^(الطالب|طالب|كود|باركود|رقم|هاتف)\s+/i, "")
+        .trim();
+
       const res = await query(
         `
         SELECT 
@@ -1859,10 +1955,11 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         LEFT JOIN grades g ON g.id = s.grade_id AND g.deleted = 0
         LEFT JOIN groups grp ON grp.id = s.group_id AND grp.deleted = 0
         WHERE s.deleted = 0 
-          AND (s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1)
-        LIMIT 5
+          AND (s.full_name ILIKE $1 OR s.barcode ILIKE $1 OR s.phone ILIKE $1 OR s.parent_phone ILIKE $1 OR s.full_name ILIKE $2)
+        ORDER BY CASE WHEN s.barcode = $3 OR s.phone = $3 THEN 1 ELSE 2 END
+        LIMIT 10
       `,
-        [`%${search}%`],
+        [`%${cleanSearch}%`, `%${search}%`, cleanSearch],
       );
 
       return {
@@ -1971,6 +2068,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         title,
         description,
         grade_id,
+        grade_name,
         group_id,
         duration_minutes,
         start_at,
@@ -1979,10 +2077,23 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         questions = [],
       } = args;
 
-      if (!title || !grade_id || !questions.length) {
+      let effectiveTitle = (title || "").trim();
+      let effectiveGradeId = grade_id ? Number(grade_id) : null;
+      if (!effectiveGradeId && grade_name) {
+        const gr = await query("SELECT id, name FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1", [`%${grade_name.trim()}%`]);
+        if (gr.rows.length > 0) effectiveGradeId = gr.rows[0].id;
+      }
+      if (!effectiveGradeId) {
+        const gr = await query("SELECT id, name FROM grades WHERE deleted = 0 ORDER BY id ASC LIMIT 1");
+        effectiveGradeId = gr.rows[0]?.id || 1;
+        if (!effectiveTitle) effectiveTitle = `امتحان إلكتروني - ${gr.rows[0]?.name || "اللغة العربية"}`;
+      }
+      if (!effectiveTitle) effectiveTitle = "امتحان إلكتروني جديد";
+
+      if (!questions || !questions.length) {
         return {
           success: false,
-          error: "بيانات الامتحان غير مكتملة (العنوان والصف والأسئلة مطلوبة)",
+          error: "بيانات الامتحان غير مكتملة (قائمة الأسئلة مطلوبة)",
         };
       }
 
@@ -2013,13 +2124,13 @@ async function executeAssistantTool(name, args = {}, context = {}) {
           RETURNING id, title, start_at, end_at, duration_minutes
         `,
           [
-            title,
+            effectiveTitle,
             description || null,
-            grade_id,
+            effectiveGradeId,
             group_id || null,
             durationNum,
-            cleanStartAt.toISOString(),
-            cleanEndAt.toISOString(),
+            formatEgyptTime(cleanStartAt, "YYYY-MM-DD HH:mm:ss"),
+            formatEgyptTime(cleanEndAt, "YYYY-MM-DD HH:mm:ss"),
             fullMark,
             randomizeVal,
             userId,
@@ -2061,11 +2172,12 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
         return {
           success: true,
+          id: examId,
           exam_id: examId,
           title: examRes.rows[0].title,
           questions_count: questions.length,
-          start_at: cleanStartAt.toISOString(),
-          end_at: cleanEndAt.toISOString(),
+          start_at: formatEgyptTime(cleanStartAt, "YYYY-MM-DD HH:mm:ss"),
+          end_at: formatEgyptTime(cleanEndAt, "YYYY-MM-DD HH:mm:ss"),
           start_at_cairo: formatEgyptTime(cleanStartAt),
           end_at_cairo: formatEgyptTime(cleanEndAt),
           duration_minutes: durationNum,
@@ -2085,6 +2197,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       return {
         success: true,
         message: `تم إنشاء وحفظ الامتحان بنجاح على المنصة برقم معرف #${result.exam_id}`,
+        exam: result,
         data: result,
       };
     }
@@ -2326,26 +2439,14 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      const q = student_query.trim();
-      const stdRes = await query(
-        `
-        SELECT id, full_name, barcode, is_active 
-        FROM students 
-        WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%')) 
-          AND deleted = 0 
-        LIMIT 5
-      `,
-        [q],
-      );
-
-      if (stdRes.rows.length === 0) {
+      const student = await findStudentByQuery(student_query);
+      if (!student) {
         return {
           success: false,
-          error: `لم يتم العثور على طالب يطابق: '${q}'`,
+          error: `لم يتم العثور على طالب يطابق: '${student_query}'`,
         };
       }
 
-      const student = stdRes.rows[0];
       const boolActive = Boolean(is_active);
 
       await query(
@@ -2398,25 +2499,20 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      const q = String(student_query).trim();
-      const stdRes = await query(
-        `SELECT s.id, s.full_name, s.barcode, s.grade_id, g.name AS grade_name, g.monthly_price
-         FROM students s
-         JOIN grades g ON s.grade_id = g.id
-         WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
-           AND s.deleted = 0
-         LIMIT 1`,
-        [q],
-      );
-
-      if (stdRes.rows.length === 0) {
+      const basicStudent = await findStudentByQuery(student_query);
+      if (!basicStudent) {
         return {
           success: false,
-          error: `لم يتم العثور على طالب يطابق البحث: '${q}'`,
+          error: `لم يتم العثور على طالب يطابق البحث: '${student_query}'`,
         };
       }
 
-      const student = stdRes.rows[0];
+      const grRes = await query("SELECT monthly_price, name FROM grades WHERE id = $1", [basicStudent.grade_id]);
+      const student = {
+        ...basicStudent,
+        monthly_price: grRes.rows[0]?.monthly_price || 0,
+        grade_name: grRes.rows[0]?.name || "",
+      };
       const targetMonth = normalizePaymentMonth(month);
 
       const isCustom = payment_mode === "custom";
@@ -2509,22 +2605,17 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         return { success: false, error: "يرجى تحديد الطالب للبحث." };
       }
 
-      const q = String(student_query).trim();
-      const stdRes = await query(
-        `SELECT s.id, s.full_name, s.barcode, s.grade_id, g.name AS grade_name, g.monthly_price
-         FROM students s
-         JOIN grades g ON s.grade_id = g.id
-         WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
-           AND s.deleted = 0
-         LIMIT 1`,
-        [q],
-      );
-
-      if (stdRes.rows.length === 0) {
-        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      const basicStudent = await findStudentByQuery(student_query);
+      if (!basicStudent) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${student_query}'` };
       }
 
-      const student = stdRes.rows[0];
+      const grRes = await query("SELECT monthly_price, name FROM grades WHERE id = $1", [basicStudent.grade_id]);
+      const student = {
+        ...basicStudent,
+        monthly_price: grRes.rows[0]?.monthly_price || 0,
+        grade_name: grRes.rows[0]?.name || "",
+      };
       const subsRes = await query(
         `SELECT sub.id, sub.month, sub.required_amount, sub.status,
                 COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.subscription_id = sub.id), 0) AS paid_amount,
@@ -2567,19 +2658,10 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         };
       }
 
-      const q = String(student_query).trim();
-      const stdRes = await query(
-        `SELECT id, full_name, barcode, grade_id FROM students 
-         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%')) 
-           AND deleted = 0 LIMIT 1`,
-        [q],
-      );
-
-      if (stdRes.rows.length === 0) {
-        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      const student = await findStudentByQuery(student_query);
+      if (!student) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${student_query}'` };
       }
-
-      const student = stdRes.rows[0];
 
       let exam;
       if (exam_id) {
@@ -2654,24 +2736,27 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         notes,
       } = args;
 
-      if (!title || !grade_id || !total_degree) {
-        return {
-          success: false,
-          error: "يجب تحديد عنوان الامتحان ومعرف الصف والدرجة العظمى.",
-        };
+      let effectiveTitle = (title || "").trim();
+      let effectiveGradeId = grade_id ? Number(grade_id) : null;
+      if (!effectiveGradeId) {
+        const gr = await query("SELECT id, name FROM grades WHERE deleted = 0 ORDER BY id ASC LIMIT 1");
+        effectiveGradeId = gr.rows[0]?.id || 1;
+        if (!effectiveTitle) effectiveTitle = `امتحان ورقي - ${gr.rows[0]?.name || "الصف الدراسي"}`;
       }
+      if (!effectiveTitle) effectiveTitle = "امتحان ورقي جديد";
 
-      const targetDate = normalizeAttendanceDate(exam_date);
+      const effectiveDegree = Math.max(1, Number(total_degree) || 50);
+      const targetDate = normalizeAttendanceDate(exam_date) || getTodayEgypt();
 
       const res = await query(
         `INSERT INTO exams (title, grade_id, group_id, total_degree, exam_date, notes, created_by, created_at, updated_at, deleted)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 0)
          RETURNING id, title, total_degree, exam_date`,
         [
-          title.trim(),
-          grade_id,
-          group_id || null,
-          Number(total_degree),
+          effectiveTitle,
+          effectiveGradeId,
+          group_id ? Number(group_id) : null,
+          effectiveDegree,
           targetDate,
           notes || null,
           userId,
@@ -2692,7 +2777,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
 
       return {
         success: true,
-        message: `تم إنشاء الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id} وتاريخ ${targetDate}`,
+        message: `تم إنشاء وحفظ الامتحان الورقي (${created.title}) بنجاح برقم معرّف #${created.id} وتاريخ ${targetDate} والدرجة الكلية ${created.total_degree}`,
         exam: {
           ...created,
           exam_date: targetDate,
@@ -2820,30 +2905,41 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         title,
         description,
         grade_id,
+        grade_name,
         group_id,
         deadline,
         full_mark = 10,
+        file_path,
       } = args;
 
-      if (!title || !grade_id) {
-        return {
-          success: false,
-          error: "يجب تحديد عنوان الواجب ومعرف الصف الدراسي.",
-        };
+      let effectiveTitle = (title || "").trim();
+      let effectiveGradeId = grade_id ? Number(grade_id) : null;
+      if (!effectiveGradeId && grade_name) {
+        const gr = await query("SELECT id, name FROM grades WHERE name ILIKE $1 AND deleted = 0 LIMIT 1", [`%${grade_name.trim()}%`]);
+        if (gr.rows.length > 0) effectiveGradeId = gr.rows[0].id;
       }
+      if (!effectiveGradeId) {
+        const gr = await query("SELECT id, name FROM grades WHERE deleted = 0 ORDER BY id ASC LIMIT 1");
+        effectiveGradeId = gr.rows[0]?.id || 1;
+        if (!effectiveTitle) effectiveTitle = `واجب منزلي - ${gr.rows[0]?.name || "اللغة العربية"}`;
+      }
+      if (!effectiveTitle) effectiveTitle = "واجب منزلي جديد";
 
       const cleanDeadline = parseSessionStartTime(deadline, 24 * 60);
+      const finalDeadline = formatEgyptTime(cleanDeadline, "YYYY-MM-DD HH:mm:ss");
+      const finalFilePath = (file_path || context.uploadedFilePath || "").trim() || null;
 
       const res = await query(
-        `INSERT INTO assignments (title, description, grade_id, group_id, deadline, full_mark, is_closed, created_by, created_at, updated_at, deleted)
-         VALUES ($1, $2, $3, $4, $5, $6, 0, $7, NOW(), NOW(), 0)
-         RETURNING id, title, deadline, full_mark`,
+        `INSERT INTO assignments (title, description, grade_id, group_id, file_path, deadline, full_mark, is_closed, created_by, created_at, updated_at, deleted)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, NOW(), NOW(), 0)
+         RETURNING id, title, file_path, deadline, full_mark`,
         [
-          title.trim(),
+          effectiveTitle,
           description || null,
-          grade_id,
+          effectiveGradeId,
           group_id || null,
-          cleanDeadline.toISOString(),
+          finalFilePath,
+          finalDeadline,
           Number(full_mark) || 10,
           userId,
         ],
@@ -2864,7 +2960,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         message: `تم إنشاء ونشر الواجب (${res.rows[0].title}) بنجاح للطلاب برقم معرّف #${res.rows[0].id}`,
         assignment: {
           ...res.rows[0],
-          deadline: cleanDeadline.toISOString(),
+          deadline: finalDeadline,
           deadline_cairo: formatEgyptTime(cleanDeadline),
         },
       };
@@ -2902,7 +2998,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       if (description !== undefined) assignmentData.description = description;
       if (deadline !== undefined && deadline !== null) {
         const parsed = parseSessionStartTime(deadline, 24 * 60);
-        assignmentData.deadline = parsed ? parsed.toISOString() : deadline;
+        assignmentData.deadline = parsed ? formatEgyptTime(parsed, "YYYY-MM-DD HH:mm:ss") : deadline;
       }
       if (full_mark !== undefined && full_mark !== null) {
         assignmentData.full_mark = Number(full_mark);
@@ -2944,59 +3040,90 @@ async function executeAssistantTool(name, args = {}, context = {}) {
     case "update_student_details": {
       const {
         student_query,
+        student_id,
+        student_name,
+        student_barcode,
+        target_student,
+        name,
         new_name,
+        full_name,
         new_grade_id,
+        grade_id,
         new_group_id,
+        group_id,
+        phone,
         new_phone,
+        parent_phone,
         new_parent_phone,
+        barcode,
+        new_barcode,
+        new_password,
+        password,
         notes,
       } = args;
 
-      if (!student_query) {
-        return { success: false, error: "يجب تحديد الطالب المطلوب تعديله." };
+      const targetQuery =
+        student_query ||
+        target_student ||
+        student_id ||
+        student_barcode ||
+        student_name ||
+        barcode ||
+        (phone && !new_name && !new_grade_id && !notes ? phone : null);
+
+      if (!targetQuery) {
+        return { success: false, error: "يجب تحديد الطالب المطلوب تعديله (بالاسم أو الباركود أو الهاتف أو المعرف)." };
       }
 
-      const q = String(student_query).trim();
-      const stdRes = await query(
-        `SELECT id, full_name, barcode, phone, parent_phone, grade_id, group_id, notes 
-         FROM students 
-         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%')) 
-           AND deleted = 0 LIMIT 1`,
-        [q],
-      );
-
-      if (stdRes.rows.length === 0) {
-        return { success: false, error: `لم يتم العثور على طالب: '${q}'` };
+      const student = await findStudentByQuery(targetQuery);
+      if (!student) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${targetQuery}'` };
       }
 
-      const student = stdRes.rows[0];
+      const effectiveName = new_name || name || full_name;
+      const updatedName = effectiveName ? String(effectiveName).trim() : student.full_name;
 
-      const updatedName = new_name ? new_name.trim() : student.full_name;
-      const updatedGrade = new_grade_id
-        ? Number(new_grade_id)
-        : student.grade_id;
-      const updatedGroup = new_group_id
-        ? Number(new_group_id)
-        : student.group_id;
-      const updatedPhone = new_phone ? new_phone.trim() : student.phone;
-      const updatedParentPhone = new_parent_phone
-        ? new_parent_phone.trim()
-        : student.parent_phone;
+      const effectiveGrade = new_grade_id !== undefined ? new_grade_id : grade_id;
+      const updatedGrade = effectiveGrade ? Number(effectiveGrade) : student.grade_id;
+
+      const effectiveGroup = new_group_id !== undefined ? new_group_id : group_id;
+      const updatedGroup = effectiveGroup !== undefined ? (effectiveGroup ? Number(effectiveGroup) : null) : student.group_id;
+
+      const effectivePhone = new_phone !== undefined ? new_phone : (phone && phone !== String(targetQuery) ? phone : undefined);
+      const updatedPhone = effectivePhone ? normalizeDigits(String(effectivePhone)).trim() : student.phone;
+
+      const effectiveParentPhone = new_parent_phone !== undefined ? new_parent_phone : parent_phone;
+      const updatedParentPhone = effectiveParentPhone ? normalizeDigits(String(effectiveParentPhone)).trim() : student.parent_phone;
+
+      const effectiveBarcode = new_barcode !== undefined ? new_barcode : (barcode && barcode !== String(targetQuery) ? barcode : undefined);
+      const updatedBarcode = effectiveBarcode ? normalizeDigits(String(effectiveBarcode)).trim() : student.barcode;
+
       const updatedNotes = notes !== undefined ? notes : student.notes;
+      const effectivePassword = new_password || password;
+
+      let passwordClause = "";
+      const updateParams = [
+        updatedName,
+        updatedGrade,
+        updatedGroup,
+        updatedPhone,
+        updatedParentPhone,
+        updatedBarcode,
+        updatedNotes,
+        student.id,
+      ];
+
+      if (effectivePassword && String(effectivePassword).trim()) {
+        const hashedPassword = await bcrypt.hash(String(effectivePassword).trim(), 10);
+        updateParams.push(hashedPassword);
+        passwordClause = `, password = $${updateParams.length}`;
+      }
 
       await query(
         `UPDATE students 
-         SET full_name = $1, grade_id = $2, group_id = $3, phone = $4, parent_phone = $5, notes = $6, updated_at = NOW()
-         WHERE id = $7`,
-        [
-          updatedName,
-          updatedGrade,
-          updatedGroup,
-          updatedPhone,
-          updatedParentPhone,
-          updatedNotes,
-          student.id,
-        ],
+         SET full_name = $1, grade_id = $2, group_id = $3, phone = $4, parent_phone = $5, barcode = $6, notes = $7, updated_at = NOW() ${passwordClause}
+         WHERE id = $8`,
+        updateParams,
       );
 
       await logAiActivity(
@@ -3006,7 +3133,7 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         "update_student_details",
         "student",
         student.id,
-        `تحديث بيانات الطالب: ${updatedName} (باركود: ${student.barcode})`
+        `تحديث بيانات الطالب: ${updatedName} (باركود: ${updatedBarcode})`,
       );
 
       return {
@@ -3015,11 +3142,12 @@ async function executeAssistantTool(name, args = {}, context = {}) {
         student: {
           student_id: student.id,
           full_name: updatedName,
-          barcode: student.barcode,
+          barcode: updatedBarcode,
           phone: updatedPhone,
           parent_phone: updatedParentPhone,
           grade_id: updatedGrade,
           group_id: updatedGroup,
+          password_updated: Boolean(new_password),
         },
       };
     }
@@ -3336,18 +3464,10 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       if (!student_query) {
         return { success: false, error: "يجب تحديد الطالب (بالاسم أو الباركود أو رقم الهاتف)." };
       }
-      const q = String(student_query).trim();
-      const stdRes = await query(
-        `SELECT id, full_name, barcode, phone, grade_id, group_id
-         FROM students
-         WHERE (barcode = $1 OR phone = $1 OR full_name ILIKE ('%' || $1 || '%'))
-           AND deleted = 0 LIMIT 1`,
-        [q],
-      );
-      if (stdRes.rows.length === 0) {
-        return { success: false, error: `لم يتم العثور على طالب يطابق: '${q}'` };
+      const student = await findStudentByQuery(student_query);
+      if (!student) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${student_query}'` };
       }
-      const student = stdRes.rows[0];
       const plainPassword = new_password
         ? String(new_password).trim()
         : (student.phone || `${student.barcode || "student"}@123456`);
@@ -4294,21 +4414,21 @@ async function executeAssistantTool(name, args = {}, context = {}) {
       if (!student_query) {
         return { success: false, error: "يرجى تحديد الطالب بالاسم أو الباركود أو رقم الهاتف." };
       }
-      const q = String(student_query).trim();
-      const stdRes = await query(`
+
+      const basicStudent = await findStudentByQuery(student_query);
+      if (!basicStudent) {
+        return { success: false, error: `لم يتم العثور على طالب يطابق: '${student_query}'` };
+      }
+
+      const fullRes = await query(`
         SELECT s.*, g.name AS grade_name, g.monthly_price, grp.name AS group_name
         FROM students s
         LEFT JOIN grades g ON s.grade_id = g.id
         LEFT JOIN groups grp ON s.group_id = grp.id
-        WHERE (s.barcode = $1 OR s.phone = $1 OR s.full_name ILIKE ('%' || $1 || '%'))
-          AND s.deleted = 0
+        WHERE s.id = $1 AND s.deleted = 0
         LIMIT 1
-      `, [q]);
-
-      if (stdRes.rows.length === 0) {
-        return { success: false, error: `لم يتم العثور على طالب يطابق: '${q}'` };
-      }
-      const student = stdRes.rows[0];
+      `, [basicStudent.id]);
+      const student = fullRes.rows[0];
 
       // 1. Attendance stats
       const attStatsRes = await query(`
