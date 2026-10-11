@@ -210,9 +210,7 @@ app.use(
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Welcome To Jupiter Learn API!",
-    version: "1.0.0",
-    environment: env.NODE_ENV,
+    message: "API is running",
   });
 });
 
@@ -229,8 +227,33 @@ app.get("/health", (req, res) => {
 // SWAGGER UI (serves from node_modules - no CDN needed)
 // ============================================
 
+const swaggerAuth = (req, res, next) => {
+  if (process.env.ENABLE_SWAGGER === "false") {
+    return res.status(404).json({ success: false, message: "المسار غير موجود" });
+  }
+
+  const docsSecret = process.env.DOCS_ACCESS_TOKEN;
+  if (docsSecret && env.NODE_ENV === "production") {
+    const provided =
+      req.headers["x-docs-token"] ||
+      req.query.token ||
+      req.query.key ||
+      req.query.secret;
+
+    if (provided !== docsSecret) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك بالوصول لتوثيق API",
+      });
+    }
+  }
+
+  next();
+};
+
 app.use(
   "/api-docs",
+  swaggerAuth,
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
     customSiteTitle: "Boshta Learn Platform API Docs | منصة بوشطة التعليمية",
@@ -244,7 +267,7 @@ app.use(
   }),
 );
 
-app.get("/api-docs-json", (req, res) => {
+app.get("/api-docs-json", swaggerAuth, (req, res) => {
   res.json(swaggerSpec);
 });
 

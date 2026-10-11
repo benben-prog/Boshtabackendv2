@@ -19,13 +19,12 @@ test.describe("1. Public Health & Infrastructure Discovery", () => {
     assert.ok(body.timestamp);
   });
 
-  test("GET / should return welcome message and environment", async () => {
+  test("GET / should return clean sanitized status without environment leak", async () => {
     const res = await fetch(`${BASE_URL}/`);
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.success, true);
-    assert.ok(body.message.includes("Jupiter Learn API"));
-    assert.ok(body.environment);
+    assert.strictEqual(body.message, "API is running");
   });
 
   test("GET /api-docs-json should serve OpenAPI specification", async () => {
