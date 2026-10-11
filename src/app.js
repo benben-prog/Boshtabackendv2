@@ -276,10 +276,12 @@ async function refreshPlatformStatus(retries = 3) {
 }
 
 // Initial fetch with slight delay to allow DB pool handshake to complete
-setTimeout(() => refreshPlatformStatus(), 1500);
+const initialPlatformTimer = setTimeout(() => refreshPlatformStatus(), 1500);
+if (initialPlatformTimer.unref) initialPlatformTimer.unref();
 
 // Periodic refresh
-setInterval(refreshPlatformStatus, REFRESH_INTERVAL);
+const refreshPlatformTimer = setInterval(refreshPlatformStatus, REFRESH_INTERVAL);
+if (refreshPlatformTimer.unref) refreshPlatformTimer.unref();
 
 const checkPlatformStatus = async (req, res, next) => {
   try {

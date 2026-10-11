@@ -13,8 +13,9 @@ const swaggerOptions = {
         "يشمل التوثيق بوابات: الطلاب، أولياء الأمور، المساعدين، المدرسين، والإدارة العامة مع تفاصيل المعاملات، مسارات الاستدعاء، جسم الطلبات (Request Bodies)، ونماذج البيانات لفرق الفرونت إند والتطبيقات.",
     },
     servers: [
-      { url: "http://localhost:3000", description: "السيرفر المحلي والتطوير (Local Development)" },
+      { url: "/", description: "السيرفر الحالي (Current Host)" },
       { url: "https://backend.benb3n.cloud", description: "سيرفر الإنتاج الحي (Production Server)" },
+      { url: "http://localhost:3000", description: "السيرفر المحلي والتطوير (Local Development)" },
     ],
     tags: [
       // 1. المصادقة والوصول الأساسي

@@ -85,7 +85,7 @@ module.exports = {
   SUPER_ADMIN_PASSWORD: process.env.SUPER_ADMIN_PASSWORD,
 
   // Database Pool
-  DB_POOL_MAX: parsePositiveInt(process.env.DB_POOL_MAX, 20, "DB_POOL_MAX"),
+  DB_POOL_MAX: parsePositiveInt(process.env.DB_POOL_MAX, 30, "DB_POOL_MAX"),
   DB_POOL_IDLE_TIMEOUT: parsePositiveInt(
     process.env.DB_POOL_IDLE_TIMEOUT,
     30000,
@@ -93,7 +93,7 @@ module.exports = {
   ),
   DB_POOL_CONNECTION_TIMEOUT: parsePositiveInt(
     process.env.DB_POOL_CONNECTION_TIMEOUT,
-    10000,
+    15000,
     "DB_POOL_CONNECTION_TIMEOUT",
   ),
 
