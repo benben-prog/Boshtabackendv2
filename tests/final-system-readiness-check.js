@@ -109,7 +109,14 @@ async function runAudit() {
 
     // Ensure database connection pool is warm before firing concurrent queries
     const { query } = require("../src/config/database");
-    await query("SELECT 1").catch(() => {});
+    for (let i = 0; i < 3; i++) {
+      try {
+        await query("SELECT 1");
+        break;
+      } catch (_) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
 
     // --- Anonymous / Unauthenticated checks ---
     await check("ANON-SEC", "Unauthenticated request to /api/assistant/students is 401", async () => {

@@ -20,6 +20,15 @@ const aiController = {
     try {
       const userType = getUserRole(req);
       const userId = getUserId(req);
+
+      // Student AI Assistant is temporarily disabled per teacher's request
+      if (userType === "student") {
+        return res.status(403).json({
+          success: false,
+          message: "تم تعطيل المساعد الذكي الخاص بالطالب في هذه النسخة من المنصة",
+        });
+      }
+
       const { message } = req.body;
       const file = req.file || null;
 
@@ -49,6 +58,14 @@ const aiController = {
     try {
       const userType = getUserRole(req);
       const userId = getUserId(req);
+
+      if (userType === "student") {
+        return res.status(403).json({
+          success: false,
+          message: "تم تعطيل المساعد الذكي الخاص بالطالب في هذه النسخة من المنصة",
+        });
+      }
+
       const quota = await aiService.getQuota(userType, userId);
 
       return res.status(200).json({
@@ -66,6 +83,14 @@ const aiController = {
     try {
       const userType = getUserRole(req);
       const userId = getUserId(req);
+
+      if (userType === "student") {
+        return res.status(403).json({
+          success: false,
+          message: "تم تعطيل المساعد الذكي الخاص بالطالب في هذه النسخة من المنصة",
+        });
+      }
+
       const history = await aiService.getHistory(userType, userId);
 
       return res.status(200).json({
@@ -83,6 +108,14 @@ const aiController = {
     try {
       const userType = getUserRole(req);
       const userId = getUserId(req);
+
+      if (userType === "student") {
+        return res.status(403).json({
+          success: false,
+          message: "تم تعطيل المساعد الذكي الخاص بالطالب في هذه النسخة من المنصة",
+        });
+      }
+
       const result = await aiService.clearHistory(userType, userId);
 
       return res.status(200).json({
