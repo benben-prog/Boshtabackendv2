@@ -191,10 +191,8 @@ const liveSessionsService = {
       offset,
     };
 
-    const [sessions, total] = await Promise.all([
-      liveSessionsQueries.getLiveSessions(filters),
-      liveSessionsQueries.countLiveSessions(filters),
-    ]);
+    const sessions = await liveSessionsQueries.getLiveSessions(filters);
+    const total = await liveSessionsQueries.countLiveSessions(filters);
 
     return {
       sessions,
