@@ -316,7 +316,14 @@ const updateStudent = async (req, res, next) => {
 
 const updateStudentProfileImage = async (req, res, next) => {
   try {
-    const profileImage = req.file ? req.file.path : req.body.profile_image;
+    const profileImage = req.file ? req.file.path : req.body?.profile_image;
+
+    if (!profileImage) {
+      return res.status(400).json({
+        success: false,
+        error: "يرجى اختيار صورة للملف الشخصي",
+      });
+    }
 
     const student = await studentService.updateStudentProfileImage(
       req.clientId,

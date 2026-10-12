@@ -304,7 +304,14 @@ const updateUser = async (req, res, next) => {
 const updateUserProfileImage = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.clientId;
-    const profile_image = req.file ? req.file.path : req.body.profile_image;
+    const profile_image = req.file ? req.file.path : req.body?.profile_image;
+
+    if (!profile_image) {
+      return res.status(400).json({
+        success: false,
+        error: "يرجى اختيار صورة للملف الشخصي",
+      });
+    }
 
     const user = await userService.updateUserProfileImage(
       userId,
