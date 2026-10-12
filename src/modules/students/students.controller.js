@@ -42,6 +42,7 @@ const createStudent = async (req, res, next) => {
 const getAllStudents = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null, all } = req.query;
+    const search_type = (req.query.search_type || req.query.search_by || "all").trim().toLowerCase();
     const isAll =
       all === "true" ||
       req.query.limit === "all" ||
@@ -56,7 +57,8 @@ const getAllStudents = async (req, res, next) => {
         : null);
 
     const filters = {
-      search,
+      search: (search || "").trim(),
+      search_type,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
       status: rawStatus,
@@ -106,6 +108,7 @@ const getAllStudents = async (req, res, next) => {
 const exportStudentsExcel = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null } = req.query;
+    const search_type = (req.query.search_type || req.query.search_by || "all").trim().toLowerCase();
     const rawStatus =
       req.query.status ||
       (req.query.is_active !== undefined
@@ -115,7 +118,8 @@ const exportStudentsExcel = async (req, res, next) => {
         : null);
 
     const filters = {
-      search,
+      search: (search || "").trim(),
+      search_type,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
       status: rawStatus,
@@ -140,6 +144,7 @@ const exportStudentsExcel = async (req, res, next) => {
 const exportStudentsPdf = async (req, res, next) => {
   try {
     const { search = "", grade_id = null, group_id = null } = req.query;
+    const search_type = (req.query.search_type || req.query.search_by || "all").trim().toLowerCase();
     const rawStatus =
       req.query.status ||
       (req.query.is_active !== undefined
@@ -149,7 +154,8 @@ const exportStudentsPdf = async (req, res, next) => {
         : null);
 
     const filters = {
-      search,
+      search: (search || "").trim(),
+      search_type,
       grade_id: parseInt(grade_id) || null,
       group_id: parseInt(group_id) || null,
       status: rawStatus,

@@ -56,7 +56,33 @@ WHERE (
   -- Otherwise (normal default view without search), show only active non-deleted students
   (s.deleted = 0)
 )
-  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
+  AND (
+    $1::text IS NULL OR $1::text = ''
+    OR (
+      ($7::text = 'name' AND TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%')
+      OR
+      ($7::text = 'barcode' AND (
+        s.barcode = $1::text 
+        OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+      ))
+      OR
+      ($7::text = 'phone' AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%')))
+      OR
+      (($7::text IS NULL OR $7::text = '' OR $7::text = 'all') AND (
+        TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%'
+        OR
+        (
+          s.barcode = $1::text 
+          OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+        )
+        OR
+        (
+          (LENGTH($1::text) >= 7 OR $1::text LIKE '01%')
+          AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%'))
+        )
+      ))
+    )
+  )
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
@@ -79,7 +105,33 @@ WHERE (
   OR
   (s.deleted = 0)
 )
-  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
+  AND (
+    $1::text IS NULL OR $1::text = ''
+    OR (
+      ($5::text = 'name' AND TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%')
+      OR
+      ($5::text = 'barcode' AND (
+        s.barcode = $1::text 
+        OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+      ))
+      OR
+      ($5::text = 'phone' AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%')))
+      OR
+      (($5::text IS NULL OR $5::text = '' OR $5::text = 'all') AND (
+        TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%'
+        OR
+        (
+          s.barcode = $1::text 
+          OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+        )
+        OR
+        (
+          (LENGTH($1::text) >= 7 OR $1::text LIKE '01%')
+          AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%'))
+        )
+      ))
+    )
+  )
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
@@ -127,7 +179,33 @@ WHERE (
   OR
   (s.deleted = 0)
 )
-  AND ($1::text IS NULL OR $1::text = '' OR s.full_name ILIKE ('%' || $1::text || '%') OR s.barcode ILIKE ('%' || $1::text || '%') OR s.phone ILIKE ('%' || $1::text || '%'))
+  AND (
+    $1::text IS NULL OR $1::text = ''
+    OR (
+      ($5::text = 'name' AND TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%')
+      OR
+      ($5::text = 'barcode' AND (
+        s.barcode = $1::text 
+        OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+      ))
+      OR
+      ($5::text = 'phone' AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%')))
+      OR
+      (($5::text IS NULL OR $5::text = '' OR $5::text = 'all') AND (
+        TRANSLATE(LOWER(s.full_name), 'أإآةى', 'ااااهي') ILIKE '%' || TRANSLATE(LOWER($1::text), 'أإآةى', 'ااااهي') || '%'
+        OR
+        (
+          s.barcode = $1::text 
+          OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+        )
+        OR
+        (
+          (LENGTH($1::text) >= 7 OR $1::text LIKE '01%')
+          AND (s.phone ILIKE ('%' || $1::text || '%') OR s.parent_phone ILIKE ('%' || $1::text || '%'))
+        )
+      ))
+    )
+  )
   AND ($2::int IS NULL OR s.grade_id = $2::int)
   AND ($3::int IS NULL OR s.group_id = $3::int)
   AND (
@@ -184,8 +262,9 @@ SELECT
   gr.name AS group_name
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
-LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
 WHERE s.barcode = $1
+   OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+LIMIT 1
 `;
 
 // Find a student by phone number

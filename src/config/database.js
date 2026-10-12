@@ -74,23 +74,47 @@ pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err.message);
 });
 
-async function query(text, params) {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(text, params);
-    return result;
-  } catch (error) {
-    if (env.NODE_ENV !== "production") {
-      console.error("Query error:", {
-        query: text.substring(0, 100),
-        error: error.message,
-      });
-    } else {
-      console.error("Query error:", error.message);
+async function query(text, params, maxRetries = 2) {
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    let client;
+    try {
+      client = await pool.connect();
+      const result = await client.query(text, params);
+      return result;
+    } catch (error) {
+      if (client) {
+        try { client.release(true); } catch (_) {}
+        client = null;
+      }
+      const isTransient =
+        error.message &&
+        (error.message.includes("Connection terminated") ||
+          error.message.includes("timeout exceeded") ||
+          error.message.includes("timeout expired") ||
+          error.code === "ECONNRESET" ||
+          error.code === "ETIMEDOUT");
+
+      if (isTransient && attempt <= maxRetries) {
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+        continue;
+      }
+
+      if (env.NODE_ENV !== "production") {
+        console.error("Query error:", {
+          query: text.substring(0, 100),
+          error: error.message,
+        });
+      } else {
+        console.error("Query error:", error.message);
+      }
+      throw error;
+    } finally {
+      if (client) {
+        try { client.release(); } catch (_) {}
+      }
     }
-    throw error;
-  } finally {
-    client.release();
   }
 }
 
