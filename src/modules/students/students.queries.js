@@ -754,7 +754,9 @@ FROM online_exams oe
 WHERE oe.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND oe.deleted = 0
   AND (oe.group_id IS NULL OR oe.group_id = (SELECT group_id FROM students WHERE id = $1))
-ORDER BY oe.start_at DESC
+ORDER BY 
+  CASE WHEN oe.end_at >= NOW() AT TIME ZONE 'Africa/Cairo' THEN 0 ELSE 1 END ASC,
+  oe.start_at DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
@@ -817,7 +819,7 @@ SELECT
   CASE 
     WHEN asub.score IS NOT NULL THEN 'graded'
     WHEN asub.id IS NOT NULL THEN 'submitted'
-    WHEN a.deadline < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'overdue'
+    WHEN a.deadline IS NOT NULL AND a.deadline < NOW() AT TIME ZONE 'Africa/Cairo' THEN 'overdue'
     ELSE 'pending'
   END AS assignment_status
 FROM assignments a
@@ -825,8 +827,8 @@ LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.stud
 WHERE a.grade_id = (SELECT grade_id FROM students WHERE id = $1)
   AND (a.group_id IS NULL OR a.group_id = (SELECT group_id FROM students WHERE id = $1))
   AND a.deleted = 0
-  AND ($2::text IS NULL OR $2::text = '' OR TO_CHAR(a.deadline, 'YYYY-MM') = $2::text)
-ORDER BY a.deadline DESC
+  AND ($2::text IS NULL OR $2::text = '' OR (a.deadline IS NOT NULL AND TO_CHAR(a.deadline, 'YYYY-MM') = $2::text) OR (a.deadline IS NULL AND TO_CHAR(a.created_at, 'YYYY-MM') = $2::text))
+ORDER BY COALESCE(a.deadline, a.created_at) DESC, a.id DESC
 LIMIT 20 OFFSET (($3::int - 1) * 20)
 `;
 
@@ -883,6 +885,23 @@ FROM videos v
 JOIN playlist_videos pv ON v.id = pv.video_id
 WHERE pv.playlist_id = $1
 ORDER BY pv.added_at ASC
+`;
+
+// Get all videos for a student based on grade
+const getStudentVideos = `
+SELECT 
+  v.id AS video_id,
+  v.title,
+  v.description,
+  v.video_url,
+  v.file_url,
+  v.thumbnail_url,
+  v.created_at,
+  g.name AS grade_name
+FROM videos v
+JOIN students s ON s.id = $1 AND s.grade_id = v.grade_id
+LEFT JOIN grades g ON g.id = v.grade_id
+ORDER BY v.created_at DESC
 `;
 
 // Get specific paper exam details with rank
@@ -1223,6 +1242,7 @@ module.exports = {
   getStudentSubmissions,
   getStudentPlaylists,
   getPlaylistVideos,
+  getStudentVideos,
   getStudentPaperExamById,
   getStudentOnlineExamById,
   getStudentAssignmentById,

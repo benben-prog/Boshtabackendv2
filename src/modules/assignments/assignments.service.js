@@ -18,6 +18,9 @@ const createAssignment = async (assignmentData) => {
     is_closed = 0,
   } = assignmentData;
 
+  const sanitizedDeadline =
+    deadline && String(deadline).trim() !== "" ? deadline : null;
+
   const result = await query(assignmentQueries.createAssignment, [
     title,
     description,
@@ -25,7 +28,7 @@ const createAssignment = async (assignmentData) => {
     group_id,
     file_path,
     full_mark,
-    deadline,
+    sanitizedDeadline,
     created_by,
     is_closed,
   ]);

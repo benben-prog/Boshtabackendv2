@@ -10,7 +10,7 @@ async function createAssignmentsTable() {
       group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL,
       file_path VARCHAR(255),
       full_mark DECIMAL(10,2) NOT NULL,
-      deadline TIMESTAMP NOT NULL,
+      deadline TIMESTAMP,
       is_closed INTEGER DEFAULT 0,
       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
       created_at TIMESTAMP DEFAULT NOW(),

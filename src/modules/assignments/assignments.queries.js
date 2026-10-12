@@ -37,7 +37,7 @@ FROM assignments a
 LEFT JOIN grades g ON a.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON a.group_id = gr.id AND gr.deleted = 0
 WHERE a.deleted = 0
-ORDER BY a.deadline DESC
+ORDER BY COALESCE(a.deadline, a.created_at) DESC, a.id DESC
 LIMIT 20 OFFSET (($1::int - 1) * 20)
 `;
 
@@ -84,7 +84,7 @@ FROM assignments a
 LEFT JOIN grades g ON a.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON a.group_id = gr.id AND gr.deleted = 0
 WHERE a.grade_id = $1 AND a.deleted = 0
-ORDER BY a.deadline DESC
+ORDER BY COALESCE(a.deadline, a.created_at) DESC, a.id DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
@@ -108,7 +108,7 @@ FROM assignments a
 LEFT JOIN grades g ON a.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON a.group_id = gr.id AND gr.deleted = 0
 WHERE a.group_id = $1 AND a.deleted = 0
-ORDER BY a.deadline DESC
+ORDER BY COALESCE(a.deadline, a.created_at) DESC, a.id DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 

@@ -643,6 +643,22 @@ const getPlaylistVideos = async (req, res, next) => {
   }
 };
 
+// Get all videos for student's grade
+const getStudentVideos = async (req, res, next) => {
+  try {
+    const studentId = req.clientId;
+    const videos = await studentsService.getStudentVideos(studentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Videos loaded successfully",
+      data: videos,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get payment history
 const getPaymentHistory = async (req, res, next) => {
   try {
@@ -730,6 +746,7 @@ module.exports = {
   getSubmissions,
   getPlaylists,
   getPlaylistVideos,
+  getStudentVideos,
   getPaymentHistory,
   getRemainingBalance,
   getCurrentSubscription,

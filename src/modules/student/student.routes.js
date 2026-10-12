@@ -172,6 +172,7 @@ routes.get("/submissions", studentController.getSubmissions);
    ============================================ */
 
 routes.get("/playlists", studentController.getPlaylists);
+routes.get("/videos", studentController.getStudentVideos);
 routes.get(
   "/playlists/:playlistId/videos",
   studentController.getPlaylistVideos,

@@ -34,7 +34,7 @@ FROM exams e
 LEFT JOIN grades g ON e.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON e.group_id = gr.id AND gr.deleted = 0
 WHERE e.deleted = 0
-ORDER BY e.exam_date DESC
+ORDER BY COALESCE(e.exam_date, e.created_at) DESC, e.id DESC
 LIMIT 20 OFFSET (($1::int - 1) * 20)
 `;
 
@@ -76,7 +76,7 @@ FROM exams e
 LEFT JOIN grades g ON e.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON e.group_id = gr.id AND gr.deleted = 0
 WHERE e.grade_id = $1 AND e.deleted = 0
-ORDER BY e.exam_date DESC
+ORDER BY COALESCE(e.exam_date, e.created_at) DESC, e.id DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 
@@ -98,7 +98,7 @@ FROM exams e
 LEFT JOIN grades g ON e.grade_id = g.id AND g.deleted = 0
 LEFT JOIN groups gr ON e.group_id = gr.id AND gr.deleted = 0
 WHERE e.group_id = $1 AND e.deleted = 0
-ORDER BY e.exam_date DESC
+ORDER BY COALESCE(e.exam_date, e.created_at) DESC, e.id DESC
 LIMIT 20 OFFSET (($2::int - 1) * 20)
 `;
 

@@ -32,7 +32,36 @@ const createVideo = async (videoData) => {
     created_by,
   ]);
 
-  return result.rows[0];
+  const createdVideo = result.rows[0];
+
+  const targetPlaylistId = videoData.playlist_id || videoData.playlistId;
+  if (targetPlaylistId) {
+    await query(
+      `INSERT INTO playlist_videos (playlist_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [parseInt(targetPlaylistId), createdVideo.id],
+    );
+  } else if (grade_id) {
+    let defaultPl = await query(
+      `SELECT id FROM playlists WHERE grade_id = $1 AND title = 'المحاضرات العامة' LIMIT 1`,
+      [grade_id],
+    );
+    let plId;
+    if (defaultPl.rows.length > 0) {
+      plId = defaultPl.rows[0].id;
+    } else {
+      const newPl = await query(
+        `INSERT INTO playlists (title, description, grade_id, created_by) VALUES ('المحاضرات العامة', 'جميع المحاضرات والفيديوهات التعليمية', $1, $2) RETURNING id`,
+        [grade_id, created_by || null],
+      );
+      plId = newPl.rows[0].id;
+    }
+    await query(
+      `INSERT INTO playlist_videos (playlist_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [plId, createdVideo.id],
+    );
+  }
+
+  return createdVideo;
 };
 
 // ============================================

@@ -21,8 +21,7 @@ const createAssignmentSchema = Joi.object({
     "number.min": "الدرجة الكلية يجب أن تكون أكبر من صفر",
     "number.max": "الدرجة الكلية يجب أن تكون 999 على الأكثر",
   }),
-  deadline: Joi.date().iso().required().messages({
-    "any.required": "الموعد النهائي مطلوب",
+  deadline: Joi.date().iso().allow(null, "").optional().messages({
     "date.base": "صيغة التاريخ غير صحيحة",
   }),
   file_path: Joi.string().allow("", null).max(255),
@@ -47,7 +46,7 @@ const updateAssignmentSchema = Joi.object({
     "number.min": "الدرجة الكلية يجب أن تكون أكبر من صفر",
     "number.max": "الدرجة الكلية يجب أن تكون 999 على الأكثر",
   }),
-  deadline: Joi.date().iso().messages({
+  deadline: Joi.date().iso().allow(null, "").messages({
     "date.base": "صيغة التاريخ غير صحيحة",
   }),
   is_closed: Joi.number().integer().valid(0, 1).messages({

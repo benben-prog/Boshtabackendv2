@@ -36,11 +36,19 @@ const fileFilter = (req, file, cb) => {
   const extension = rawExt.replace(/[^a-z0-9]/g, "");
 
   if (file.fieldname === "thumbnail") {
-    const allowedImages = ["image/jpeg", "image/jpg", "image/png"];
-    if (allowedImages.includes(file.mimetype) && ["jpg", "jpeg", "png"].includes(extension)) {
+    const allowedImages = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
+    if (
+      allowedImages.includes(file.mimetype) &&
+      ["jpg", "jpeg", "png", "webp"].includes(extension)
+    ) {
       cb(null, true);
     } else {
-      const error = new Error("مسموح فقط بالصور jpg و jpeg و png");
+      const error = new Error("مسموح فقط بالصور jpg و jpeg و png و webp");
       error.code = "INVALID_FILE_TYPE";
       error.statusCode = 415;
       cb(error);
@@ -50,11 +58,18 @@ const fileFilter = (req, file, cb) => {
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
     ];
-    if (allowedFiles.includes(file.mimetype) && ["pdf", "doc", "docx"].includes(extension)) {
+    if (
+      allowedFiles.includes(file.mimetype) &&
+      ["pdf", "doc", "docx", "jpg", "jpeg", "png", "webp"].includes(extension)
+    ) {
       cb(null, true);
     } else {
-      const error = new Error("مسموح فقط بملفات PDF و Word");
+      const error = new Error("مسموح فقط بملفات PDF و Word والصور (JPG, PNG, WebP)");
       error.code = "INVALID_FILE_TYPE";
       error.statusCode = 415;
       cb(error);

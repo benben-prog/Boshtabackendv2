@@ -333,6 +333,11 @@ const getPlaylistVideos = async (playlistId) => {
   return result.rows;
 };
 
+const getStudentVideos = async (id) => {
+  const result = await query(stdQr.getStudentVideos, [id]);
+  return result.rows;
+};
+
 const getStudentPaperExamById = async (studentId, examId) => {
   const result = await query(stdQr.getStudentPaperExamById, [
     studentId,
@@ -637,6 +642,7 @@ module.exports = {
   getStudentSubmissions,
   getStudentPlaylists,
   getPlaylistVideos,
+  getStudentVideos,
   getStudentPaperExamById,
   getStudentOnlineExamById,
   getStudentAssignmentById,

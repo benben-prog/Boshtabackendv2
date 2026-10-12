@@ -27,10 +27,12 @@ const getDashboard = async (studentId) => {
     query(studentQueries.getUpcomingOnlineExams, [
       student.grade_id,
       student.group_id,
+      studentId,
     ]),
     query(studentQueries.getUpcomingPaperExams, [
       student.grade_id,
       student.group_id,
+      studentId,
     ]),
     query(studentQueries.getUpcomingAssignments, [studentId]),
     query(studentQueries.getExamsSummary, [studentId]),
