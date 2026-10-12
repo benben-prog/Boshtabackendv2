@@ -1,7 +1,7 @@
 const multer = require("multer");
 const path = require("path");
-const crypto = require("crypto");
 const { ensureUploadDir, wrapUpload } = require("../../utils/fileStorage");
+const createUpload = require("./baseUpload");
 
 // Directories for video files and thumbnails
 const thumbnailDir = ensureUploadDir("videoFiles/thumbnails");
@@ -19,16 +19,24 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-    cb(null, `${crypto.randomUUID()}${extension}`);
+    cb(null, createUpload.generateSimpleFileName(file.originalname));
   },
 });
 
 // Configure file filter
 const fileFilter = (req, file, cb) => {
+  try {
+    const fixedName = Buffer.from(file.originalname, "latin1").toString("utf8");
+    if (fixedName && !fixedName.includes("\ufffd") && fixedName !== file.originalname) {
+      file.originalname = fixedName;
+    }
+  } catch (_) {}
+
+  const rawExt = path.extname(file.originalname).toLowerCase().slice(1);
+  const extension = rawExt.replace(/[^a-z0-9]/g, "");
+
   if (file.fieldname === "thumbnail") {
     const allowedImages = ["image/jpeg", "image/jpg", "image/png"];
-    const extension = path.extname(file.originalname).toLowerCase().slice(1);
     if (allowedImages.includes(file.mimetype) && ["jpg", "jpeg", "png"].includes(extension)) {
       cb(null, true);
     } else {
@@ -43,7 +51,6 @@ const fileFilter = (req, file, cb) => {
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    const extension = path.extname(file.originalname).toLowerCase().slice(1);
     if (allowedFiles.includes(file.mimetype) && ["pdf", "doc", "docx"].includes(extension)) {
       cb(null, true);
     } else {
@@ -58,16 +65,18 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Create multer instance
-const videoFilesUpload = wrapUpload(multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-    files: 2,
-    fields: 50,
-    fieldSize: 1024 * 1024,
-    parts: 52,
-  },
-}));
+const videoFilesUpload = wrapUpload(
+  multer({
+    storage,
+    fileFilter,
+    limits: {
+      fileSize: 10 * 1024 * 1024,
+      files: 2,
+      fields: 50,
+      fieldSize: 1024 * 1024,
+      parts: 52,
+    },
+  }),
+);
 
 module.exports = videoFilesUpload;

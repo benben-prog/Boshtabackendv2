@@ -21,6 +21,7 @@ async function runTests() {
   }
 
   try {
+    await query("SELECT 1").catch(() => {});
     // 1. Setup temporary group and students
     const today = "2026-10-11";
     const groupRes = await query(

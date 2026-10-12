@@ -6,8 +6,14 @@ const videoQueries = require("./videos.queries");
 // ============================================
 
 const createVideo = async (videoData) => {
+  const finalTitle = (videoData.title || videoData.video_title || videoData.videoTitle || videoData.name || "").trim();
+  if (!finalTitle) {
+    const error = new Error("عنوان المحاضرة أو الفيديو مطلوب ولا يمكن تركه فارغاً");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const {
-    title,
     description,
     grade_id,
     video_url,
@@ -17,7 +23,7 @@ const createVideo = async (videoData) => {
   } = videoData;
 
   const result = await query(videoQueries.createVideo, [
-    title,
+    finalTitle,
     description,
     grade_id,
     video_url,

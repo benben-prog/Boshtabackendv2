@@ -10,8 +10,8 @@ const playlistVideoQueries = require("../playlist_videos/playlist_videos.queries
  * Prioritizes the central YOUTUBE_REFRESH_TOKEN from environment if set,
  * otherwise falls back to the database tokens for the user/teacher/super_admin.
  */
-const getYouTubeClient = async (userId = null) => {
-  // 1. Try central environment token
+const getYouTubeClient = async () => {
+  // 1. Try central environment token (dedicated YouTube upload channel)
   if (env.YOUTUBE_REFRESH_TOKEN && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     const oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CLIENT_ID,
@@ -27,7 +27,7 @@ const getYouTubeClient = async (userId = null) => {
     return { oauth2Client, youtube, isCentral: true };
   }
 
-  // 2. Query database for any token record that has youtube scope
+  // 2. Query database for any token record that has explicit youtube scope
   const ytTokenRes = await query(
     "SELECT * FROM google_tokens WHERE scope LIKE '%youtube%' ORDER BY updated_at DESC LIMIT 1",
   );
@@ -53,13 +53,9 @@ const getYouTubeClient = async (userId = null) => {
     return { oauth2Client, youtube, isCentral: true };
   }
 
-  // 3. Fallback to user tokens
-  const clientData = await googleAuth.getAuthenticatedClient(userId || 1);
-  return {
-    oauth2Client: clientData.oauth2Client,
-    youtube: clientData.youtube,
-    isCentral: false,
-  };
+  const error = new Error("قناة YouTube المركزية غير مهيأة أو مربوطة في النظام (يرجى ضبط YOUTUBE_REFRESH_TOKEN)");
+  error.statusCode = 500;
+  throw error;
 };
 
 /**
@@ -133,9 +129,13 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
   }
 
   // 3. Check Channel / Token availability
-  const hasToken =
-    Boolean(env.YOUTUBE_REFRESH_TOKEN) ||
-    Boolean(await googleAuth.getUserTokens());
+  let hasToken = Boolean(env.YOUTUBE_REFRESH_TOKEN);
+  if (!hasToken) {
+    const ytTokenRes = await query(
+      "SELECT id FROM google_tokens WHERE scope LIKE '%youtube%' LIMIT 1",
+    );
+    hasToken = ytTokenRes.rows.length > 0;
+  }
 
   if (!hasToken) {
     const error = new Error("قناة YouTube المركزية غير متصلة بالنظام");
@@ -157,6 +157,9 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
 const initResumableUpload = async ({
   userId,
   title,
+  name,
+  video_title,
+  videoTitle,
   description = "",
   grade_id,
   playlist_id = null,
@@ -165,10 +168,17 @@ const initResumableUpload = async ({
   privacy_status = "unlisted",
   origin = null,
 }) => {
-  // Validate basic requirements first
-  await validateUpload({ grade_id, playlist_id, title, file_size, mime_type });
+  const finalTitle = (title || video_title || videoTitle || name || "").trim();
+  if (!finalTitle) {
+    const error = new Error("عنوان المحاضرة أو الفيديو مطلوب ولا يمكن تركه فارغاً");
+    error.statusCode = 400;
+    throw error;
+  }
 
-  const { oauth2Client } = await getYouTubeClient(userId);
+  // Validate basic requirements first
+  await validateUpload({ grade_id, playlist_id, title: finalTitle, file_size, mime_type });
+
+  const { oauth2Client } = await getYouTubeClient();
   const tokenResponse = await oauth2Client.getAccessToken();
   const accessToken = tokenResponse?.token || tokenResponse;
 
@@ -248,12 +258,22 @@ const confirmUpload = async ({
   userId,
   youtube_video_id,
   title,
+  name,
+  video_title,
+  videoTitle,
   description = "",
   grade_id,
   playlist_id = null,
   thumbnail_url = null,
   file_url = null,
 }) => {
+  const finalTitle = (title || video_title || videoTitle || name || "").trim();
+  if (!finalTitle) {
+    const error = new Error("عنوان المحاضرة أو الفيديو مطلوب ولا يمكن تركه فارغاً");
+    error.statusCode = 400;
+    throw error;
+  }
+
   // Validate Grade
   const gradeRes = await query(
     "SELECT id FROM grades WHERE id = $1 AND deleted = 0 LIMIT 1",
@@ -281,7 +301,7 @@ const confirmUpload = async ({
   `;
 
   const videoResult = await query(insertVideoQuery, [
-    title.trim(),
+    finalTitle,
     (description || "").trim(),
     Number(grade_id),
     videoUrl,

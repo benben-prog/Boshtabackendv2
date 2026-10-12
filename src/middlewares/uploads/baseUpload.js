@@ -3,6 +3,19 @@ const path = require("path");
 const crypto = require("crypto");
 const { ensureUploadDir, wrapUpload } = require("../../utils/fileStorage");
 
+const getSafeExtension = (originalname) => {
+  if (!originalname) return "";
+  let ext = path.extname(originalname).toLowerCase();
+  ext = ext.replace(/[^a-z0-9.]/g, "");
+  return ext;
+};
+
+const generateSimpleFileName = (originalname) => {
+  const ext = getSafeExtension(originalname);
+  const randomSuffix = crypto.randomBytes(4).toString("hex");
+  return `${Date.now()}_${randomSuffix}${ext}`;
+};
+
 // Create a reusable multer upload configuration
 const createUpload = (options) => {
   const {
@@ -25,8 +38,7 @@ const createUpload = (options) => {
       cb(null, destinationDir);
     },
     filename: (req, file, cb) => {
-      const extension = path.extname(file.originalname).toLowerCase();
-      cb(null, `${crypto.randomUUID()}${extension}`);
+      cb(null, generateSimpleFileName(file.originalname));
     },
   });
 
@@ -35,7 +47,17 @@ const createUpload = (options) => {
     if (!file.originalname || file.originalname.trim() === "") {
       return cb(null, false);
     }
-    const extension = path.extname(file.originalname).toLowerCase().slice(1);
+
+    try {
+      const fixedName = Buffer.from(file.originalname, "latin1").toString("utf8");
+      if (fixedName && !fixedName.includes("\ufffd") && fixedName !== file.originalname) {
+        file.originalname = fixedName;
+      }
+    } catch (_) {}
+
+    const rawExt = path.extname(file.originalname).toLowerCase().slice(1);
+    const extension = rawExt.replace(/[^a-z0-9]/g, "");
+
     const validMime =
       allowedTypes.includes(file.mimetype) ||
       (file.mimetype === "application/octet-stream" && normalizedExtensions.includes(extension));
@@ -61,5 +83,8 @@ const createUpload = (options) => {
     },
   }));
 };
+
+createUpload.generateSimpleFileName = generateSimpleFileName;
+createUpload.getSafeExtension = getSafeExtension;
 
 module.exports = createUpload;

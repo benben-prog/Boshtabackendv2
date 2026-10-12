@@ -10,9 +10,14 @@ async function createGoogleTokensTable() {
       scope TEXT,
       token_type TEXT DEFAULT 'Bearer',
       expiry_date BIGINT,
+      email TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
+  `);
+
+  await query(`
+    ALTER TABLE google_tokens ADD COLUMN IF NOT EXISTS email TEXT
   `);
 
   await query(

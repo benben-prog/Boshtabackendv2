@@ -34,14 +34,13 @@ const generateAuthUrl = (userId, redirectTo = null) => {
   const scopes = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/drive.readonly",
-    "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube.readonly",
-    "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
   ];
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account consent",
     scope: scopes,
     state,
   });
@@ -86,20 +85,32 @@ const saveUserTokens = async (userId, tokens) => {
     expiry_date,
   } = tokens;
 
+  let email = tokens.email || null;
+  if (!email && access_token) {
+    try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials({ access_token });
+      const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+      const userInfo = await oauth2.userinfo.get();
+      email = userInfo.data?.email || null;
+    } catch (_) {}
+  }
+
   // If refresh_token is not returned (because user re-consented without prompt=consent), keep existing one
   await query(
     `
-    INSERT INTO google_tokens (user_id, access_token, refresh_token, scope, token_type, expiry_date, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    INSERT INTO google_tokens (user_id, access_token, refresh_token, scope, token_type, expiry_date, email, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       access_token = EXCLUDED.access_token,
       refresh_token = COALESCE(EXCLUDED.refresh_token, google_tokens.refresh_token),
       scope = COALESCE(EXCLUDED.scope, google_tokens.scope),
       token_type = COALESCE(EXCLUDED.token_type, google_tokens.token_type),
       expiry_date = COALESCE(EXCLUDED.expiry_date, google_tokens.expiry_date),
+      email = COALESCE(EXCLUDED.email, google_tokens.email),
       updated_at = NOW()
   `,
-    [userId, access_token, refresh_token || null, scope, token_type, expiry_date],
+    [userId, access_token, refresh_token || null, scope, token_type, expiry_date, email],
   );
 };
 

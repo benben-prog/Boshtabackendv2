@@ -110,15 +110,13 @@ const liveSessionsController = {
         );
       }
 
-      let callbackResult;
-      if (state) {
-        callbackResult = await liveSessionsService.handleGoogleCallback(code, state);
-      } else {
-        const googleAuth = require("../../utils/googleAuth");
-        const tokens = await googleAuth.exchangeCodeForTokens(code);
-        await googleAuth.saveUserTokens(1, tokens);
-        callbackResult = { userId: 1, success: true };
+      if (!state) {
+        return res.redirect(
+          appendParam(targetRedirect, "google_error", "معامل التحقق من الحالة state مفقود أو غير صالح"),
+        );
       }
+
+      const callbackResult = await liveSessionsService.handleGoogleCallback(code, state);
 
       if (callbackResult.redirectTo) {
         targetRedirect = callbackResult.redirectTo;

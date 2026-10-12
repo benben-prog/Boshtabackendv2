@@ -40,13 +40,27 @@ const toStoredPath = (filePath) => {
   return path.relative(PROJECT_ROOT, absolutePath).split(path.sep).join("/");
 };
 
+const fixFileOriginalName = (file) => {
+  if (!file || !file.originalname) return;
+  try {
+    const fixed = Buffer.from(file.originalname, "latin1").toString("utf8");
+    if (fixed && !fixed.includes("\ufffd") && fixed !== file.originalname) {
+      file.originalname = fixed;
+    }
+  } catch (_) {}
+};
+
 const normalizeUploadedPaths = (req) => {
-  if (req.file?.path) req.file.path = toStoredPath(req.file.path);
+  if (req.file) {
+    if (req.file.path) req.file.path = toStoredPath(req.file.path);
+    fixFileOriginalName(req.file);
+  }
 
   if (req.files && !Array.isArray(req.files)) {
     for (const files of Object.values(req.files)) {
       for (const file of files || []) {
         if (file.path) file.path = toStoredPath(file.path);
+        fixFileOriginalName(file);
       }
     }
   }
@@ -54,6 +68,7 @@ const normalizeUploadedPaths = (req) => {
   if (Array.isArray(req.files)) {
     for (const file of req.files) {
       if (file.path) file.path = toStoredPath(file.path);
+      fixFileOriginalName(file);
     }
   }
 };

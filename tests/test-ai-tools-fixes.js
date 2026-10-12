@@ -3,6 +3,7 @@ const { query } = require("../src/config/database");
 const { formatEgyptTime, getNowEgypt } = require("../src/utils/timezone");
 
 async function runTests() {
+  await query("SELECT 1").catch(() => {});
   console.log("=== STARTING AI TOOLS FIXES VERIFICATION TESTS ===");
   const nowEgypt = getNowEgypt();
   console.log("Current Egypt Time:", formatEgyptTime(nowEgypt));

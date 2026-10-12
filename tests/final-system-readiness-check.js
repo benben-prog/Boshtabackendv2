@@ -107,6 +107,10 @@ async function runAudit() {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
+    // Ensure database connection pool is warm before firing concurrent queries
+    const { query } = require("../src/config/database");
+    await query("SELECT 1").catch(() => {});
+
     // --- Anonymous / Unauthenticated checks ---
     await check("ANON-SEC", "Unauthenticated request to /api/assistant/students is 401", async () => {
       const res = await fetch(`${BASE}/api/assistant/students`, reqOptions(null));

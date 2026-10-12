@@ -52,6 +52,7 @@ const liveSessionsService = {
 
     return {
       is_connected: true,
+      email: tokenRecord.email || null,
       has_refresh_token: !!tokenRecord.refresh_token,
       is_expired: isExpired,
       connected_at: tokenRecord.created_at,
@@ -142,7 +143,16 @@ const liveSessionsService = {
 
     // Handle Uploaded File
     const material_file_path = file ? file.path : null;
-    const material_name = file ? file.originalname : null;
+    let material_name = null;
+    if (file && file.originalname) {
+      material_name = file.originalname;
+      try {
+        const decoded = Buffer.from(file.originalname, "latin1").toString("utf8");
+        if (decoded && !decoded.includes("\ufffd") && decoded !== file.originalname) {
+          material_name = decoded;
+        }
+      } catch (_) {}
+    }
 
     // Save to Database
     const newSession = await liveSessionsQueries.insertLiveSession({
@@ -248,7 +258,14 @@ const liveSessionsService = {
         }
       }
       updates.material_file_path = file.path;
-      updates.material_name = file.originalname;
+      let material_name = file.originalname;
+      try {
+        const decoded = Buffer.from(file.originalname, "latin1").toString("utf8");
+        if (decoded && !decoded.includes("\ufffd") && decoded !== file.originalname) {
+          material_name = decoded;
+        }
+      } catch (_) {}
+      updates.material_name = material_name;
     } else if (data.remove_material === true || data.remove_material === "true") {
       if (existing.material_file_path) {
         const { resolveStoredPath } = require("../../utils/fileStorage");
