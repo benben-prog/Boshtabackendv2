@@ -101,13 +101,20 @@ const updateAssignment = async (assignmentId, assignmentData) => {
   );
   const submissionCount = parseInt(submissionCountResult.rows[0]?.count || 0);
 
+  const sanitizedDeadline =
+    deadline && typeof deadline === "string" && deadline.trim() !== ""
+      ? deadline.trim()
+      : deadline instanceof Date
+      ? deadline.toISOString()
+      : null;
+
   // If there are submissions, restrict update to title, description, deadline only
   if (submissionCount > 0) {
     const result = await query(assignmentQueries.updateAssignmentRestricted, [
       assignmentId,
       title ?? null,
       description ?? null,
-      deadline ?? null,
+      sanitizedDeadline,
     ]);
     return result.rows[0];
   }
@@ -117,8 +124,8 @@ const updateAssignment = async (assignmentId, assignmentData) => {
     assignmentId,
     title ?? null,
     description ?? null,
-    deadline ?? null,
-    full_mark ?? null,
+    sanitizedDeadline,
+    full_mark !== undefined && full_mark !== null && full_mark !== "" ? Number(full_mark) : null,
     file_path ?? null,
     is_closed !== undefined && is_closed !== null ? parseInt(is_closed) : null,
   ]);

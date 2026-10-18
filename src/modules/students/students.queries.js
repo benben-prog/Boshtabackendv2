@@ -262,8 +262,12 @@ SELECT
   gr.name AS group_name
 FROM students s
 LEFT JOIN grades g ON s.grade_id = g.id AND g.deleted = 0
-WHERE s.barcode = $1
-   OR (s.barcode ~ '^[0-9]+$' AND $1::text ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM $1::text))
+LEFT JOIN groups gr ON s.group_id = gr.id AND gr.deleted = 0
+WHERE (
+  s.barcode = TRIM($1::text)
+  OR (s.barcode ~ '^[0-9]+$' AND TRIM($1::text) ~ '^[0-9]+$' AND TRIM(LEADING '0' FROM s.barcode) = TRIM(LEADING '0' FROM TRIM($1::text)))
+)
+AND s.deleted = 0
 LIMIT 1
 `;
 
