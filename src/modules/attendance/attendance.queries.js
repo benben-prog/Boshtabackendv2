@@ -349,11 +349,20 @@ WHERE student_id = $1
   AND attendance_date = DATE(NOW() AT TIME ZONE 'Africa/Cairo')
 `;
 
-// Record attendance with session - uses ON CONFLICT to prevent race condition
+// Record attendance with session - uses ON CONFLICT to prevent race condition and update existing absent record to present makeup
 const recordAttendanceWithSession = `
 INSERT INTO attendance (student_id, group_id, grade_id, attendance_date, status, attendance_time, method, is_makeup, makeup_group_id)
 VALUES ($1, $2, $3, DATE(NOW() AT TIME ZONE 'Africa/Cairo'), 'present', NOW() AT TIME ZONE 'Africa/Cairo', 'barcode', $4, $5)
-ON CONFLICT (student_id, attendance_date) DO NOTHING
+ON CONFLICT (student_id, attendance_date) 
+DO UPDATE SET 
+  group_id = EXCLUDED.group_id,
+  grade_id = EXCLUDED.grade_id,
+  status = 'present',
+  attendance_time = EXCLUDED.attendance_time,
+  method = EXCLUDED.method,
+  is_makeup = EXCLUDED.is_makeup,
+  makeup_group_id = EXCLUDED.makeup_group_id
+WHERE attendance.status = 'absent'
 RETURNING *
 `;
 

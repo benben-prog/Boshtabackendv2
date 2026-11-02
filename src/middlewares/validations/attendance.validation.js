@@ -59,9 +59,10 @@ const scanBarcodeSchema = Joi.object({
   group_id: Joi.number().integer().positive().required().messages({
     "any.required": "المجموعة مطلوبة",
   }),
-  grade_id: Joi.number().integer().positive().required().messages({
-    "any.required": "الصف الدراسي مطلوب",
+  grade_id: Joi.number().integer().positive().empty(["", 0, "0", null]).allow(null).optional().messages({
+    "number.base": "الصف الدراسي يجب أن يكون رقماً",
   }),
+  session_id: Joi.number().integer().positive().empty(["", 0, "0", null]).allow(null).optional(),
 });
 
 // Close session schema

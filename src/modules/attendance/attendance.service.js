@@ -321,6 +321,9 @@ const scanBarcode = async (barcode, sessionData) => {
     );
   }
 
+  // Fallback to session's grade_id if grade_id is missing or zero
+  const effectiveGradeId = Number(grade_id) || Number(session.grade_id);
+
   // Determine if makeup
   let is_makeup = 0;
   let makeup_group_id = null;
@@ -329,18 +332,23 @@ const scanBarcode = async (barcode, sessionData) => {
     is_makeup = 0;
   } else if (
     Number(session.is_makeup_enabled) === 1 &&
-    Number(student.grade_id) === Number(grade_id)
+    Number(student.grade_id) === Number(effectiveGradeId)
   ) {
     is_makeup = 1;
     makeup_group_id = student.group_id;
+  } else if (
+    Number(session.is_makeup_enabled) === 1 &&
+    Number(student.grade_id) !== Number(effectiveGradeId)
+  ) {
+    throw new Error("لا يمكن تسجيل حضور تعويضي لطالب من مرحلة دراسية مختلفة عن مرحلة هذه المجموعة");
   } else {
-    throw new Error("الطالب غير تابع لهذه المجموعة");
+    throw new Error("الطالب غير تابع لهذه المجموعة (الحضور التعويضي غير مفعل)");
   }
 
-  // Record attendance - ON CONFLICT prevents race condition
+  // Record attendance - ON CONFLICT handles existing absent record or prevents duplicate
   const attendanceResult = await query(
     attendanceQueries.recordAttendanceWithSession,
-    [student.id, group_id, grade_id, is_makeup, makeup_group_id],
+    [student.id, group_id, effectiveGradeId, is_makeup, makeup_group_id],
   );
 
   // If no row returned, student was already marked
