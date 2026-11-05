@@ -9,53 +9,105 @@ const playlistVideoQueries = require("../playlist_videos/playlist_videos.queries
  * Returns an authenticated OAuth2 client and YouTube API instance.
  * Prioritizes the central YOUTUBE_REFRESH_TOKEN from environment if set,
  * otherwise falls back to the database tokens for the user/teacher/super_admin.
+ * Handles invalid_grant gracefully with clear error messages.
  */
-const getYouTubeClient = async () => {
+const getAuthenticatedYouTubeClient = async () => {
+  let lastError = null;
+
   // 1. Try central environment token (dedicated YouTube upload channel)
   if (env.YOUTUBE_REFRESH_TOKEN && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
-    const oauth2Client = new google.auth.OAuth2(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_CLIENT_SECRET,
-      env.GOOGLE_REDIRECT_URI,
-    );
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        env.GOOGLE_CLIENT_ID,
+        env.GOOGLE_CLIENT_SECRET,
+        env.GOOGLE_REDIRECT_URI,
+      );
 
-    oauth2Client.setCredentials({
-      refresh_token: env.YOUTUBE_REFRESH_TOKEN,
-    });
+      oauth2Client.setCredentials({
+        refresh_token: env.YOUTUBE_REFRESH_TOKEN,
+      });
 
-    const youtube = google.youtube({ version: "v3", auth: oauth2Client });
-    return { oauth2Client, youtube, isCentral: true };
+      oauth2Client.on("tokens", async (newTokens) => {
+        try {
+          if (newTokens.refresh_token) {
+            await googleAuth.saveYouTubeToken(newTokens, 1);
+          }
+        } catch (err) {
+          console.error("Failed to update refreshed Google tokens:", err.message);
+        }
+      });
+
+      const tokenResponse = await oauth2Client.getAccessToken();
+      const accessToken = tokenResponse?.token || tokenResponse;
+      if (accessToken) {
+        const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+        return { oauth2Client, youtube, accessToken, isCentral: true };
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn("Central YOUTUBE_REFRESH_TOKEN failed, attempting DB fallback:", err.message);
+    }
   }
 
   // 2. Query database for any token record that has explicit youtube scope
-  const ytTokenRes = await query(
-    "SELECT * FROM google_tokens WHERE scope LIKE '%youtube%' ORDER BY updated_at DESC LIMIT 1",
-  );
+  try {
+    const ytTokenRes = await query(
+      "SELECT * FROM google_tokens WHERE scope LIKE '%youtube%' AND refresh_token IS NOT NULL ORDER BY updated_at DESC LIMIT 1",
+    );
 
-  if (ytTokenRes.rows.length) {
-    const record = ytTokenRes.rows[0];
-    const oauth2Client = googleAuth.getOAuth2Client();
-    oauth2Client.setCredentials({
-      access_token: record.access_token,
-      refresh_token: record.refresh_token,
-      expiry_date: record.expiry_date ? Number(record.expiry_date) : null,
-    });
+    if (ytTokenRes.rows.length) {
+      const record = ytTokenRes.rows[0];
+      const oauth2Client = googleAuth.getOAuth2Client();
+      oauth2Client.setCredentials({
+        access_token: record.access_token,
+        refresh_token: record.refresh_token,
+        expiry_date: record.expiry_date ? Number(record.expiry_date) : null,
+      });
 
-    oauth2Client.on("tokens", async (newTokens) => {
-      try {
-        await googleAuth.saveUserTokens(record.user_id, newTokens);
-      } catch (err) {
-        console.error("Failed to update refreshed Google tokens:", err.message);
+      oauth2Client.on("tokens", async (newTokens) => {
+        try {
+          await googleAuth.saveYouTubeToken(newTokens, record.user_id);
+        } catch (err) {
+          console.error("Failed to update refreshed Google tokens:", err.message);
+        }
+      });
+
+      const tokenResponse = await oauth2Client.getAccessToken();
+      const accessToken = tokenResponse?.token || tokenResponse;
+      if (accessToken) {
+        const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+        return { oauth2Client, youtube, accessToken, isCentral: true };
       }
-    });
-
-    const youtube = google.youtube({ version: "v3", auth: oauth2Client });
-    return { oauth2Client, youtube, isCentral: true };
+    }
+  } catch (err) {
+    lastError = err;
+    console.warn("DB YouTube token fallback failed:", err.message);
   }
 
-  const error = new Error("قناة YouTube المركزية غير مهيأة أو مربوطة في النظام (يرجى ضبط YOUTUBE_REFRESH_TOKEN)");
+  const isInvalidGrant =
+    lastError &&
+    (lastError.message === "invalid_grant" ||
+      lastError.response?.data?.error === "invalid_grant" ||
+      (typeof lastError.message === "string" && lastError.message.includes("invalid_grant")));
+
+  if (isInvalidGrant) {
+    const error = new Error(
+      "انتهت صلاحية ربط قناة YouTube المركزية أو حساب Google (خطأ: invalid_grant). يرجى إعادة ربط حساب Google وتجديد التوكن الخاص بالقناة.",
+    );
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const error = new Error(
+    "قناة YouTube المركزية غير مهيأة أو مربوطة في النظام (يرجى ضبط YOUTUBE_REFRESH_TOKEN)",
+  );
   error.statusCode = 500;
   throw error;
+};
+
+const getYouTubeClient = async () => {
+  const { oauth2Client, youtube, isCentral } = await getAuthenticatedYouTubeClient();
+  return { oauth2Client, youtube, isCentral };
 };
 
 /**
@@ -63,7 +115,7 @@ const getYouTubeClient = async () => {
  */
 const getChannelInfo = async (userId = null) => {
   try {
-    const { youtube } = await getYouTubeClient(userId);
+    const { youtube } = await getAuthenticatedYouTubeClient();
     const res = await youtube.channels.list({
       part: ["snippet", "statistics"],
       mine: true,
@@ -86,6 +138,18 @@ const getChannelInfo = async (userId = null) => {
       video_count: Number(channel.statistics?.videoCount || 0),
     };
   } catch (error) {
+    if (
+      error.statusCode === 401 ||
+      error.message === "invalid_grant" ||
+      error.response?.data?.error === "invalid_grant" ||
+      error.message?.includes("invalid_grant")
+    ) {
+      return {
+        is_connected: false,
+        needs_reauth: true,
+        message: "انتهت صلاحية ربط قناة YouTube (invalid_grant)، يرجى إعادة ربط القناة في المنصة لتجديد التوكن.",
+      };
+    }
     if (error.code === 403 || error.message?.includes("quota")) {
       const err = new Error("تم استهلاك الحصة اليومية المتاحة لـ YouTube API");
       err.statusCode = 429;
@@ -128,20 +192,8 @@ const validateUpload = async ({ grade_id, playlist_id, title, file_size, mime_ty
     }
   }
 
-  // 3. Check Channel / Token availability
-  let hasToken = Boolean(env.YOUTUBE_REFRESH_TOKEN);
-  if (!hasToken) {
-    const ytTokenRes = await query(
-      "SELECT id FROM google_tokens WHERE scope LIKE '%youtube%' LIMIT 1",
-    );
-    hasToken = ytTokenRes.rows.length > 0;
-  }
-
-  if (!hasToken) {
-    const error = new Error("قناة YouTube المركزية غير متصلة بالنظام");
-    error.statusCode = 500;
-    throw error;
-  }
+  // 3. Check Channel / Token availability and validity
+  await getAuthenticatedYouTubeClient();
 
   return {
     valid: true,
@@ -178,9 +230,7 @@ const initResumableUpload = async ({
   // Validate basic requirements first
   await validateUpload({ grade_id, playlist_id, title: finalTitle, file_size, mime_type });
 
-  const { oauth2Client } = await getYouTubeClient();
-  const tokenResponse = await oauth2Client.getAccessToken();
-  const accessToken = tokenResponse?.token || tokenResponse;
+  const { accessToken } = await getAuthenticatedYouTubeClient();
 
   if (!accessToken) {
     const error = new Error("فشل الحصول على تصريح الوصول من Google");
@@ -195,7 +245,7 @@ const initResumableUpload = async ({
       "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
       {
         snippet: {
-          title: title.trim(),
+          title: finalTitle,
           description: (description || "").trim(),
           categoryId: "27", // Education category
         },
@@ -225,7 +275,7 @@ const initResumableUpload = async ({
 
     return {
       upload_url: uploadUrl,
-      title: title.trim(),
+      title: finalTitle,
       grade_id: Number(grade_id),
       playlist_id: playlist_id ? Number(playlist_id) : null,
       privacy_status: privacy_status || "unlisted",
@@ -233,6 +283,18 @@ const initResumableUpload = async ({
   } catch (error) {
     const googleReason = error.response?.data?.error?.errors?.[0]?.reason;
     const googleMsg = error.response?.data?.error?.message;
+
+    if (
+      googleMsg?.includes("invalid_grant") ||
+      error.message?.includes("invalid_grant") ||
+      error.response?.data?.error === "invalid_grant"
+    ) {
+      const err = new Error(
+        "انتهت صلاحية ربط قناة YouTube أو حساب Google (invalid_grant). يرجى إعادة ربط حساب Google وتجديد توكن القناة.",
+      );
+      err.statusCode = 401;
+      throw err;
+    }
 
     if (googleReason === "quotaExceeded" || (googleMsg && googleMsg.toLowerCase().includes("quota"))) {
       const quotaErr = new Error(
@@ -334,6 +396,7 @@ const confirmUpload = async ({
 
 module.exports = {
   getYouTubeClient,
+  getAuthenticatedYouTubeClient,
   getChannelInfo,
   validateUpload,
   initResumableUpload,

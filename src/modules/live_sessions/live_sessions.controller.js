@@ -111,12 +111,69 @@ const liveSessionsController = {
       }
 
       if (!state) {
+        // Fallback: If code arrived without state, try to exchange and save as YouTube token
+        try {
+          const googleAuth = require("../../utils/googleAuth");
+          const tokens = await googleAuth.exchangeCodeForTokens(code);
+          if (tokens.refresh_token) {
+            await googleAuth.saveYouTubeToken(tokens, 1);
+            return res.send(`
+              <!DOCTYPE html>
+              <html lang="ar" dir="rtl">
+              <head><meta charset="UTF-8"><title>تم الربط</title></head>
+              <body style="font-family: system-ui, sans-serif; text-align: center; padding: 50px; direction: rtl; background: #f8fafc;">
+                <div style="background: white; border-radius: 12px; padding: 30px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                  <div style="font-size: 48px;">✅</div>
+                  <h2 style="color: #059669;">تم ربط قناة YouTube وتحديث التوكن بنجاح!</h2>
+                  <p style="color: #64748b;">تم حفظ التوكن الجديد في النظام بنجاح ويمكنك الآن رفع الفيديوهات والمحاضرات.</p>
+                  <a href="${env.FRONTEND_URL || "https://boshta.benb3n.cloud"}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px;">العودة للمنصة</a>
+                </div>
+              </body>
+              </html>
+            `);
+          }
+        } catch (_) {}
+
         return res.redirect(
           appendParam(targetRedirect, "google_error", "معامل التحقق من الحالة state مفقود أو غير صالح"),
         );
       }
 
       const callbackResult = await liveSessionsService.handleGoogleCallback(code, state);
+
+      if (callbackResult.purpose === "youtube_oauth") {
+        if (callbackResult.redirectTo) {
+          return res.redirect(appendParam(callbackResult.redirectTo, "youtube_connected", "true"));
+        }
+
+        return res.send(`
+          <!DOCTYPE html>
+          <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ربط قناة YouTube المركزية</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 90vh; margin: 0; }
+              .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); max-width: 480px; text-align: center; }
+              .icon { font-size: 56px; margin-bottom: 16px; }
+              h1 { color: #059669; font-size: 22px; margin: 0 0 12px; }
+              p { color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px; }
+              .btn { display: inline-block; background: #2563eb; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+              .btn:hover { background: #1d4ed8; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="icon">✅</div>
+              <h1>تم ربط وتحديث قناة YouTube بنجاح!</h1>
+              <p>تم حفظ التوكن الجديد بنجاح في النظام وتفعيله فوراً. يمكنك الآن العودة إلى لوحة التحكم والبدء في رفع المحاضرات بدون أي مشاكل.</p>
+              <a href="${env.FRONTEND_URL || "https://boshta.benb3n.cloud"}" class="btn">العودة للمنصة</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
 
       if (callbackResult.redirectTo) {
         targetRedirect = callbackResult.redirectTo;

@@ -47,17 +47,46 @@ const generateAuthUrl = (userId, redirectTo = null) => {
 };
 
 /**
+ * Generate YouTube OAuth consent URL for the central platform upload channel
+ */
+const generateYouTubeAuthUrl = (redirectTo = null, userId = 1) => {
+  const oauth2Client = getOAuth2Client();
+
+  const state = jwt.sign(
+    { userId: userId || 1, redirectTo: redirectTo || null, purpose: "youtube_oauth" },
+    env.JWT_SECRET,
+    { expiresIn: "24h" },
+  );
+
+  const scopes = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+  ];
+
+  return oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: scopes,
+    state,
+  });
+};
+
+/**
  * Verifies the state parameter returned by Google
  */
 const verifyOAuthState = (state) => {
   try {
     const decoded = jwt.verify(state, env.JWT_SECRET);
-    if (decoded.purpose !== "google_oauth") {
+    if (decoded.purpose !== "google_oauth" && decoded.purpose !== "youtube_oauth") {
       throw new Error("رمز الحالة غير صالح");
     }
     return {
       userId: decoded.userId,
       redirectTo: decoded.redirectTo || null,
+      purpose: decoded.purpose || "google_oauth",
     };
   } catch (err) {
     throw new Error("رمز التحقق من الحالة منتهي الصلاحية أو غير صحيح");
@@ -112,6 +141,42 @@ const saveUserTokens = async (userId, tokens) => {
   `,
     [userId, access_token, refresh_token || null, scope, token_type, expiry_date, email],
   );
+};
+
+/**
+ * Saves or updates central YouTube channel tokens in both database and environment
+ */
+const saveYouTubeToken = async (tokens, userId = 1) => {
+  const { refresh_token } = tokens;
+
+  // 1. Update runtime env and persist to .env file
+  if (refresh_token) {
+    env.YOUTUBE_REFRESH_TOKEN = refresh_token;
+
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const rootDir = path.join(__dirname, "../../");
+      const envPath = path.join(rootDir, ".env");
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, "utf-8");
+        if (envContent.includes("YOUTUBE_REFRESH_TOKEN=")) {
+          envContent = envContent.replace(
+            /YOUTUBE_REFRESH_TOKEN=.*/g,
+            `YOUTUBE_REFRESH_TOKEN=${refresh_token}`,
+          );
+        } else {
+          envContent += `\n# YouTube Central Channel Token\nYOUTUBE_REFRESH_TOKEN=${refresh_token}\n`;
+        }
+        fs.writeFileSync(envPath, envContent, "utf-8");
+      }
+    } catch (err) {
+      console.error("Failed to persist YOUTUBE_REFRESH_TOKEN to .env:", err.message);
+    }
+  }
+
+  // 2. Save tokens in google_tokens table with explicit youtube scope
+  await saveUserTokens(userId, tokens);
 };
 
 /**
@@ -298,9 +363,11 @@ const findDriveRecording = async (userId, title, startTime) => {
 module.exports = {
   getOAuth2Client,
   generateAuthUrl,
+  generateYouTubeAuthUrl,
   verifyOAuthState,
   exchangeCodeForTokens,
   saveUserTokens,
+  saveYouTubeToken,
   getUserTokens,
   deleteUserTokens,
   getAuthenticatedClient,

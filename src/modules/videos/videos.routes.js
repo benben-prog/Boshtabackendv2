@@ -18,6 +18,7 @@ const {
 // YOUTUBE DIRECT UPLOAD
 // ============================================
 
+routes.get("/youtube/auth-url", youtubeController.getAuthUrl);
 routes.get("/youtube/channel", youtubeController.getChannelInfo);
 routes.post(
   "/youtube/validate",

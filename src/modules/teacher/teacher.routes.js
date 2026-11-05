@@ -496,6 +496,7 @@ routes.get(
 /* ============================================
    YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
    ============================================ */
+routes.get(["/youtube/auth-url", "/videos/youtube/auth-url"], youtubeController.getAuthUrl);
 routes.get(["/youtube/channel", "/videos/youtube/channel"], youtubeController.getChannelInfo);
 routes.post(
   ["/youtube/validate", "/videos/youtube/validate"],

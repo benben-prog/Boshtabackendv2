@@ -28,8 +28,24 @@ const liveSessionsService = {
   handleGoogleCallback: async (code, state) => {
     const verified = googleAuth.verifyOAuthState(state);
     const tokens = await googleAuth.exchangeCodeForTokens(code);
+
+    if (verified.purpose === "youtube_oauth") {
+      await googleAuth.saveYouTubeToken(tokens, verified.userId || 1);
+      return {
+        userId: verified.userId,
+        redirectTo: verified.redirectTo,
+        purpose: "youtube_oauth",
+        success: true,
+      };
+    }
+
     await googleAuth.saveUserTokens(verified.userId, tokens);
-    return { userId: verified.userId, redirectTo: verified.redirectTo, success: true };
+    return {
+      userId: verified.userId,
+      redirectTo: verified.redirectTo,
+      purpose: "google_oauth",
+      success: true,
+    };
   },
 
   // 2b. Direct exchange code from API

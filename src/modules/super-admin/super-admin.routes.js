@@ -784,6 +784,7 @@ routes.put("/videos/:videoId", validate(updateVideoSchema), videoController.upda
 routes.delete("/videos/:videoId", videoController.hardDeleteVideo);
 
 /* ---------- YouTube Direct Upload ---------- */
+routes.get(["/youtube/auth-url", "/videos/youtube/auth-url"], youtubeController.getAuthUrl);
 routes.get(["/youtube/channel", "/videos/youtube/channel"], youtubeController.getChannelInfo);
 routes.post(
   ["/youtube/validate", "/videos/youtube/validate"],

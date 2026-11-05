@@ -1,8 +1,24 @@
 const youtubeService = require("./youtube.service");
+const googleAuth = require("../../utils/googleAuth");
 const { logActivity } = require("../../utils/activityLogger");
 const { cleanupUploadedFiles } = require("../../utils/fileStorage");
 
 const youtubeController = {
+  // 0. Get YouTube OAuth Authorization URL
+  getAuthUrl: async (req, res, next) => {
+    try {
+      const redirectTo = req.query.redirect_to || req.query.redirectTo || null;
+      const url = googleAuth.generateYouTubeAuthUrl(redirectTo, req.clientId);
+      return res.status(200).json({
+        success: true,
+        message: "تم توليد رابط ربط قناة YouTube بنجاح",
+        data: { url },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   // 1. Get Connected Channel Info
   getChannelInfo: async (req, res, next) => {
     try {

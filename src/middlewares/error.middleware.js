@@ -55,6 +55,18 @@ const errorHandler = (err, req, res, next) => {
     message = "انتهت صلاحية التوكن";
   }
 
+  // Handle Google OAuth invalid_grant errors
+  if (
+    err.message === "invalid_grant" ||
+    err.code === "invalid_grant" ||
+    err.response?.data?.error === "invalid_grant" ||
+    (typeof err.message === "string" && err.message.toLowerCase().includes("invalid_grant"))
+  ) {
+    statusCode = 401;
+    message =
+      "انتهت صلاحية ربط حساب Google / قناة YouTube أو تم إلغاؤها (invalid_grant). يرجى إعادة ربط حساب Google وتجديد توكن القناة.";
+  }
+
   // Handle JSON parse errors
   if (err.type === "entity.parse.failed") {
     statusCode = 400;
